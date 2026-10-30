@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, type InputHTMLAttributes } from 'react'
+import { Eye, EyeOff } from 'lucide-react'
 
 type Props = Omit<InputHTMLAttributes<HTMLInputElement>, 'type'>
 
@@ -9,14 +10,16 @@ export default function PasswordInput({ className = '', ...props }: Props) {
 
   return (
     <div className="relative">
-      <input {...props} type={visible ? 'text' : 'password'} className={`${className} pr-16`} />
+      <input {...props} type={visible ? 'text' : 'password'} className={`${className} pr-12`} />
       <button
         type="button"
         onClick={() => setVisible((v) => !v)}
         aria-label={visible ? 'Passwort verbergen' : 'Passwort anzeigen'}
-        className="absolute inset-y-0 right-0 mr-1 my-1 rounded-md px-3 text-xs font-medium text-[#0F60C6] hover:bg-blue-50"
+        className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-gray-500 transition-colors duration-200 hover:text-[#0F60C6]"
       >
-        {visible ? 'Verbergen' : 'Anzeigen'}
+        <span className="transition-transform duration-200 active:scale-90">
+          {visible ? <EyeOff size={20} /> : <Eye size={20} />}
+        </span>
       </button>
     </div>
   )
