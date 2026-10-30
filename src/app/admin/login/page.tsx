@@ -2,8 +2,6 @@
 
 import { useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabaseClient'
-
 const inputClass =
   'w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-[#0F60C6] focus:outline-none focus:ring-2 focus:ring-[#0F60C6]/30'
 
@@ -19,24 +17,27 @@ export default function AdminLoginPage() {
     setLoading(true)
     setError('')
 
-    const { data, error: queryError } = await supabase
-      .from('admins')
-      .select('id, email')
-      .eq('email', email.trim())
-      .eq('password', password)
-      .maybeSingle()
-
-    setLoading(false)
-    if (queryError) {
+    let res: Response
+    try {
+      res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
+    } catch {
+      setLoading(false)
       setError('Fehler beim Login. Bitte versuchen Sie es erneut.')
       return
     }
-    if (!data) {
-      setError('E-Mail oder Passwort ist falsch.')
+
+    setLoading(false)
+    if (!res.ok) {
+      setError(res.status === 401 ? 'E-Mail oder Passwort ist falsch.' : 'Fehler beim Login. Bitte versuchen Sie es erneut.')
       return
     }
 
-    localStorage.setItem('admin', JSON.stringify({ id: data.id, email: data.email }))
+    const data = (await res.json()) as { email: string }
+    localStorage.setItem('admin', JSON.stringify({ email: data.email }))
     router.push('/admin/dashboard')
   }
 
