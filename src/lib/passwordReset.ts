@@ -18,6 +18,8 @@ export function hashCode(accountType: AccountType, key: string, code: string) {
 
 export function resetMessage(accountType: AccountType, email: string, code: string, origin: string) {
   const link = `${origin}/${accountType}/passwort-vergessen?email=${encodeURIComponent(email)}&code=${code}`
+  const minutes = Math.round(CODE_TTL_MS / 60000)
+  const campaignHtml = CAMPAIGN_TEXT.replace(/&/g, '&amp;')
   return {
     subject: `${SITE_NAME} - Ihr Code zum Zurücksetzen des Passworts`,
     text: [
@@ -29,10 +31,9 @@ export function resetMessage(accountType: AccountType, email: string, code: stri
       ``,
       `Direkt zurücksetzen: ${link}`,
       ``,
-      `Der Code ist 10 Minuten gültig. Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren.`,
+      `Der Code ist ${minutes} Minuten gültig. Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren.`,
       ``,
       CAMPAIGN_TEXT,
-      `${SITE_NAME}`,
     ].join('\n'),
     html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;color:#111">
   <h2 style="color:#0F60C6;margin-bottom:8px">${SITE_NAME}</h2>
@@ -42,8 +43,8 @@ export function resetMessage(accountType: AccountType, email: string, code: stri
   <p style="margin:28px 0">
     <a href="${link}" style="background:#0F60C6;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:bold;display:inline-block">Hier klicken, um das Passwort zurückzusetzen</a>
   </p>
-  <p style="font-size:13px;color:#555">Der Code ist 10 Minuten gültig. Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren.</p>
-  <p style="font-size:13px;color:#555;margin-top:24px">${CAMPAIGN_TEXT}<br/>${SITE_NAME}</p>
+  <p style="font-size:13px;color:#555">Der Code ist ${minutes} Minuten gültig. Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren.</p>
+  <p style="font-size:13px;color:#555;margin-top:24px">${campaignHtml}</p>
 </div>`,
   }
 }
