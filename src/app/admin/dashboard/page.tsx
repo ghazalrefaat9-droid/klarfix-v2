@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { Settings, X } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
 import SettingsPanel from '@/components/admin/SettingsPanel'
 
@@ -31,13 +32,12 @@ type Request = {
   created_at: string
 }
 
-type Tab = 'requests' | 'partners' | 'stats' | 'settings'
+type Tab = 'requests' | 'partners' | 'stats'
 
 const TABS: { key: Tab; label: string }[] = [
   { key: 'requests', label: 'Alle Anfragen' },
   { key: 'partners', label: 'Partner' },
   { key: 'stats', label: 'Stats' },
-  { key: 'settings', label: 'Einstellungen' },
 ]
 
 export default function AdminDashboardPage() {
@@ -47,6 +47,7 @@ export default function AdminDashboardPage() {
   const [partners, setPartners] = useState<Partner[]>([])
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('')
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   const loadData = useCallback(async () => {
     const [reqRes, partnerRes] = await Promise.all([
@@ -281,7 +282,42 @@ export default function AdminDashboardPage() {
         </div>
       )}
 
-      {tab === 'settings' && <SettingsPanel onMessage={setMessage} />}
+      <button
+        type="button"
+        onClick={() => setSettingsOpen(true)}
+        aria-label="Einstellungen"
+        title="Einstellungen"
+        className="fixed bottom-6 end-6 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-white text-[#0F60C6] shadow-md ring-1 ring-blue-100 transition hover:-translate-y-0.5 hover:bg-blue-50 hover:shadow-lg"
+      >
+        <Settings className="h-5 w-5" />
+      </button>
+
+      {settingsOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setSettingsOpen(false)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-[#0F60C6]">Einstellungen</h2>
+              <button
+                type="button"
+                onClick={() => setSettingsOpen(false)}
+                aria-label="Schließen"
+                className="rounded-lg p-1 text-gray-500 hover:bg-gray-100"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <SettingsPanel onMessage={setMessage} />
+          </div>
+        </div>
+      )}
     </main>
   )
 }

@@ -12,37 +12,41 @@ export default function Footer() {
         <div>
           <p className="text-lg font-bold text-white">KlarFix</p>
           <p className="mt-2 text-sm">
-            {t('Reinigungsservice in Stuttgart und Umgebung.', 'خدمة تنظيف في شتوتغارت والمناطق المحيطة.')}
+            {t(
+              'Reinigungsservice in Stuttgart und Umgebung.',
+              'خدمة تنظيف في شتوتغارت والمناطق المحيطة.',
+              'Cleaning service in Stuttgart and surroundings.',
+            )}
           </p>
         </div>
         <div className="text-sm">
-          <p className="mb-2 font-semibold text-white">{t('Navigation', 'التنقل')}</p>
+          <p className="mb-2 font-semibold text-white">{t('Navigation', 'التنقل', 'Navigation')}</p>
           <ul className="space-y-1">
             <li>
               <Link href="/buchen" className="hover:text-white">
-                {t('Jetzt buchen', 'احجز الآن')}
+                {t('Jetzt buchen', 'احجز الآن', 'Book now')}
               </Link>
             </li>
             <li>
               <Link href="/partner/werden" className="hover:text-white">
-                {t('Partner werden', 'كن شريكاً')}
+                {t('Partner werden', 'كن شريكاً', 'Become a partner')}
               </Link>
             </li>
             <li>
               <Link href="/partner/login" className="hover:text-white">
-                {t('Partner-Login', 'دخول الشركاء')}
+                {t('Partner-Login', 'دخول الشركاء', 'Partner login')}
               </Link>
             </li>
           </ul>
         </div>
         <div className="text-sm">
-          <p className="mb-2 font-semibold text-white">{t('Rechtliches', 'قانوني')}</p>
+          <p className="mb-2 font-semibold text-white">{t('Rechtliches', 'قانوني', 'Legal')}</p>
           <ul className="space-y-1">
             <li>
-              <span>{t('Impressum', 'بيانات الشركة')}</span>
+              <span>{t('Impressum', 'بيانات الشركة', 'Imprint')}</span>
             </li>
             <li>
-              <span>{t('Datenschutz', 'سياسة الخصوصية')}</span>
+              <span>{t('Datenschutz', 'سياسة الخصوصية', 'Privacy policy')}</span>
             </li>
           </ul>
         </div>
