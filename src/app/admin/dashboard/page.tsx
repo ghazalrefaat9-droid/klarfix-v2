@@ -189,12 +189,21 @@ export default function AdminDashboardPage() {
 
   async function verifyPartner(partnerId: string) {
     setMessage('')
-    const { error } = await supabase.from('partners').update({ verified: true }).eq('id', partnerId)
-    if (error) {
-      setMessage('Verifizierung fehlgeschlagen.')
+    const res = await fetch('/api/admin/verify-partner', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ partnerId }),
+    })
+    const data = (await res.json().catch(() => null)) as { error?: string; emailSent?: boolean; warning?: string } | null
+    if (!res.ok) {
+      setMessage(data?.error ?? 'Verifizierung fehlgeschlagen.')
       return
     }
-    setMessage('Partner verifiziert.')
+    if (data?.emailSent) {
+      setMessage('Partner verifiziert. Annahme-E-Mail wurde gesendet.')
+    } else {
+      setMessage(data?.warning ?? 'Partner verifiziert.')
+    }
     await loadData()
   }
 
