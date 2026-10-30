@@ -137,13 +137,15 @@ export default function SettingsPanel({ onMessage }: { onMessage: (msg: string) 
           />
         </label>
         {error && <p className="text-sm text-red-600">{error}</p>}
-        <button
-          type="submit"
-          disabled={saving}
-          className="rounded-lg bg-[#0F60C6] px-5 py-2.5 font-semibold text-white hover:opacity-90 disabled:opacity-50"
-        >
-          {saving ? 'Speichern…' : 'Einstellungen speichern'}
-        </button>
+        <div className="flex justify-end">
+          <button
+            type="submit"
+            disabled={saving}
+            className="rounded-lg bg-[#0F60C6] px-5 py-2.5 font-semibold text-white hover:opacity-90 disabled:opacity-50"
+          >
+            {saving ? 'Speichern…' : 'Einstellungen speichern'}
+          </button>
+        </div>
       </section>
     </form>
   )

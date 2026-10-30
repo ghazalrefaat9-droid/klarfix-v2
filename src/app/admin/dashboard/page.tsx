@@ -219,7 +219,7 @@ export default function AdminDashboardPage() {
                 <th className="px-4 py-3">Stadt / PLZ</th>
                 <th className="px-4 py-3">Services</th>
                 <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Aktion</th>
+                <th className="px-4 py-3 text-right">Aktion</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -241,15 +241,14 @@ export default function AdminDashboardPage() {
                       {p.verified ? 'Verifiziert' : 'Ausstehend'}
                     </span>
                   </td>
-                  <td className="px-4 py-3">
-                    {!p.verified && (
-                      <button
-                        onClick={() => verifyPartner(p.id)}
-                        className="rounded-lg bg-[#0F60C6] px-3 py-1 text-white hover:opacity-90"
-                      >
-                        Verify
-                      </button>
-                    )}
+                  <td className="px-4 py-3 text-right">
+                    <button
+                      onClick={() => verifyPartner(p.id)}
+                      disabled={p.verified}
+                      className="w-28 rounded-lg bg-[#0F60C6] px-3 py-1 text-white hover:opacity-90 disabled:bg-gray-300 disabled:text-gray-600"
+                    >
+                      {p.verified ? 'Verifiziert' : 'Verify'}
+                    </button>
                   </td>
                 </tr>
               ))}
