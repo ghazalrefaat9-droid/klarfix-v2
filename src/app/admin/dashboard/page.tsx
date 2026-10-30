@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { Settings, X } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
@@ -32,6 +32,74 @@ type Request = {
   created_at: string
 }
 
+function DetailModal({
+  title,
+  subtitle,
+  onClose,
+  footer,
+  children,
+}: {
+  title: string
+  subtitle?: string
+  onClose: () => void
+  footer?: ReactNode
+  children: ReactNode
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-5 flex items-start justify-between gap-4 border-b border-gray-100 pb-4">
+          <div className="min-w-0">
+            <h2 className="break-words text-xl font-bold text-[#0F60C6]">{title}</h2>
+            {subtitle && <p className="text-sm text-gray-500">{subtitle}</p>}
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Schließen"
+            className="shrink-0 rounded-lg p-1 text-gray-500 hover:bg-gray-100"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        {children}
+        {footer && <div className="mt-6 flex flex-wrap justify-end gap-3">{footer}</div>}
+      </div>
+    </div>
+  )
+}
+
+function DetailSection({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section>
+      <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">{title}</h3>
+      <dl className="grid gap-3 rounded-xl bg-gray-50 p-4 text-sm sm:grid-cols-2">{children}</dl>
+    </section>
+  )
+}
+
+function DetailField({
+  label,
+  value,
+  wide,
+}: {
+  label: string
+  value?: string | null
+  wide?: boolean
+}) {
+  return (
+    <div className={wide ? 'sm:col-span-2' : undefined}>
+      <dt className="text-gray-500">{label}</dt>
+      <dd className="break-words whitespace-pre-line font-medium text-gray-900">{value || '–'}</dd>
+    </div>
+  )
+}
+
 type Tab = 'requests' | 'partners' | 'stats'
 
 const TABS: { key: Tab; label: string }[] = [
@@ -48,6 +116,7 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('')
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [detail, setDetail] = useState<{ kind: 'request' | 'partner'; id: string } | null>(null)
 
   const loadData = useCallback(async () => {
     const [reqRes, partnerRes] = await Promise.all([
@@ -118,6 +187,10 @@ export default function AdminDashboardPage() {
     return <main className="p-8 text-center text-gray-500">Lade…</main>
   }
 
+  const selectedRequest = detail?.kind === 'request' ? requests.find((r) => r.id === detail.id) ?? null : null
+  const selectedPartner = detail?.kind === 'partner' ? partners.find((p) => p.id === detail.id) ?? null : null
+  const formatDate = (iso: string) => new Date(iso).toLocaleString('de-DE')
+
   const stats = {
     totalRequests: requests.length,
     newRequests: requests.filter((r) => r.status === 'new').length,
@@ -168,7 +241,7 @@ export default function AdminDashboardPage() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {requests.map((r) => (
-                <tr key={r.id} className="align-top">
+                <tr key={r.id} onClick={() => setDetail({ kind: 'request', id: r.id })} className="align-top cursor-pointer hover:bg-blue-50">
                   <td className="px-4 py-3">{new Date(r.created_at).toLocaleDateString('de-DE')}</td>
                   <td className="px-4 py-3">{r.customer_name || '–'}</td>
                   <td className="px-4 py-3">
@@ -184,7 +257,8 @@ export default function AdminDashboardPage() {
                   <td className="px-4 py-3">
                     <select
                       value={r.partner_id ?? ''}
-                      onChange={(e) => assignPartner(r.id, e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
+                                            onChange={(e) => assignPartner(r.id, e.target.value)}
                       className="rounded-lg border border-gray-300 px-2 py-1"
                     >
                       <option value="">– kein Partner –</option>
@@ -225,7 +299,7 @@ export default function AdminDashboardPage() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {partners.map((p) => (
-                <tr key={p.id}>
+                <tr key={p.id} onClick={() => setDetail({ kind: 'partner', id: p.id })} className="cursor-pointer hover:bg-blue-50">
                   <td className="px-4 py-3 font-medium">{p.company_name}</td>
                   <td className="px-4 py-3">{p.email}</td>
                   <td className="px-4 py-3">{p.phone || '–'}</td>
@@ -244,7 +318,10 @@ export default function AdminDashboardPage() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     <button
-                      onClick={() => verifyPartner(p.id)}
+                      onClick={(e) => {
+                                              e.stopPropagation()
+                                              verifyPartner(p.id)
+                                            }}
                       disabled={p.verified}
                       className="w-28 rounded-lg bg-[#0F60C6] px-3 py-1 text-white hover:opacity-90 disabled:bg-gray-300 disabled:text-gray-600"
                     >
@@ -291,6 +368,82 @@ export default function AdminDashboardPage() {
       >
         <Settings className="h-5 w-5" />
       </button>
+
+      {selectedRequest && (
+        <DetailModal
+          title={selectedRequest.service_type}
+          subtitle={`Eingegangen am ${formatDate(selectedRequest.created_at)}`}
+          onClose={() => setDetail(null)}
+        >
+          <div className="space-y-5">
+            <DetailSection title="Kunde">
+              <DetailField label="Name" value={selectedRequest.customer_name} />
+              <DetailField label="E-Mail" value={selectedRequest.customer_email} />
+              <DetailField label="Telefon" value={selectedRequest.customer_phone} />
+            </DetailSection>
+            <DetailSection title="Auftrag">
+              <DetailField label="Leistung" value={selectedRequest.service_type} />
+              <DetailField label="PLZ" value={selectedRequest.postcode} />
+              <DetailField label="Fläche" value={selectedRequest.area_sqm ? `${selectedRequest.area_sqm} m²` : null} />
+              <DetailField label="Status" value={selectedRequest.status} />
+              <DetailField
+                label="Zugewiesener Partner"
+                value={partners.find((p) => p.id === selectedRequest.partner_id)?.company_name ?? null}
+              />
+              <DetailField label="Anfrage-ID" value={selectedRequest.id} />
+            </DetailSection>
+            <DetailSection title="Nachricht">
+              <DetailField label="Nachricht" value={selectedRequest.message} wide />
+            </DetailSection>
+          </div>
+        </DetailModal>
+      )}
+
+      {selectedPartner && (
+        <DetailModal
+          title={selectedPartner.company_name}
+          subtitle={selectedPartner.verified ? 'Verifiziert' : 'Ausstehend'}
+          onClose={() => setDetail(null)}
+          footer={
+            <>
+              <button
+                type="button"
+                onClick={() => setDetail(null)}
+                className="rounded-lg border border-gray-300 px-4 py-2 font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Schließen
+              </button>
+              <button
+                type="button"
+                onClick={() => verifyPartner(selectedPartner.id)}
+                disabled={selectedPartner.verified}
+                className="rounded-lg bg-[#0F60C6] px-5 py-2 font-medium text-white hover:opacity-90 disabled:bg-gray-300 disabled:text-gray-600"
+              >
+                {selectedPartner.verified ? 'Verifiziert' : 'Verify'}
+              </button>
+            </>
+          }
+        >
+          <div className="space-y-5">
+            <DetailSection title="Firma">
+              <DetailField label="Firmenname" value={selectedPartner.company_name} />
+              <DetailField label="Status" value={selectedPartner.verified ? 'Verifiziert' : 'Ausstehend'} />
+              <DetailField label="Registriert am" value={formatDate(selectedPartner.created_at)} />
+            </DetailSection>
+            <DetailSection title="Kontakt">
+              <DetailField label="E-Mail" value={selectedPartner.email} />
+              <DetailField label="Telefon" value={selectedPartner.phone} />
+            </DetailSection>
+            <DetailSection title="Standort">
+              <DetailField label="Stadt" value={selectedPartner.city} />
+              <DetailField label="PLZ" value={selectedPartner.postcode} />
+            </DetailSection>
+            <DetailSection title="Leistungen">
+              <DetailField label="Reinigungsarten" value={selectedPartner.services?.join(', ') || null} wide />
+            </DetailSection>
+          </div>
+        </DetailModal>
+      )}
 
       {settingsOpen && (
         <div
