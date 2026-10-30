@@ -54,8 +54,8 @@ export async function POST(req: Request) {
     })
     if (error) throw new Error(error.message)
 
-    const msg = resetMessage(code)
-    await sendMail(account, msg.subject, msg.text)
+    const msg = resetMessage(accountType, email, code, new URL(req.url).origin)
+    await sendMail(account, msg.subject, msg.text, msg.html)
     return NextResponse.json({ message: GENERIC })
   } catch (err) {
     console.error('password request failed', err)

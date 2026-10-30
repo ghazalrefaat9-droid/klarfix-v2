@@ -16,7 +16,8 @@ export function hashCode(accountType: AccountType, key: string, code: string) {
   return createHash('sha256').update(`${accountType}:${key}:${code}`).digest('hex')
 }
 
-export function resetMessage(code: string) {
+export function resetMessage(accountType: AccountType, email: string, code: string, origin: string) {
+  const link = `${origin}/${accountType}/passwort-vergessen?email=${encodeURIComponent(email)}&code=${code}`
   return {
     subject: `${SITE_NAME} - Ihr Code zum Zurücksetzen des Passworts`,
     text: [
@@ -26,11 +27,24 @@ export function resetMessage(code: string) {
       ``,
       `Ihr Bestätigungscode lautet: ${code}`,
       ``,
+      `Direkt zurücksetzen: ${link}`,
+      ``,
       `Der Code ist 10 Minuten gültig. Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren.`,
       ``,
       CAMPAIGN_TEXT,
       `${SITE_NAME}`,
     ].join('\n'),
+    html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;color:#111">
+  <h2 style="color:#0F60C6;margin-bottom:8px">${SITE_NAME}</h2>
+  <p>Guten Tag,</p>
+  <p>Sie haben angefordert, Ihr Passwort bei ${SITE_NAME} zurückzusetzen.</p>
+  <p>Ihr Bestätigungscode lautet: <strong style="font-size:20px;letter-spacing:4px">${code}</strong></p>
+  <p style="margin:28px 0">
+    <a href="${link}" style="background:#0F60C6;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:bold;display:inline-block">Hier klicken, um das Passwort zurückzusetzen</a>
+  </p>
+  <p style="font-size:13px;color:#555">Der Code ist 10 Minuten gültig. Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren.</p>
+  <p style="font-size:13px;color:#555;margin-top:24px">${CAMPAIGN_TEXT}<br/>${SITE_NAME}</p>
+</div>`,
   }
 }
 

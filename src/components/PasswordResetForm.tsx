@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, type FormEvent } from 'react'
+import { Suspense, useState, type FormEvent } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import PasswordInput from '@/components/PasswordInput'
 
 const inputClass =
@@ -12,10 +13,15 @@ type Props = {
   loginHref: string
 }
 
-export default function PasswordResetForm({ accountType, loginHref }: Props) {
-  const [step, setStep] = useState<'email' | 'code' | 'done'>('email')
-  const [email, setEmail] = useState('')
-  const [code, setCode] = useState('')
+function ResetForm({ accountType, loginHref }: Props) {
+  const params = useSearchParams()
+  const linkEmail = params.get('email') ?? ''
+  const linkCode = params.get('code') ?? ''
+  const fromLink = !!linkEmail && /^\d{6}$/.test(linkCode)
+
+  const [step, setStep] = useState<'email' | 'code' | 'done'>(fromLink ? 'code' : 'email')
+  const [email, setEmail] = useState(linkEmail)
+  const [code, setCode] = useState(fromLink ? linkCode : '')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -172,5 +178,13 @@ export default function PasswordResetForm({ accountType, loginHref }: Props) {
         </div>
       )}
     </main>
+  )
+}
+
+export default function PasswordResetForm(props: Props) {
+  return (
+    <Suspense fallback={null}>
+      <ResetForm {...props} />
+    </Suspense>
   )
 }
