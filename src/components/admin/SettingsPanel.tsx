@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, type FormEvent } from 'react'
+import PasswordInput from '@/components/PasswordInput'
 
 const inputClass =
   'mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#0F60C6] focus:outline-none focus:ring-2 focus:ring-[#0F60C6]/30'
@@ -104,8 +105,7 @@ export default function SettingsPanel({ onMessage }: { onMessage: (msg: string) 
         </label>
         <label className="block text-sm font-medium">
           Neues Passwort (mind. 8 Zeichen, leer lassen, wenn unverändert)
-          <input
-            type="password"
+          <PasswordInput
             autoComplete="new-password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
@@ -114,8 +114,7 @@ export default function SettingsPanel({ onMessage }: { onMessage: (msg: string) 
         </label>
         <label className="block text-sm font-medium">
           Neues Passwort wiederholen
-          <input
-            type="password"
+          <PasswordInput
             autoComplete="new-password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
@@ -127,8 +126,7 @@ export default function SettingsPanel({ onMessage }: { onMessage: (msg: string) 
       <section className="space-y-4 border-t border-gray-200 pt-6">
         <label className="block text-sm font-medium">
           Aktuelles Passwort (zur Bestätigung erforderlich) *
-          <input
-            type="password"
+          <PasswordInput
             required
             autoComplete="current-password"
             value={currentPassword}

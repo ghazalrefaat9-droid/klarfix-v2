@@ -2,6 +2,8 @@
 
 import { useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
+import PasswordInput from '@/components/PasswordInput'
+
 const inputClass =
   'w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-[#0F60C6] focus:outline-none focus:ring-2 focus:ring-[#0F60C6]/30'
 
@@ -51,8 +53,7 @@ export default function AdminLoginPage() {
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium">Passwort</label>
-          <input
-            type="password"
+          <PasswordInput
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
