@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, type FormEvent } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import PasswordInput from '@/components/PasswordInput'
 
@@ -68,6 +69,9 @@ export default function AdminLoginPage() {
         >
           {loading ? 'Prüfe…' : 'Einloggen'}
         </button>
+        <Link href="/admin/passwort-vergessen" className="block text-center text-sm text-[#0F60C6] hover:underline">
+          Passwort vergessen?
+        </Link>
       </form>
     </main>
   )
