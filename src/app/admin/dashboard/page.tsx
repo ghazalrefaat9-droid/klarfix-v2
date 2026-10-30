@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
+import SettingsPanel from '@/components/admin/SettingsPanel'
 
 type Partner = {
   id: string
@@ -30,12 +31,13 @@ type Request = {
   created_at: string
 }
 
-type Tab = 'requests' | 'partners' | 'stats'
+type Tab = 'requests' | 'partners' | 'stats' | 'settings'
 
 const TABS: { key: Tab; label: string }[] = [
   { key: 'requests', label: 'Alle Anfragen' },
   { key: 'partners', label: 'Partner' },
   { key: 'stats', label: 'Stats' },
+  { key: 'settings', label: 'Einstellungen' },
 ]
 
 export default function AdminDashboardPage() {
@@ -279,6 +281,8 @@ export default function AdminDashboardPage() {
           ))}
         </div>
       )}
+
+      {tab === 'settings' && <SettingsPanel onMessage={setMessage} />}
     </main>
   )
 }
