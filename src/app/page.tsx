@@ -1,146 +1,118 @@
 'use client'
 
-import { useState, type ChangeEvent, type FormEvent } from 'react'
-import { supabase } from '@/lib/supabaseClient'
+import Link from 'next/link'
+import { SERVICES } from '@/lib/services'
+import { useLang } from '@/components/LanguageProvider'
 
-const SERVICES = ['Wohnungsreinigung', 'Büroreinigung', 'Fensterreinigung', 'Grundreinigung']
-
-const emptyForm = {
-  customer_name: '',
-  customer_email: '',
-  customer_phone: '',
-  postcode: '',
-  service_type: '',
-  area_sqm: '',
-  message: '',
-}
-
-const inputClass =
-  'w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-[#0F60C6] focus:outline-none focus:ring-2 focus:ring-[#0F60C6]/30'
-
-export default function Home() {
-  const [form, setForm] = useState(emptyForm)
-  const [loading, setLoading] = useState(false)
-  const [success, setSuccess] = useState(false)
-  const [error, setError] = useState('')
-
-  function handleChange(e: ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
-    setForm({ ...form, [e.target.name]: e.target.value })
-  }
-
-  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setLoading(true)
-    setError('')
-
-    const { error: insertError } = await supabase.from('requests').insert({
-      customer_name: form.customer_name || null,
-      customer_email: form.customer_email,
-      customer_phone: form.customer_phone || null,
-      postcode: form.postcode,
-      service_type: form.service_type,
-      area_sqm: form.area_sqm ? parseInt(form.area_sqm, 10) : null,
-      message: form.message || null,
-    })
-
-    setLoading(false)
-    if (insertError) {
-      setError('Fehler beim Senden. Bitte versuchen Sie es erneut.')
-      return
-    }
-    setSuccess(true)
-    setForm(emptyForm)
-  }
+export default function HomePage() {
+  const { t, lang } = useLang()
+  const isAr = lang === 'ar'
 
   return (
-    <main className="mx-auto max-w-2xl px-4 py-12">
-      <header className="mb-8 text-center">
-        <h1 className="text-3xl font-bold text-[#0F60C6]">KlarFix</h1>
-        <p className="mt-2 text-gray-600">Fordern Sie unverbindlich Ihren Reinigungspreis an.</p>
-      </header>
-
-      {success ? (
-        <div className="rounded-xl bg-green-50 p-8 text-center">
-          <h2 className="text-2xl font-semibold text-green-700">Anfrage gesendet!</h2>
-          <p className="mt-2 text-gray-600">Wir melden uns in Kürze mit Ihrem Angebot.</p>
-          <button
-            onClick={() => setSuccess(false)}
-            className="mt-6 rounded-lg bg-[#0F60C6] px-5 py-2 font-medium text-white hover:opacity-90"
-          >
-            Neue Anfrage
-          </button>
+    <main>
+      <section className="bg-gradient-to-br from-[#0F60C6] to-[#0a4a9a] px-4 py-20 text-white">
+        <div className="mx-auto max-w-4xl text-center">
+          <p className="mb-3 text-sm font-semibold uppercase tracking-widest opacity-80">
+            {t('Reinigung in Stuttgart', 'تنظيف في شتوتغارت')}
+          </p>
+          <h1 className="text-4xl font-extrabold leading-tight sm:text-5xl">
+            {t('Saubere Räume. Klare Preise.', 'مساحات نظيفة. أسعار واضحة.')}
+          </h1>
+          <p className="mx-auto mt-5 max-w-2xl text-lg opacity-90">
+            {t(
+              'Wohnung, Büro, Fenster oder Grundreinigung – geprüfte Partner, faire Preise, schnelle Antwort.',
+              'شقق ومكاتب ونوافذ وتنظيف شامل – شركاء معتمدون وأسعار عادلة ورد سريع.',
+            )}
+          </p>
+          <div className="mt-8 flex flex-wrap justify-center gap-4">
+            <Link
+              href="/buchen"
+              className="rounded-lg bg-white px-6 py-3 font-semibold text-[#0F60C6] shadow hover:opacity-90"
+            >
+              {t('Preis anfragen', 'اطلب السعر')}
+            </Link>
+            <a
+              href="#leistungen"
+              className="rounded-lg border border-white/60 px-6 py-3 font-semibold text-white hover:bg-white/10"
+            >
+              {t('Leistungen ansehen', 'عرض الخدمات')}
+            </a>
+          </div>
         </div>
-      ) : (
-        <form onSubmit={handleSubmit} className="space-y-5 rounded-xl bg-white p-6 shadow-sm">
-          <div className="grid gap-5 sm:grid-cols-2">
-            <div>
-              <label className="mb-1 block text-sm font-medium">Name</label>
-              <input name="customer_name" value={form.customer_name} onChange={handleChange} className={inputClass} />
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium">E-Mail *</label>
-              <input
-                type="email"
-                name="customer_email"
-                required
-                value={form.customer_email}
-                onChange={handleChange}
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium">Telefon</label>
-              <input
-                type="tel"
-                name="customer_phone"
-                value={form.customer_phone}
-                onChange={handleChange}
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium">PLZ *</label>
-              <input name="postcode" required value={form.postcode} onChange={handleChange} className={inputClass} />
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium">Service *</label>
-              <select name="service_type" required value={form.service_type} onChange={handleChange} className={inputClass}>
-                <option value="">Bitte wählen</option>
-                {SERVICES.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium">Fläche m²</label>
-              <input
-                type="number"
-                min="1"
-                name="area_sqm"
-                value={form.area_sqm}
-                onChange={handleChange}
-                className={inputClass}
-              />
-            </div>
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium">Nachricht</label>
-            <textarea name="message" rows={4} value={form.message} onChange={handleChange} className={inputClass} />
-          </div>
+      </section>
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+      <section id="leistungen" className="mx-auto max-w-6xl px-4 py-16">
+        <h2 className="text-center text-3xl font-bold text-gray-900">
+          {t('Unsere Leistungen', 'خدماتنا')}
+        </h2>
+        <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {SERVICES.map((s) => (
+            <div key={s.key} className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
+              <div className="text-4xl">{s.icon}</div>
+              <h3 className="mt-4 text-lg font-semibold">{isAr ? s.ar : s.de}</h3>
+              <p className="mt-2 text-sm text-gray-600">{isAr ? s.descAr : s.descDe}</p>
+            </div>
+          ))}
+        </div>
+      </section>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-lg bg-[#0F60C6] py-3 font-semibold text-white hover:opacity-90 disabled:opacity-50"
-          >
-            {loading ? 'Wird gesendet…' : 'Preis anfragen'}
-          </button>
-        </form>
-      )}
+      <section id="preise" className="bg-white px-4 py-16">
+        <div className="mx-auto max-w-6xl">
+          <h2 className="text-center text-3xl font-bold">{t('Preise', 'الأسعار')}</h2>
+          <p className="mt-3 text-center text-sm text-gray-500">
+            {t(
+              'Richtpreise pro m². Der genaue Preis erhalten Sie nach Ihrer Anfrage.',
+              'أسعار تقريبية لكل م². السعر النهائي يُرسل بعد طلبك.',
+            )}
+          </p>
+          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {SERVICES.map((s) => (
+              <div key={s.key} className="flex flex-col rounded-2xl border border-gray-200 p-6 text-center">
+                <h3 className="font-semibold">{isAr ? s.ar : s.de}</h3>
+                <p className="mt-4 text-sm text-gray-500">{t('ab', 'من')}</p>
+                <p className="text-3xl font-extrabold text-[#0F60C6]">
+                  {s.priceFrom} €
+                </p>
+                <p className="text-sm text-gray-500">{t('pro m²', 'لكل م²')}</p>
+                <Link
+                  href={`/buchen?service=${encodeURIComponent(s.key)}`}
+                  className="mt-6 rounded-lg bg-[#0F60C6] px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
+                >
+                  {t('Anfragen', 'اطلب')}
+                </Link>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-4 py-16">
+        <h2 className="text-center text-3xl font-bold">{t('So funktioniert es', 'كيف تعمل الخدمة')}</h2>
+        <ol className="mt-10 grid gap-6 sm:grid-cols-3">
+          {[
+            { de: 'Anfrage senden', ar: 'أرسل طلبك', n: '1' },
+            { de: 'Angebot erhalten', ar: 'احصل على عرض السعر', n: '2' },
+            { de: 'Termin bestätigen', ar: 'أكد الموعد', n: '3' },
+          ].map((step) => (
+            <li key={step.n} className="rounded-2xl bg-white p-6 text-center shadow-sm ring-1 ring-gray-200">
+              <span className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-[#0F60C6] font-bold text-white">
+                {step.n}
+              </span>
+              <p className="mt-4 font-semibold">{isAr ? step.ar : step.de}</p>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <section className="bg-[#0F60C6] px-4 py-14 text-center text-white">
+        <h2 className="text-2xl font-bold">{t('Bereit für saubere Räume?', 'هل أنت مستعد لمساحات نظيفة؟')}</h2>
+        <Link
+          href="/buchen"
+          className="mt-6 inline-block rounded-lg bg-white px-6 py-3 font-semibold text-[#0F60C6] hover:opacity-90"
+        >
+          {t('Jetzt Preis anfragen', 'اطلب السعر الآن')}
+        </Link>
+      </section>
     </main>
   )
 }
