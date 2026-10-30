@@ -2,14 +2,15 @@
 
 import { useState, type FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabaseClient'
+import PasswordInput from '@/components/PasswordInput'
 
 const inputClass =
-  'w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-[#0F60C6] focus:outline-none focus:ring-2 focus:ring-[#0F60C6]/30'
+  'w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:border-[#0F60C6] focus:outline-none focus:ring-2 focus:ring-[#0F60C6]/30'
 
 export default function PartnerLoginPage() {
   const router = useRouter()
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -18,23 +19,21 @@ export default function PartnerLoginPage() {
     setLoading(true)
     setError('')
 
-    const { data, error: queryError } = await supabase
-      .from('partners')
-      .select('id, company_name, email')
-      .eq('email', email.trim())
-      .maybeSingle()
-
+    const res = await fetch('/api/partner/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    })
     setLoading(false)
-    if (queryError) {
-      setError('Fehler beim Login. Bitte versuchen Sie es erneut.')
-      return
-    }
-    if (!data) {
-      setError('Kein Partner mit dieser E-Mail gefunden.')
+
+    if (!res.ok) {
+      const data = (await res.json().catch(() => ({}))) as { error?: string }
+      setError(data.error ?? 'Fehler beim Login. Bitte versuchen Sie es erneut.')
       return
     }
 
-    localStorage.setItem('partner', JSON.stringify(data))
+    const partner = (await res.json()) as { id: string; company_name: string; email: string }
+    localStorage.setItem('partner', JSON.stringify(partner))
     router.push('/partner/dashboard')
   }
 
@@ -45,6 +44,16 @@ export default function PartnerLoginPage() {
         <div>
           <label className="mb-1 block text-sm font-medium">E-Mail</label>
           <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className={inputClass} />
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium">Passwort</label>
+          <PasswordInput
+            required
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className={inputClass}
+          />
         </div>
         {error && <p className="text-sm text-red-600">{error}</p>}
         <button

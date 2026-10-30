@@ -22,6 +22,7 @@ type Request = {
 export default function PartnerDashboardPage() {
   const router = useRouter()
   const [partner, setPartner] = useState<Partner | null>(null)
+  const [verified, setVerified] = useState(false)
   const [requests, setRequests] = useState<Request[]>([])
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState<string | null>(null)
@@ -41,6 +42,26 @@ export default function PartnerDashboardPage() {
     setRequests((data as Request[]) ?? [])
   }, [])
 
+  const checkAccess = useCallback(
+    async (p: Partner) => {
+      setLoading(true)
+      const res = await fetch('/api/partner/status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: p.id }),
+      })
+      const isVerified = res.ok && ((await res.json()) as { verified: boolean }).verified === true
+      setVerified(isVerified)
+      if (isVerified) {
+        await loadRequests()
+      } else {
+        setRequests([])
+      }
+      setLoading(false)
+    },
+    [loadRequests],
+  )
+
   useEffect(() => {
     const init = async () => {
       const stored = localStorage.getItem('partner')
@@ -49,15 +70,14 @@ export default function PartnerDashboardPage() {
         return
       }
       const storedPartner = JSON.parse(stored) as Partner
-      await loadRequests()
       setPartner(storedPartner)
-      setLoading(false)
+      await checkAccess(storedPartner)
     }
     init()
-  }, [router, loadRequests])
+  }, [router, checkAccess])
 
   async function acceptRequest(requestId: string) {
-    if (!partner) return
+    if (!partner || !verified) return
     setBusyId(requestId)
     setMessage('')
 
@@ -101,7 +121,20 @@ export default function PartnerDashboardPage() {
 
       {message && <p className="mb-4 rounded-lg bg-blue-50 p-3 text-sm text-[#0F60C6]">{message}</p>}
 
-      {requests.length === 0 ? (
+      {!verified ? (
+        <div className="rounded-xl bg-white p-8 text-center shadow-sm">
+          <h2 className="text-lg font-semibold text-gray-900">Ihr Konto wird noch geprüft</h2>
+          <p className="mt-2 text-gray-600">
+            Aufträge und Kundendaten sind erst sichtbar, wenn Ihr Partner-Profil von uns freigeschaltet wurde.
+          </p>
+          <button
+            onClick={() => partner && checkAccess(partner)}
+            className="mt-6 rounded-lg border border-[#0F60C6] px-5 py-2 font-medium text-[#0F60C6] hover:bg-blue-50"
+          >
+            Status neu prüfen
+          </button>
+        </div>
+      ) : requests.length === 0 ? (
         <p className="rounded-xl bg-white p-8 text-center text-gray-500 shadow-sm">Keine neuen Anfragen.</p>
       ) : (
         <div className="space-y-4">

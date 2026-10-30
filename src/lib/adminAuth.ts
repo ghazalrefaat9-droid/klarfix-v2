@@ -21,7 +21,7 @@ export function hashPassword(password: string) {
   return `scrypt$${salt}$${hash}`
 }
 
-function verifyPasswordHash(password: string, stored: string) {
+export function verifyPasswordHash(password: string, stored: string) {
   const [scheme, salt, hash] = stored.split('$')
   if (scheme !== 'scrypt' || !salt || !hash) return false
   const expected = Buffer.from(hash, 'hex')
