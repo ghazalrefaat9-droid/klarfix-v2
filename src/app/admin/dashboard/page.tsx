@@ -27,6 +27,8 @@ type Partner = {
   languages: string[] | null
   availability: string | null
   terms_accepted_at: string | null
+  logo_url: string | null
+  license_url: string | null
   verified: boolean
   created_at: string
 }
@@ -143,7 +145,7 @@ export default function AdminDashboardPage() {
       supabase
         .from('partners')
         .select(
-          'id, company_name, first_name, last_name, email, phone, street, city, postcode, legal_form, employee_count, has_liability_insurance, has_trade_license, experience_years, services, description, website, languages, availability, terms_accepted_at, verified, created_at'
+          'id, company_name, first_name, last_name, email, phone, street, city, postcode, legal_form, employee_count, has_liability_insurance, has_trade_license, experience_years, services, description, website, languages, availability, terms_accepted_at, logo_url, license_url, verified, created_at'
         )
         .order('created_at', { ascending: false }),
     ])
@@ -476,6 +478,24 @@ export default function AdminDashboardPage() {
               <DetailField label="Sprachen" value={listText(selectedPartner.languages)} />
               <DetailField label="Verfügbarkeit" value={selectedPartner.availability} wide />
               <DetailField label="Beschreibung" value={selectedPartner.description} wide />
+            </DetailSection>
+            <DetailSection title="Dokumente">
+              <div className="sm:col-span-2 flex flex-wrap gap-3">
+                {selectedPartner.logo_url ? (
+                  <a href={selectedPartner.logo_url} target="_blank" rel="noopener noreferrer" className="rounded-lg border border-[#0F60C6] px-4 py-2 text-sm font-medium text-[#0F60C6] hover:bg-blue-50">
+                    Logo öffnen
+                  </a>
+                ) : (
+                  <span className="text-sm text-gray-500">Kein Logo hochgeladen</span>
+                )}
+                {selectedPartner.license_url ? (
+                  <a href={selectedPartner.license_url} target="_blank" rel="noopener noreferrer" className="rounded-lg border border-[#0F60C6] px-4 py-2 text-sm font-medium text-[#0F60C6] hover:bg-blue-50">
+                    Gewerbenachweis öffnen
+                  </a>
+                ) : (
+                  <span className="text-sm text-gray-500">Kein Gewerbenachweis hochgeladen</span>
+                )}
+              </div>
             </DetailSection>
           </div>
         </DetailModal>

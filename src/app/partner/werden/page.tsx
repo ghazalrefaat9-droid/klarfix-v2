@@ -32,8 +32,6 @@ type Form = {
   hasTradeLicense: boolean | null
   experienceYears: string
   services: string[]
-  logoName: string
-  licenseName: string
   description: string
   website: string
   languages: string[]
@@ -61,8 +59,6 @@ const EMPTY: Form = {
   hasTradeLicense: null,
   experienceYears: '',
   services: [],
-  logoName: '',
-  licenseName: '',
   description: '',
   website: '',
   languages: [],
@@ -147,12 +143,12 @@ function Checkbox({ checked, onChange, label }: { checked: boolean; onChange: ()
   )
 }
 
-function FileInput({ fileName, accept, onFile, label }: { fileName: string; accept: string; onFile: (name: string) => void; label: string }) {
+function FileInput({ fileName, accept, onFile, label }: { fileName: string; accept: string; onFile: (file: File | null) => void; label: string }) {
   return (
     <label className="mt-1 flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-gray-300 px-3 py-3 text-sm text-gray-600 transition-colors hover:border-[#0F60C6]">
       <Upload size={18} className="shrink-0" />
       <span className="truncate">{fileName || label}</span>
-      <input type="file" accept={accept} className="hidden" onChange={(e) => onFile(e.target.files?.[0]?.name ?? '')} />
+      <input type="file" accept={accept} className="hidden" onChange={(e) => onFile(e.target.files?.[0] ?? null)} />
     </label>
   )
 }
@@ -199,6 +195,7 @@ export default function PartnerRegisterPage() {
   const [submitting, setSubmitting] = useState(false)
   const [serverError, setServerError] = useState('')
   const [done, setDone] = useState(false)
+  const [files, setFiles] = useState<{ logo: File | null; license: File | null }>({ logo: null, license: null })
 
   function set<K extends keyof Form>(key: K, value: Form[K]) {
     setForm((f) => ({ ...f, [key]: value }))
@@ -246,37 +243,38 @@ export default function PartnerRegisterPage() {
 
     setSubmitting(true)
     setServerError('')
-    const res = await fetch('/api/partner/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        firstName: form.firstName,
-        lastName: form.lastName,
-        email: form.email,
-        phone: form.phone,
-        street: form.street,
-        city: form.city,
-        postcode: form.postcode,
-        companyName: form.companyName,
-        legalForm: form.legalForm,
-        employeeCount: form.employeeCount,
-        hasLiabilityInsurance: form.hasLiabilityInsurance,
-        hasTradeLicense: form.hasTradeLicense,
-        experienceYears: form.experienceYears ? Number(form.experienceYears) : null,
-        services: form.services,
-        description: form.description,
-        website: form.website,
-        languages: form.languages,
-        availability: form.availability,
-        password: form.password,
-        termsAccepted: form.termsAccepted,
-      }),
-    })
+    const payload = {
+      firstName: form.firstName,
+      lastName: form.lastName,
+      email: form.email,
+      phone: form.phone,
+      street: form.street,
+      city: form.city,
+      postcode: form.postcode,
+      companyName: form.companyName,
+      legalForm: form.legalForm,
+      employeeCount: form.employeeCount,
+      hasLiabilityInsurance: form.hasLiabilityInsurance,
+      hasTradeLicense: form.hasTradeLicense,
+      experienceYears: form.experienceYears ? Number(form.experienceYears) : null,
+      services: form.services,
+      description: form.description,
+      website: form.website,
+      languages: form.languages,
+      availability: form.availability,
+      password: form.password,
+      termsAccepted: form.termsAccepted,
+    }
+    const data = new FormData()
+    data.append('data', JSON.stringify(payload))
+    if (files.logo) data.append('logo', files.logo)
+    if (files.license) data.append('license', files.license)
+    const res = await fetch('/api/partner/register', { method: 'POST', body: data })
     setSubmitting(false)
 
     if (!res.ok) {
-      const data = (await res.json().catch(() => ({}))) as { error?: string }
-      setServerError(data.error ?? 'Fehler bei der Registrierung. Bitte versuchen Sie es erneut.')
+      const body = (await res.json().catch(() => ({}))) as { error?: string }
+      setServerError(body.error ?? 'Fehler bei der Registrierung. Bitte versuchen Sie es erneut.')
       return
     }
     setDone(true)
@@ -412,10 +410,20 @@ export default function PartnerRegisterPage() {
 
             <div className="grid gap-5 sm:grid-cols-2">
               <Field label="Logo (optional)">
-                <FileInput fileName={form.logoName} accept="image/*" label="Datei auswählen" onFile={(n) => set('logoName', n)} />
+                <FileInput
+                  fileName={files.logo?.name ?? ''}
+                  accept="image/*"
+                  label="Datei auswählen"
+                  onFile={(f) => setFiles((p) => ({ ...p, logo: f }))}
+                />
               </Field>
               <Field label="Gewerbenachweis (optional)">
-                <FileInput fileName={form.licenseName} accept=".pdf,image/*" label="Datei auswählen" onFile={(n) => set('licenseName', n)} />
+                <FileInput
+                  fileName={files.license?.name ?? ''}
+                  accept=".pdf,image/*"
+                  label="Datei auswählen"
+                  onFile={(f) => setFiles((p) => ({ ...p, license: f }))}
+                />
               </Field>
             </div>
 
