@@ -9,14 +9,30 @@ import SettingsPanel from '@/components/admin/SettingsPanel'
 type Partner = {
   id: string
   company_name: string
+  first_name: string | null
+  last_name: string | null
   email: string
   phone: string | null
+  street: string | null
   city: string | null
   postcode: string | null
+  legal_form: string | null
+  employee_count: string | null
+  has_liability_insurance: boolean | null
+  has_trade_license: boolean | null
+  experience_years: number | null
   services: string[] | null
+  description: string | null
+  website: string | null
+  languages: string[] | null
+  availability: string | null
+  terms_accepted_at: string | null
   verified: boolean
   created_at: string
 }
+
+const yesNo = (v: boolean | null) => (v === null || v === undefined ? null : v ? 'Ja' : 'Nein')
+const listText = (v: string[] | null) => (v && v.length > 0 ? v.join(', ') : null)
 
 type Request = {
   id: string
@@ -126,7 +142,9 @@ export default function AdminDashboardPage() {
         .order('created_at', { ascending: false }),
       supabase
         .from('partners')
-        .select('id, company_name, email, phone, city, postcode, services, verified, created_at')
+        .select(
+          'id, company_name, first_name, last_name, email, phone, street, city, postcode, legal_form, employee_count, has_liability_insurance, has_trade_license, experience_years, services, description, website, languages, availability, terms_accepted_at, verified, created_at'
+        )
         .order('created_at', { ascending: false }),
     ])
 
@@ -189,7 +207,7 @@ export default function AdminDashboardPage() {
 
   const selectedRequest = detail?.kind === 'request' ? requests.find((r) => r.id === detail.id) ?? null : null
   const selectedPartner = detail?.kind === 'partner' ? partners.find((p) => p.id === detail.id) ?? null : null
-  const formatDate = (iso: string) => new Date(iso).toLocaleString('de-DE')
+  const formatDate = (iso: string | null) => (iso ? new Date(iso).toLocaleString('de-DE') : null)
 
   const stats = {
     totalRequests: requests.length,
@@ -425,21 +443,39 @@ export default function AdminDashboardPage() {
           }
         >
           <div className="space-y-5">
+            <DetailSection title="Person">
+              <DetailField label="Vorname" value={selectedPartner.first_name} />
+              <DetailField label="Nachname" value={selectedPartner.last_name} />
+            </DetailSection>
             <DetailSection title="Firma">
               <DetailField label="Firmenname" value={selectedPartner.company_name} />
+              <DetailField label="Rechtsform" value={selectedPartner.legal_form} />
+              <DetailField label="Mitarbeiterzahl" value={selectedPartner.employee_count} />
+              <DetailField label="Haftpflichtversicherung" value={yesNo(selectedPartner.has_liability_insurance)} />
+              <DetailField label="Gewerbeanmeldung" value={yesNo(selectedPartner.has_trade_license)} />
               <DetailField label="Status" value={selectedPartner.verified ? 'Verifiziert' : 'Ausstehend'} />
               <DetailField label="Registriert am" value={formatDate(selectedPartner.created_at)} />
+              <DetailField label="AGB akzeptiert am" value={formatDate(selectedPartner.terms_accepted_at)} />
             </DetailSection>
             <DetailSection title="Kontakt">
               <DetailField label="E-Mail" value={selectedPartner.email} />
               <DetailField label="Telefon" value={selectedPartner.phone} />
+              <DetailField label="Website" value={selectedPartner.website} />
             </DetailSection>
             <DetailSection title="Standort">
-              <DetailField label="Stadt" value={selectedPartner.city} />
+              <DetailField label="Straße" value={selectedPartner.street} />
               <DetailField label="PLZ" value={selectedPartner.postcode} />
+              <DetailField label="Stadt" value={selectedPartner.city} />
             </DetailSection>
-            <DetailSection title="Leistungen">
-              <DetailField label="Reinigungsarten" value={selectedPartner.services?.join(', ') || null} wide />
+            <DetailSection title="Leistungen & Erfahrung">
+              <DetailField label="Reinigungsarten" value={listText(selectedPartner.services)} wide />
+              <DetailField
+                label="Erfahrung"
+                value={selectedPartner.experience_years !== null ? `${selectedPartner.experience_years} Jahre` : null}
+              />
+              <DetailField label="Sprachen" value={listText(selectedPartner.languages)} />
+              <DetailField label="Verfügbarkeit" value={selectedPartner.availability} wide />
+              <DetailField label="Beschreibung" value={selectedPartner.description} wide />
             </DetailSection>
           </div>
         </DetailModal>
