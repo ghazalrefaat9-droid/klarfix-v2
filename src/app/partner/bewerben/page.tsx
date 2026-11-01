@@ -35,7 +35,10 @@ export default function PartnerBewerbenPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
-  const [fullName, setFullName] = useState('')
+  const [anrede, setAnrede] = useState('')
+  const [titel, setTitel] = useState('')
+  const [vorname, setVorname] = useState('')
+  const [nachname, setNachname] = useState('')
   const [email, setEmail] = useState('')
   const [phoneFixed, setPhoneFixed] = useState('')
   const [phoneWhatsapp, setPhoneWhatsapp] = useState('')
@@ -50,8 +53,11 @@ export default function PartnerBewerbenPage() {
   const [hasGewerbe, setHasGewerbe] = useState(false)
   const [hasHaftpflicht, setHasHaftpflicht] = useState(false)
 
+  const fullName = `${titel} ${vorname} ${nachname}`.trim()
   const step1Valid =
-    fullName.trim() !== '' &&
+    anrede !== '' &&
+    vorname.trim() !== '' &&
+    nachname.trim() !== '' &&
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) &&
     phoneFixed.trim() !== '' &&
     city.trim() !== '' &&
@@ -145,9 +151,57 @@ export default function PartnerBewerbenPage() {
               <Bi de="Persönlich" ar="البيانات الشخصية" />
             </h1>
             <label className="block text-sm font-medium">
-              <Bi de="Vollständiger Name *" ar="الاسم الكامل" />
-              <input className={`${inputClass} mt-1`} value={fullName} onChange={(e) => setFullName(e.target.value)} required />
+              <Bi de="Anrede *" ar="صيغة المخاطبة" />
+              <select
+                className={`${inputClass} mt-1`}
+                value={anrede}
+                onChange={(e) => setAnrede(e.target.value)}
+                required
+              >
+                <option value="" disabled>
+                  Bitte auswählen
+                </option>
+                <option value="Herr">Herr</option>
+                <option value="Frau">Frau</option>
+                <option value="Divers">Divers</option>
+                <option value="Dr.">Dr.</option>
+                <option value="Firma">Firma</option>
+              </select>
             </label>
+            <label className="block text-sm font-medium">
+              <Bi de="Titel (optional)" ar="اللقب (اختياري)" />
+              <input
+                className={`${inputClass} mt-1`}
+                placeholder="z.B. Dr., Prof."
+                value={titel}
+                onChange={(e) => setTitel(e.target.value)}
+              />
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="block text-sm font-medium">
+                <Bi de="Vorname *" ar="الاسم الأول" />
+                <input
+                  className={`${inputClass} mt-1`}
+                  placeholder="Refaat"
+                  value={vorname}
+                  onChange={(e) => setVorname(e.target.value)}
+                  required
+                />
+              </label>
+              <label className="block text-sm font-medium">
+                <Bi de="Nachname *" ar="اسم العائلة" />
+                <input
+                  className={`${inputClass} mt-1`}
+                  placeholder="Ghazal"
+                  value={nachname}
+                  onChange={(e) => setNachname(e.target.value)}
+                  required
+                />
+              </label>
+            </div>
+            <p className="rounded-xl bg-blue-50 px-4 py-3 text-sm text-gray-700">
+              <span className="font-semibold">Vollständiger Name:</span> {fullName}
+            </p>
             <label className="block text-sm font-medium">
               <Bi de="E-Mail *" ar="البريد الإلكتروني" />
               <input type="email" className={`${inputClass} mt-1`} value={email} onChange={(e) => setEmail(e.target.value)} required />
