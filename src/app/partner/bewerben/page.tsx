@@ -15,6 +15,7 @@ import {
 } from '@/lib/applications'
 
 const BLUE = '#2563eb'
+const MITARBEITER_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 30, 50]
 const inputClass =
   'w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-base outline-none focus:border-[#2563eb] focus:ring-2 focus:ring-[#2563eb]/30'
 
@@ -45,6 +46,7 @@ export default function PartnerBewerbenPage() {
   const [companyAddress, setCompanyAddress] = useState('')
 
   const [employeeCount, setEmployeeCount] = useState(1)
+  const [employeeCountError, setEmployeeCountError] = useState('')
   const [cleaningPrices, setCleaningPrices] = useState(DEFAULT_CLEANING_PRICES)
   const [selectedTypes, setSelectedTypes] = useState<CleaningTypeId[]>(() => CLEANING_TYPES.map((type) => type.id))
   const [languages, setLanguages] = useState<string[]>(['DE'])
@@ -254,25 +256,62 @@ export default function PartnerBewerbenPage() {
             <p className="text-sm text-gray-500">
               Wählen Sie Ihre Leistungen und legen Sie Ihren Preis fest ({CLEANING_PRICE_MIN}–{CLEANING_PRICE_MAX} € pro Stunde).
             </p>
-            <label className="block rounded-xl border border-blue-100 bg-blue-50/60 p-4 text-sm font-semibold text-gray-900">
-              <span className="mb-2 flex items-center gap-2">
+            <fieldset className="min-w-0 rounded-xl border border-blue-100 bg-blue-50/60 p-4 text-sm font-semibold text-gray-900">
+              <legend className="flex items-center gap-2 px-1">
                 <span aria-hidden="true">👥</span>
                 Anzahl Mitarbeiter
-              </span>
-              <input
-                type="number"
-                min={1}
-                max={1000}
-                placeholder="z. B. 12"
-                value={employeeCount}
-                onChange={(event) => setEmployeeCount(Number(event.target.value))}
-                className={`${inputClass} mt-1`}
-                required
-              />
+              </legend>
+              <div className="flex flex-wrap gap-2">
+                {MITARBEITER_OPTIONS.map((num) => (
+                  <button
+                    key={num}
+                    type="button"
+                    aria-pressed={employeeCount === num}
+                    onClick={() => {
+                      setEmployeeCount(num)
+                      setEmployeeCountError('')
+                    }}
+                    className={`rounded-full border px-4 py-2 text-sm font-medium shadow-sm transition-all ${
+                      employeeCount === num
+                        ? 'scale-105 border-blue-600 bg-blue-600 text-white'
+                        : 'border-gray-200 bg-white text-gray-700 hover:border-blue-300 hover:bg-blue-50'
+                    }`}
+                  >
+                    {num}{num === 50 ? '+' : ''}
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const custom = window.prompt('Anzahl Mitarbeiter eingeben:')
+                    if (custom === null) return
+                    const count = Number(custom.trim())
+                    if (!/^\d+$/.test(custom.trim()) || !Number.isInteger(count) || count < 1 || count > 1000) {
+                      setEmployeeCountError('Bitte eine ganze Zahl zwischen 1 und 1000 eingeben.')
+                      return
+                    }
+                    setEmployeeCount(count)
+                    setEmployeeCountError('')
+                  }}
+                  className="rounded-full border border-dashed border-gray-300 bg-gray-100 px-4 py-2 text-sm font-normal text-gray-600 hover:bg-white"
+                >
+                  Andere...
+                </button>
+              </div>
+              {employeeCount > 0 && (
+                <p className="mt-2 text-xs font-normal text-gray-500" aria-live="polite">
+                  {employeeCount} Mitarbeiter ausgewählt
+                </p>
+              )}
+              {employeeCountError && (
+                <p role="alert" className="mt-2 text-xs font-normal text-red-700">
+                  {employeeCountError}
+                </p>
+              )}
               <span className="mt-2 block text-xs font-normal text-gray-500">
                 Gesamtanzahl der Mitarbeiter im Reinigungsteam
               </span>
-            </label>
+            </fieldset>
             <ul className="space-y-3">
               {CLEANING_TYPES.map((type) => {
                 const active = selectedTypes.includes(type.id)
