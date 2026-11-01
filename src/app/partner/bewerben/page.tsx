@@ -125,6 +125,7 @@ export default function PartnerBewerbenPage() {
   const [workRadius, setWorkRadius] = useState(20)
   const [hasGewerbe, setHasGewerbe] = useState(false)
   const [hasHaftpflicht, setHasHaftpflicht] = useState(false)
+  const requirementsMet = hasGewerbe && hasHaftpflicht
 
   const fullName = `${anrede} ${vorname} ${nachname}`.trim()
   const streetLine = [street.trim(), houseNumber.trim()].filter(Boolean).join(' ')
@@ -820,8 +821,8 @@ export default function PartnerBewerbenPage() {
 
             <div className="space-y-3">
               {[
-                { checked: hasGewerbe, set: setHasGewerbe, de: 'Ich besitze ein Gewerbe', ar: 'هل لديك سجل تجاري Gewerbe؟' },
-                { checked: hasHaftpflicht, set: setHasHaftpflicht, de: 'Ich besitze Haftpflicht', ar: 'هل لديك تأمين Haftpflicht؟' },
+                { checked: hasGewerbe, set: setHasGewerbe, de: 'Ich besitze ein Gewerbe *', ar: 'هل لديك سجل تجاري Gewerbe؟' },
+                { checked: hasHaftpflicht, set: setHasHaftpflicht, de: 'Ich besitze Haftpflicht *', ar: 'هل لديك تأمين Haftpflicht؟' },
               ].map((c) => (
                 <label key={c.de} className="flex cursor-pointer items-center gap-4 rounded-2xl border border-gray-200 p-4 hover:border-[#2563eb]">
                   <input type="checkbox" checked={c.checked} onChange={(e) => c.set(e.target.checked)} className="peer sr-only" />
@@ -837,6 +838,18 @@ export default function PartnerBewerbenPage() {
                 </label>
               ))}
             </div>
+
+            {!requirementsMet && (
+              <div role="status" className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                <p>
+                  <strong>Voraussetzung:</strong> Ein angemeldetes Gewerbe und eine Betriebshaftpflichtversicherung sind
+                  Pflicht, um als Partner zu arbeiten.
+                </p>
+                <p dir="rtl" lang="ar" className="mt-1">
+                  <strong>شرط:</strong> يجب أن يكون لديك سجل تجاري Gewerbe وتأمين Haftpflicht لتتمكن من إرسال الطلب.
+                </p>
+              </div>
+            )}
 
             <div className="rounded-2xl border border-green-200 bg-green-50 p-4 text-sm text-green-900">
               <p>
@@ -857,8 +870,8 @@ export default function PartnerBewerbenPage() {
               <button
                 type="button"
                 onClick={submit}
-                disabled={submitting}
-                style={{ backgroundColor: submitting ? undefined : BLUE }}
+                disabled={submitting || !requirementsMet}
+                style={{ backgroundColor: submitting || !requirementsMet ? undefined : BLUE }}
                 className="w-full rounded-2xl px-6 py-4 text-lg font-bold text-white shadow-md transition hover:opacity-90 disabled:cursor-not-allowed disabled:bg-gray-300"
               >
                 {submitting ? 'Wird gesendet…' : 'Antrag senden (إرسال الطلب)'}

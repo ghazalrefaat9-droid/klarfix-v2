@@ -140,6 +140,12 @@ async function sendNotifications(a: ApplicationPayload) {
 
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null
+  if (body && (body.has_gewerbe !== true || body.has_haftpflicht !== true)) {
+    return NextResponse.json(
+      { error: 'Gewerbe und Betriebshaftpflicht sind Voraussetzung für eine Partnerschaft.' },
+      { status: 400 }
+    )
+  }
   const application = body ? parse(body) : null
   if (!application) {
     return NextResponse.json({ error: 'Bitte alle Pflichtfelder korrekt ausfüllen.' }, { status: 400 })
