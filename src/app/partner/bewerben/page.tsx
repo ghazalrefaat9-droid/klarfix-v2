@@ -45,8 +45,9 @@ export default function PartnerBewerbenPage() {
   const [companyAddress, setCompanyAddress] = useState('')
 
   const [employeeCount, setEmployeeCount] = useState(1)
-  const [cleaningPrices, setCleaningPrices] = useState(DEFAULT_CLEANING_PRICES)
-  const [selectedTypes, setSelectedTypes] = useState<CleaningTypeId[]>(() => CLEANING_TYPES.map((type) => type.id))
+  const [selectedServices, setSelectedServices] = useState<CleaningTypeId[]>([])
+  const [servicePrices, setServicePrices] = useState<Partial<Record<CleaningTypeId, number>>>({})
+  const [servicesError, setServicesError] = useState('')
   const [languages, setLanguages] = useState<string[]>(['DE'])
   const [workRadius, setWorkRadius] = useState(20)
   const [hasGewerbe, setHasGewerbe] = useState(false)
@@ -65,13 +66,30 @@ export default function PartnerBewerbenPage() {
     Number.isInteger(employeeCount) &&
     employeeCount >= 1 &&
     employeeCount <= 50 &&
-    selectedTypes.length > 0 &&
-    CLEANING_TYPES.every(
-      (type) =>
-        Number.isInteger(cleaningPrices[type.id]) &&
-        cleaningPrices[type.id] >= CLEANING_PRICE_MIN &&
-        cleaningPrices[type.id] <= CLEANING_PRICE_MAX
-    )
+    selectedServices.length > 0 &&
+    selectedServices.every((id) => {
+      const price = servicePrices[id]
+      return price !== undefined && Number.isInteger(price) && price >= CLEANING_PRICE_MIN && price <= CLEANING_PRICE_MAX
+    })
+
+  const toggleService = (id: CleaningTypeId) => {
+    if (selectedServices.includes(id)) {
+      setSelectedServices((prev) => prev.filter((s) => s !== id))
+    } else {
+      setSelectedServices((prev) => [...prev, id])
+      setServicePrices((prev) => ({ ...prev, [id]: prev[id] ?? DEFAULT_CLEANING_PRICES[id] }))
+      setServicesError('')
+    }
+  }
+
+  const goToStep3 = () => {
+    if (selectedServices.length === 0) {
+      setServicesError('Bitte wählen Sie mindestens eine Reinigungsart')
+      return
+    }
+    if (!step2Valid) return
+    setStep(3)
+  }
 
   const toggleLanguage = (code: string) =>
     setLanguages((prev) => (prev.includes(code) ? prev.filter((l) => l !== code) : [...prev, code]))
@@ -92,8 +110,8 @@ export default function PartnerBewerbenPage() {
       city: city.trim(),
       company_address: companyAddress.trim(),
       employee_count: employeeCount,
-      cleaning_prices: cleaningPrices,
-      cleaning_types: selectedTypes,
+      cleaning_prices: Object.fromEntries(selectedServices.map((id) => [id, servicePrices[id]])),
+      cleaning_types: selectedServices,
       languages,
       work_radius: workRadius,
       has_gewerbe: hasGewerbe,
@@ -289,7 +307,7 @@ export default function PartnerBewerbenPage() {
                   onClick={() => setEmployeeCount((n) => Math.max(1, n - 1))}
                   className="flex h-12 w-12 items-center justify-center rounded-full border border-gray-200 bg-white text-xl font-light shadow-sm hover:bg-gray-50"
                 >
-                  ?
+                  —
                 </button>
                 <div className="flex h-12 flex-1 items-center justify-center rounded-full border border-[#e0e7ff] bg-[#f8faff]">
                   <div className="mx-4 h-1 w-full rounded-full bg-[#e0e7ff] opacity-50" />
@@ -306,31 +324,43 @@ export default function PartnerBewerbenPage() {
 
               <p className="pt-1 text-center text-[14px] text-gray-400">Ziehen zum Einstellen</p>
             </div>
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-bold text-gray-900">Reinigungsarten *</h3>
+              <span
+                className={`rounded-full px-3 py-1 text-sm font-semibold ${
+                  selectedServices.length > 0 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'
+                }`}
+                aria-live="polite"
+              >
+                {selectedServices.length} ausgewählt
+              </span>
+            </div>
             <ul className="space-y-3">
               {CLEANING_TYPES.map((type) => {
-                const active = selectedTypes.includes(type.id)
+                const isSelected = selectedServices.includes(type.id)
+                const price = servicePrices[type.id] ?? DEFAULT_CLEANING_PRICES[type.id]
                 return (
                   <li
                     key={type.id}
-                    className={`mb-3 flex flex-col justify-between gap-4 rounded-xl border bg-white p-4 shadow-sm sm:flex-row sm:items-center ${
-                      active ? '' : 'opacity-50'
+                    className={`mb-3 flex flex-col justify-between gap-4 rounded-xl border p-4 transition sm:flex-row sm:items-center ${
+                      isSelected
+                        ? 'border-blue-600 bg-blue-50/30 shadow-md'
+                        : 'border-gray-200 bg-white opacity-80 hover:border-gray-300'
                     }`}
                   >
                     <label className="flex min-w-0 flex-1 cursor-pointer items-start gap-3">
                       <input
                         type="checkbox"
-                        checked={active}
-                        onChange={(event) =>
-                          setSelectedTypes((current) =>
-                            event.target.checked
-                              ? [...current, type.id]
-                              : current.filter((id) => id !== type.id)
-                          )
-                        }
+                        checked={isSelected}
+                        onChange={() => toggleService(type.id)}
                         aria-label={type.label}
                         className="mt-1 h-4 w-4 shrink-0 accent-blue-600"
                       />
-                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600">
+                      <span
+                        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+                          isSelected ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'
+                        }`}
+                      >
                         <Sparkles className="h-5 w-5" aria-hidden="true" />
                       </span>
                       <span className="min-w-0">
@@ -338,40 +368,52 @@ export default function PartnerBewerbenPage() {
                         <span className="mt-1 block text-sm font-normal text-gray-500">{type.desc}</span>
                       </span>
                     </label>
-                    <div className="w-full shrink-0 sm:w-52">
-                      <div className="mb-2 flex justify-end">
-                        <span className="rounded-full bg-blue-600 px-3 py-1 text-sm font-bold text-white">
-                          {cleaningPrices[type.id]} €/h
-                        </span>
+                    {isSelected ? (
+                      <div className="w-full shrink-0 sm:w-52">
+                        <div className="mb-2 flex justify-end">
+                          <span className="rounded-full bg-blue-600 px-3 py-1 text-sm font-bold text-white">{price} €/h</span>
+                        </div>
+                        <input
+                          type="range"
+                          min={CLEANING_PRICE_MIN}
+                          max={CLEANING_PRICE_MAX}
+                          step={1}
+                          value={price}
+                          aria-label={`${type.label} Preis`}
+                          onChange={(event) =>
+                            setServicePrices((current) => ({ ...current, [type.id]: Number(event.target.value) }))
+                          }
+                          className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-blue-100 accent-blue-600"
+                        />
+                        <div className="mt-1 flex items-center justify-between text-xs text-gray-500">
+                          <span>{CLEANING_PRICE_MIN} €</span>
+                          <span>Aktuell: {price} €/h</span>
+                          <span>{CLEANING_PRICE_MAX} €</span>
+                        </div>
                       </div>
-                      <input
-                        type="range"
-                        min={CLEANING_PRICE_MIN}
-                        max={CLEANING_PRICE_MAX}
-                        step={1}
-                        value={cleaningPrices[type.id]}
-                        disabled={!active}
-                        aria-label={`${type.label} Preis`}
-                        onChange={(event) =>
-                          setCleaningPrices((current) => ({ ...current, [type.id]: Number(event.target.value) }))
-                        }
-                        className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-blue-100 accent-blue-600 disabled:cursor-not-allowed"
-                      />
-                      <div className="mt-1 flex items-center justify-between text-xs text-gray-500">
-                        <span>{CLEANING_PRICE_MIN} €</span>
-                        <span>Aktuell: {cleaningPrices[type.id]} €/h</span>
-                        <span>{CLEANING_PRICE_MAX} €</span>
-                      </div>
-                    </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => toggleService(type.id)}
+                        className="shrink-0 self-end rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-600 hover:border-blue-600 hover:text-blue-600 sm:self-center"
+                      >
+                        Auswählen
+                      </button>
+                    )}
                   </li>
                 )
               })}
             </ul>
+            {servicesError && (
+              <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">
+                {servicesError}
+              </p>
+            )}
             <div className="flex justify-between pt-2">
               <button type="button" className={secondaryBtn} onClick={() => setStep(1)}>
                 Zurück / رجوع
               </button>
-              <button type="button" className={primaryBtn} disabled={!step2Valid} onClick={() => setStep(3)}>
+              <button type="button" className={primaryBtn} onClick={goToStep3}>
                 Weiter / التالي
               </button>
             </div>
@@ -388,10 +430,10 @@ export default function PartnerBewerbenPage() {
               <h2 className="font-semibold text-gray-900">Ihre Unternehmensangaben</h2>
               <p className="mt-1 text-sm text-gray-600">Mitarbeiter: {employeeCount}</p>
               <ul className="mt-3 space-y-1 text-sm text-gray-700">
-                {CLEANING_TYPES.filter((type) => selectedTypes.includes(type.id)).map((type) => (
+                {CLEANING_TYPES.filter((type) => selectedServices.includes(type.id)).map((type) => (
                   <li key={type.id} className="flex justify-between gap-4">
                     <span>{type.label}</span>
-                    <span className="shrink-0 font-semibold">{cleaningPrices[type.id]} €/h</span>
+                    <span className="shrink-0 font-semibold">{servicePrices[type.id]} €/h</span>
                   </li>
                 ))}
               </ul>

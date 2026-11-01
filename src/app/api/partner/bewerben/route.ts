@@ -49,13 +49,13 @@ function parse(body: Record<string, unknown>): ApplicationPayload | null {
 
   if (!isRecord(body.cleaning_prices)) return null
   const priceInput = body.cleaning_prices
-  const cleaning_prices = {} as Record<CleaningTypeId, number>
-  for (const type of CLEANING_TYPES) {
-    const price = priceInput[type.id]
+  const cleaning_prices: Partial<Record<CleaningTypeId, number>> = {}
+  for (const id of cleaning_types) {
+    const price = priceInput[id]
     if (!inRange(price, CLEANING_PRICE_MIN, CLEANING_PRICE_MAX)) return null
-    cleaning_prices[type.id] = price
+    cleaning_prices[id] = price
   }
-  const services = cleaning_types.map((key) => ({ key, price: cleaning_prices[key] }))
+  const services = cleaning_types.map((key) => ({ key, price: cleaning_prices[key] as number }))
 
   const languages = Array.isArray(body.languages)
     ? body.languages.filter((l): l is string => typeof l === 'string' && (APPLICATION_LANGUAGES as readonly string[]).includes(l))

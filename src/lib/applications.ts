@@ -55,7 +55,7 @@ export type ApplicationPayload = {
   company_address: string
   services: ApplicationService[]
   employee_count: number
-  cleaning_prices: Record<CleaningTypeId, number>
+  cleaning_prices: Partial<Record<CleaningTypeId, number>>
   cleaning_types: CleaningTypeId[]
   team_size: number
   languages: string[]
@@ -66,7 +66,7 @@ export type ApplicationPayload = {
 
 export type ApplicationRow = Omit<ApplicationPayload, 'employee_count' | 'cleaning_prices' | 'cleaning_types' | 'vorname' | 'nachname' | 'anrede'> & {
   employee_count?: number | null
-  cleaning_prices?: Record<CleaningTypeId, number> | null
+  cleaning_prices?: Partial<Record<CleaningTypeId, number>> | null
   cleaning_types?: CleaningTypeId[] | null
   id: string
   status: string
