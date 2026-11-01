@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Check, Sparkles } from 'lucide-react'
+import { useLang } from '@/components/LanguageProvider'
 import {
   APPLICATION_LANGUAGES,
   CLEANING_PRICE_MAX,
@@ -18,16 +19,7 @@ const BLUE = '#2563eb'
 const inputClass =
   'w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-base outline-none focus:border-[#2563eb] focus:ring-2 focus:ring-[#2563eb]/30'
 
-function Bi({ de, ar }: { de: string; ar: string }) {
-  return (
-    <span className="flex flex-wrap items-baseline justify-between gap-x-2">
-      <span>{de}</span>
-      <span dir="rtl" lang="ar" className="text-gray-500">
-        {ar}
-      </span>
-    </span>
-  )
-}
+type SubmitError = '' | 'invalid' | 'requirements' | 'save' | 'network'
 
 type AddressSuggestion = {
   city: string
@@ -95,9 +87,10 @@ const suggestionItemClass = 'cursor-pointer border-b border-gray-100 p-3 last:bo
 
 export default function PartnerBewerbenPage() {
   const router = useRouter()
+  const { t, lang } = useLang()
   const [step, setStep] = useState<1 | 2 | 3>(1)
   const [submitting, setSubmitting] = useState(false)
-  const [error, setError] = useState('')
+  const [error, setError] = useState<SubmitError>('')
 
   const [anrede, setAnrede] = useState('')
   const [vorname, setVorname] = useState('')
@@ -120,7 +113,7 @@ export default function PartnerBewerbenPage() {
   const [employeeCount, setEmployeeCount] = useState(1)
   const [selectedServices, setSelectedServices] = useState<CleaningTypeId[]>([])
   const [servicePrices, setServicePrices] = useState<Partial<Record<CleaningTypeId, number>>>({})
-  const [servicesError, setServicesError] = useState('')
+  const [servicesError, setServicesError] = useState(false)
   const [languages, setLanguages] = useState<string[]>(['DE'])
   const [workRadius, setWorkRadius] = useState(20)
   const [hasGewerbe, setHasGewerbe] = useState(false)
@@ -293,13 +286,13 @@ export default function PartnerBewerbenPage() {
     } else {
       setSelectedServices((prev) => [...prev, id])
       setServicePrices((prev) => ({ ...prev, [id]: prev[id] ?? DEFAULT_CLEANING_PRICES[id] }))
-      setServicesError('')
+      setServicesError(false)
     }
   }
 
   const goToStep3 = () => {
     if (selectedServices.length === 0) {
-      setServicesError('Bitte wählen Sie mindestens eine Reinigungsart')
+      setServicesError(true)
       return
     }
     if (!step2Valid) return
@@ -340,16 +333,48 @@ export default function PartnerBewerbenPage() {
       })
       if (!res.ok) {
         const body = (await res.json().catch(() => null)) as { error?: string } | null
-        setError(body?.error ?? 'Antrag konnte nicht gesendet werden.')
+        setError(
+          res.status === 400 ? (body?.error?.includes('Gewerbe') ? 'requirements' : 'invalid') : 'save'
+        )
         setSubmitting(false)
         return
       }
       router.push('/partner/bewerben/danke')
     } catch {
-      setError('Verbindungsfehler. Bitte erneut versuchen.')
+      setError('network')
       setSubmitting(false)
     }
   }
+
+  const errorText: Record<Exclude<SubmitError, ''>, string> = {
+    invalid: t(
+      'Bitte alle Pflichtfelder korrekt ausfüllen.',
+      'يرجى تعبئة جميع الحقول المطلوبة بشكل صحيح.',
+      'Please fill in all required fields correctly.'
+    ),
+    requirements: t(
+      'Gewerbe und Betriebshaftpflicht sind Voraussetzung für eine Partnerschaft.',
+      'السجل التجاري وتأمين المسؤولية شرطان أساسيان للشراكة.',
+      'A registered business and liability insurance are required for a partnership.'
+    ),
+    save: t(
+      'Antrag konnte nicht gespeichert werden. Bitte später erneut versuchen.',
+      'تعذّر حفظ الطلب. يرجى المحاولة لاحقًا.',
+      'Your application could not be saved. Please try again later.'
+    ),
+    network: t(
+      'Verbindungsfehler. Bitte erneut versuchen.',
+      'خطأ في الاتصال. يرجى المحاولة مرة أخرى.',
+      'Connection error. Please try again.'
+    ),
+  }
+  const typeLabel = (type: (typeof CLEANING_TYPES)[number]) => t(type.label, type.labelAr, type.labelEn)
+  const typeDesc = (type: (typeof CLEANING_TYPES)[number]) => t(type.desc, type.descAr, type.descEn)
+  const stepNames = [
+    t('Persönlich', 'البيانات الشخصية', 'Personal'),
+    t('Unternehmen', 'الشركة', 'Company'),
+    t('Bestätigung', 'التأكيد', 'Confirmation'),
+  ]
 
   const primaryBtn =
     'rounded-2xl bg-[#2563eb] px-6 py-3 text-base font-semibold text-white shadow-md transition hover:opacity-90 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:shadow-none'
@@ -359,11 +384,8 @@ export default function PartnerBewerbenPage() {
   return (
     <main className="mx-auto max-w-xl px-4 py-8">
       <div className="mb-6">
-        <div className="mb-3 flex items-center justify-between text-sm font-medium text-gray-600">
-          <span>Schritt {step}/3 · {['Persönlich', 'Unternehmen', 'Bestätigung'][step - 1]}</span>
-          <span dir="rtl" lang="ar">
-            الخطوة {step}/3
-          </span>
+        <div className="mb-3 text-sm font-medium text-gray-600">
+          {t('Schritt', 'الخطوة', 'Step')} {step}/3 · {stepNames[step - 1]}
         </div>
         <div className="flex items-center">
           {[1, 2, 3].map((n) => (
@@ -384,11 +406,9 @@ export default function PartnerBewerbenPage() {
       <div className="rounded-2xl bg-white p-6 shadow-lg">
         {step === 1 && (
           <div className="space-y-4">
-            <h1 className="text-xl font-bold text-gray-900">
-              <Bi de="Persönlich" ar="البيانات الشخصية" />
-            </h1>
+            <h1 className="text-xl font-bold text-gray-900">{stepNames[0]}</h1>
             <label className="block text-sm font-medium">
-              <Bi de="Anrede *" ar="صيغة المخاطبة" />
+              {t('Anrede *', 'صيغة المخاطبة *', 'Salutation *')}
               <select
                 className={`${inputClass} mt-1`}
                 value={anrede}
@@ -396,18 +416,18 @@ export default function PartnerBewerbenPage() {
                 required
               >
                 <option value="" disabled>
-                  Bitte auswählen
+                  {t('Bitte auswählen', 'يرجى الاختيار', 'Please select')}
                 </option>
-                <option value="Herr">Herr</option>
-                <option value="Frau">Frau</option>
-                <option value="Divers">Divers</option>
-                <option value="Dr.">Dr.</option>
-                <option value="Firma">Firma</option>
+                <option value="Herr">{t('Herr', 'السيد', 'Mr')}</option>
+                <option value="Frau">{t('Frau', 'السيدة', 'Ms')}</option>
+                <option value="Divers">{t('Divers', 'آخر', 'Diverse')}</option>
+                <option value="Dr.">{t('Dr.', 'د.', 'Dr')}</option>
+                <option value="Firma">{t('Firma', 'شركة', 'Company')}</option>
               </select>
             </label>
             <div className="grid grid-cols-2 gap-4">
               <label className="block text-sm font-medium">
-                <Bi de="Vorname *" ar="الاسم الأول" />
+                {t('Vorname *', 'الاسم الأول *', 'First name *')}
                 <input
                   className={`${inputClass} mt-1`}
                   placeholder=""
@@ -417,7 +437,7 @@ export default function PartnerBewerbenPage() {
                 />
               </label>
               <label className="block text-sm font-medium">
-                <Bi de="Nachname *" ar="اسم العائلة" />
+                {t('Nachname *', 'اسم العائلة *', 'Last name *')}
                 <input
                   className={`${inputClass} mt-1`}
                   placeholder=""
@@ -429,15 +449,15 @@ export default function PartnerBewerbenPage() {
             </div>
             {anrede && vorname.trim() && nachname.trim() && (
               <p className="rounded-xl bg-blue-50 px-4 py-3 text-sm text-gray-700">
-                <span className="font-semibold">Vollständiger Name:</span> {fullName}
+                <span className="font-semibold">{t('Vollständiger Name:', 'الاسم الكامل:', 'Full name:')}</span> {fullName}
               </p>
             )}
             <label className="block text-sm font-medium">
-              <Bi de="E-Mail *" ar="البريد الإلكتروني" />
+              {t('E-Mail *', 'البريد الإلكتروني *', 'Email *')}
               <input type="email" className={`${inputClass} mt-1`} value={email} onChange={(e) => setEmail(e.target.value)} required />
             </label>
             <label className="block text-sm font-medium">
-              <Bi de="Telefon Festnetz *" ar="هاتف ثابت" />
+              {t('Telefon Festnetz *', 'الهاتف الثابت *', 'Landline phone *')}
               <input
                 type="tel"
                 className={`${inputClass} mt-1`}
@@ -448,7 +468,7 @@ export default function PartnerBewerbenPage() {
               />
             </label>
             <label className="block text-sm font-medium">
-              <Bi de="WhatsApp (optional)" ar="واتساب (اختياري)" />
+              {t('WhatsApp (optional)', 'واتساب (اختياري)', 'WhatsApp (optional)')}
               <input
                 type="tel"
                 className={`${inputClass} mt-1`}
@@ -461,10 +481,10 @@ export default function PartnerBewerbenPage() {
               <div className="grid grid-cols-[2fr_1fr] gap-3">
                 <div className="relative">
                   <label className="block text-sm font-medium">
-                    <Bi de="Straße *" ar="الشارع" />
+                    {t('Straße *', 'الشارع *', 'Street *')}
                     <input
                       className={`${inputClass} mt-1`}
-                      placeholder="z.B. Hauptstr."
+                      placeholder={t('z.B. Hauptstr.', 'مثال: Hauptstr.', 'e.g. Hauptstr.')}
                       value={street}
                       onChange={(e) => handleStreetSearch(e.target.value)}
                       onBlur={() => setStreetSuggestions([])}
@@ -474,7 +494,7 @@ export default function PartnerBewerbenPage() {
                     />
                   </label>
                   {streetSuggestions.length > 0 && (
-                    <ul className={suggestionListClass} role="listbox" aria-label="Straßenvorschläge">
+                    <ul className={suggestionListClass} role="listbox" aria-label={t('Straßenvorschläge', 'اقتراحات الشوارع', 'Street suggestions')}>
                       {streetSuggestions.map((s) => (
                         <li
                           key={`${s.street}|${s.postcode}|${s.city}`}
@@ -492,7 +512,7 @@ export default function PartnerBewerbenPage() {
                   )}
                 </div>
                 <label className="block text-sm font-medium">
-                  <Bi de="Hausnr." ar="رقم" />
+                  {t('Hausnr.', 'رقم المبنى', 'No.')}
                   <input
                     className={`${inputClass} mt-1`}
                     placeholder="12"
@@ -505,7 +525,7 @@ export default function PartnerBewerbenPage() {
               <div className="grid grid-cols-[1fr_2fr] gap-3">
                 <div className="relative">
                   <label className="block text-sm font-medium">
-                    <Bi de="Postleitzahl *" ar="الرمز البريدي" />
+                    {t('Postleitzahl *', 'الرمز البريدي *', 'Postcode *')}
                     <input
                       className={`${inputClass} mt-1`}
                       placeholder="70173"
@@ -520,7 +540,7 @@ export default function PartnerBewerbenPage() {
                     />
                   </label>
                   {plzSuggestions.length > 0 && (
-                    <ul className={suggestionListClass} role="listbox" aria-label="PLZ-Vorschläge">
+                    <ul className={suggestionListClass} role="listbox" aria-label={t('PLZ-Vorschläge', 'اقتراحات الرمز البريدي', 'Postcode suggestions')}>
                       {plzSuggestions.map((s) => (
                         <li
                           key={`${s.postcode}|${s.city}`}
@@ -538,7 +558,7 @@ export default function PartnerBewerbenPage() {
                 </div>
                 <div className="relative">
                   <label className="block text-sm font-medium">
-                    <Bi de="Stadt / Ort *" ar="المدينة" />
+                    {t('Stadt / Ort *', 'المدينة *', 'City *')}
                     <input
                       className={`${inputClass} mt-1`}
                       placeholder="Stuttgart"
@@ -551,7 +571,7 @@ export default function PartnerBewerbenPage() {
                     />
                   </label>
                   {citySuggestions.length > 0 && (
-                    <ul className={suggestionListClass} role="listbox" aria-label="Ortsvorschläge">
+                    <ul className={suggestionListClass} role="listbox" aria-label={t('Ortsvorschläge', 'اقتراحات المدن', 'City suggestions')}>
                       {citySuggestions.map((s) => (
                         <li
                           key={`${s.city}|${s.postcode}|${s.state}`}
@@ -570,32 +590,41 @@ export default function PartnerBewerbenPage() {
                 </div>
               </div>
               <p className="text-xs text-gray-400">
-                Adressvorschläge ab 2 Zeichen · Daten ©{' '}
+                {t('Adressvorschläge ab 2 Zeichen · Daten ©', 'تظهر اقتراحات العناوين بعد حرفين · البيانات ©', 'Address suggestions after 2 characters · Data ©')}{' '}
                 <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer" className="underline">
-                  OpenStreetMap-Mitwirkende
+                  {t('OpenStreetMap-Mitwirkende', 'المساهمون في OpenStreetMap', 'OpenStreetMap contributors')}
                 </a>
               </p>
             </div>
 
             <div>
               <button type="button" onClick={() => setShowMap((v) => !v)} className="text-sm text-blue-600 hover:underline">
-                📍 {showMap ? 'Karte ausblenden' : 'Karte anzeigen'}
+                📍{' '}
+                {showMap
+                  ? t('Karte ausblenden', 'إخفاء الخريطة', 'Hide map')
+                  : t('Karte anzeigen', 'عرض الخريطة', 'Show map')}
               </button>
               {showMap &&
                 (coords ? (
                   <iframe
-                    title="Karte der Firmenadresse"
+                    title={t('Karte der Firmenadresse', 'خريطة عنوان الشركة', 'Map of company address')}
                     className="mt-2 h-[200px] w-full rounded-xl border"
                     loading="lazy"
                     src={`https://www.openstreetmap.org/export/embed.html?bbox=${coords.lon - 0.01},${coords.lat - 0.01},${coords.lon + 0.01},${coords.lat + 0.01}&marker=${coords.lat},${coords.lon}`}
                   />
                 ) : (
-                  <p className="mt-2 text-sm text-gray-500">Bitte zuerst eine Adresse, PLZ oder Stadt aus den Vorschlägen wählen.</p>
+                  <p className="mt-2 text-sm text-gray-500">
+                    {t(
+                      'Bitte zuerst eine Adresse, PLZ oder Stadt aus den Vorschlägen wählen.',
+                      'يرجى أولًا اختيار عنوان أو رمز بريدي أو مدينة من الاقتراحات.',
+                      'Please first choose an address, postcode or city from the suggestions.'
+                    )}
+                  </p>
                 ))}
             </div>
             <div className="flex justify-end pt-2">
               <button type="button" className={primaryBtn} disabled={!step1Valid} onClick={() => setStep(2)}>
-                Weiter / التالي
+                {t('Weiter', 'التالي', 'Next')}
               </button>
             </div>
           </div>
@@ -603,17 +632,21 @@ export default function PartnerBewerbenPage() {
 
         {step === 2 && (
           <div className="space-y-4">
-            <h1 className="text-xl font-bold text-gray-900">
-              <Bi de="Unternehmen" ar="الشركة" />
-            </h1>
+            <h1 className="text-xl font-bold text-gray-900">{stepNames[1]}</h1>
             <p className="text-sm text-gray-500">
-              Wählen Sie Ihre Leistungen und legen Sie Ihren Preis fest ({CLEANING_PRICE_MIN}–{CLEANING_PRICE_MAX} € pro Stunde).
+              {t(
+                `Wählen Sie Ihre Leistungen und legen Sie Ihren Preis fest (${CLEANING_PRICE_MIN}–${CLEANING_PRICE_MAX} € pro Stunde).`,
+                `اختر خدماتك وحدد سعرك (${CLEANING_PRICE_MIN}–${CLEANING_PRICE_MAX} € للساعة).`,
+                `Choose your services and set your price (${CLEANING_PRICE_MIN}–${CLEANING_PRICE_MAX} € per hour).`
+              )}
             </p>
             <div className="space-y-4 rounded-3xl border bg-white p-5 shadow-sm">
               <div className="flex items-center justify-between">
-                <h3 className="text-[22px] font-bold tracking-tight text-gray-900">Anzahl Mitarbeiter</h3>
+                <h3 className="text-[22px] font-bold tracking-tight text-gray-900">
+                  {t('Anzahl Mitarbeiter', 'عدد الموظفين', 'Number of employees')}
+                </h3>
                 <div className="rounded-full bg-[#2563eb] px-5 py-2 text-[17px] font-bold text-white shadow-lg" aria-live="polite">
-                  {employeeCount} Mitarbeiter
+                  {employeeCount} {t('Mitarbeiter', 'موظف', employeeCount === 1 ? 'employee' : 'employees')}
                 </div>
               </div>
 
@@ -624,11 +657,12 @@ export default function PartnerBewerbenPage() {
                   max={50}
                   step={1}
                   value={employeeCount}
-                  aria-label="Anzahl Mitarbeiter"
+                  aria-label={t('Anzahl Mitarbeiter', 'عدد الموظفين', 'Number of employees')}
                   onChange={(e) => setEmployeeCount(parseInt(e.target.value, 10))}
                   className="h-[14px] w-full cursor-pointer appearance-none rounded-full bg-[#eef2ff] [&::-moz-range-thumb]:h-9 [&::-moz-range-thumb]:w-9 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-[3px] [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:bg-[#2563eb] [&::-webkit-slider-thumb]:h-9 [&::-webkit-slider-thumb]:w-9 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-[3px] [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:bg-[#2563eb] [&::-webkit-slider-thumb]:shadow-lg"
                   style={{
-                    background: `linear-gradient(to right, #2563eb ${((employeeCount - 1) / 49) * 100}%, #eef2ff ${((employeeCount - 1) / 49) * 100}%)`,
+                    // Range inputs run right-to-left in RTL, so the filled part must start on the right.
+                    background: `linear-gradient(to ${lang === 'ar' ? 'left' : 'right'}, #2563eb ${((employeeCount - 1) / 49) * 100}%, #eef2ff ${((employeeCount - 1) / 49) * 100}%)`,
                   }}
                 />
                 <div className="mt-2 flex justify-between text-[13px] font-medium text-gray-400">
@@ -640,7 +674,7 @@ export default function PartnerBewerbenPage() {
               <div className="flex items-center gap-3">
                 <button
                   type="button"
-                  aria-label="Weniger Mitarbeiter"
+                  aria-label={t('Weniger Mitarbeiter', 'تقليل عدد الموظفين', 'Fewer employees')}
                   onClick={() => setEmployeeCount((n) => Math.max(1, n - 1))}
                   className="flex h-12 w-12 items-center justify-center rounded-full border border-gray-200 bg-white text-xl font-light shadow-sm hover:bg-gray-50"
                 >
@@ -651,7 +685,7 @@ export default function PartnerBewerbenPage() {
                 </div>
                 <button
                   type="button"
-                  aria-label="Mehr Mitarbeiter"
+                  aria-label={t('Mehr Mitarbeiter', 'زيادة عدد الموظفين', 'More employees')}
                   onClick={() => setEmployeeCount((n) => Math.min(50, n + 1))}
                   className="flex h-12 w-12 items-center justify-center rounded-full bg-[#2563eb] text-2xl font-light text-white shadow-md hover:bg-blue-700"
                 >
@@ -659,17 +693,19 @@ export default function PartnerBewerbenPage() {
                 </button>
               </div>
 
-              <p className="pt-1 text-center text-[14px] text-gray-400">Ziehen zum Einstellen</p>
+              <p className="pt-1 text-center text-[14px] text-gray-400">
+                {t('Ziehen zum Einstellen', 'اسحب للتعديل', 'Drag to adjust')}
+              </p>
             </div>
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-bold text-gray-900">Reinigungsarten *</h3>
+              <h3 className="text-base font-bold text-gray-900">{t('Reinigungsarten *', 'أنواع التنظيف *', 'Cleaning types *')}</h3>
               <span
                 className={`rounded-full px-3 py-1 text-sm font-semibold ${
                   selectedServices.length > 0 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-500'
                 }`}
                 aria-live="polite"
               >
-                {selectedServices.length} ausgewählt
+                {selectedServices.length} {t('ausgewählt', 'محدد', 'selected')}
               </span>
             </div>
             <ul className="space-y-3">
@@ -690,7 +726,7 @@ export default function PartnerBewerbenPage() {
                         type="checkbox"
                         checked={isSelected}
                         onChange={() => toggleService(type.id)}
-                        aria-label={type.label}
+                        aria-label={typeLabel(type)}
                         className="mt-1 h-4 w-4 shrink-0 accent-blue-600"
                       />
                       <span
@@ -701,8 +737,8 @@ export default function PartnerBewerbenPage() {
                         <Sparkles className="h-5 w-5" aria-hidden="true" />
                       </span>
                       <span className="min-w-0">
-                        <span className="block font-bold text-gray-900">{type.label}</span>
-                        <span className="mt-1 block text-sm font-normal text-gray-500">{type.desc}</span>
+                        <span className="block font-bold text-gray-900">{typeLabel(type)}</span>
+                        <span className="mt-1 block text-sm font-normal text-gray-500">{typeDesc(type)}</span>
                       </span>
                     </label>
                     {isSelected ? (
@@ -716,7 +752,7 @@ export default function PartnerBewerbenPage() {
                           max={CLEANING_PRICE_MAX}
                           step={1}
                           value={price}
-                          aria-label={`${type.label} Preis`}
+                          aria-label={t(`${type.label} Preis`, `سعر ${type.labelAr}`, `${type.labelEn} price`)}
                           onChange={(event) =>
                             setServicePrices((current) => ({ ...current, [type.id]: Number(event.target.value) }))
                           }
@@ -724,7 +760,7 @@ export default function PartnerBewerbenPage() {
                         />
                         <div className="mt-1 flex items-center justify-between text-xs text-gray-500">
                           <span>{CLEANING_PRICE_MIN} €</span>
-                          <span>Aktuell: {price} €/h</span>
+                          <span>{t('Aktuell', 'الحالي', 'Current')}: {price} €/h</span>
                           <span>{CLEANING_PRICE_MAX} €</span>
                         </div>
                       </div>
@@ -734,7 +770,7 @@ export default function PartnerBewerbenPage() {
                         onClick={() => toggleService(type.id)}
                         className="shrink-0 self-end rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-600 hover:border-blue-600 hover:text-blue-600 sm:self-center"
                       >
-                        Auswählen
+                        {t('Auswählen', 'اختيار', 'Select')}
                       </button>
                     )}
                   </li>
@@ -743,15 +779,19 @@ export default function PartnerBewerbenPage() {
             </ul>
             {servicesError && (
               <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">
-                {servicesError}
+                {t(
+                  'Bitte wählen Sie mindestens eine Reinigungsart',
+                  'يرجى اختيار نوع تنظيف واحد على الأقل',
+                  'Please select at least one cleaning type'
+                )}
               </p>
             )}
             <div className="flex justify-between pt-2">
               <button type="button" className={secondaryBtn} onClick={() => setStep(1)}>
-                Zurück / رجوع
+                {t('Zurück', 'رجوع', 'Back')}
               </button>
               <button type="button" className={primaryBtn} onClick={goToStep3}>
-                Weiter / التالي
+                {t('Weiter', 'التالي', 'Next')}
               </button>
             </div>
           </div>
@@ -759,17 +799,17 @@ export default function PartnerBewerbenPage() {
 
         {step === 3 && (
           <div className="space-y-6">
-            <h1 className="text-xl font-bold text-gray-900">
-              <Bi de="Bestätigung" ar="التأكيد" />
-            </h1>
+            <h1 className="text-xl font-bold text-gray-900">{stepNames[2]}</h1>
 
             <section className="rounded-xl border border-blue-100 bg-blue-50/60 p-4">
-              <h2 className="font-semibold text-gray-900">Ihre Unternehmensangaben</h2>
-              <p className="mt-1 text-sm text-gray-600">Mitarbeiter: {employeeCount}</p>
+              <h2 className="font-semibold text-gray-900">{t('Ihre Unternehmensangaben', 'بيانات شركتك', 'Your company details')}</h2>
+              <p className="mt-1 text-sm text-gray-600">
+                {t('Mitarbeiter', 'الموظفون', 'Employees')}: {employeeCount}
+              </p>
               <ul className="mt-3 space-y-1 text-sm text-gray-700">
                 {CLEANING_TYPES.filter((type) => selectedServices.includes(type.id)).map((type) => (
                   <li key={type.id} className="flex justify-between gap-4">
-                    <span>{type.label}</span>
+                    <span>{typeLabel(type)}</span>
                     <span className="shrink-0 font-semibold">{servicePrices[type.id]} €/h</span>
                   </li>
                 ))}
@@ -778,7 +818,7 @@ export default function PartnerBewerbenPage() {
 
             <div>
               <p className="mb-2 text-sm font-medium">
-                <Bi de="Sprachen" ar="اللغات" />
+                {t('Sprachen', 'اللغات', 'Languages')}
               </p>
               <div className="flex flex-wrap gap-2">
                 {APPLICATION_LANGUAGES.map((code) => {
@@ -801,11 +841,9 @@ export default function PartnerBewerbenPage() {
             </div>
 
             <div>
-              <p className="mb-2 flex items-center justify-between text-sm font-medium">
-                <span className="flex-1">
-                  <Bi de="Arbeitsradius" ar="نطاق العمل" />
-                </span>
-                <span className="ml-3 rounded-full bg-[#2563eb]/15 px-3 py-1 font-bold text-blue-700">{workRadius} km</span>
+              <p className="mb-2 flex items-center justify-between gap-3 text-sm font-medium">
+                <span className="flex-1">{t('Arbeitsradius', 'نطاق العمل', 'Work radius')}</span>
+                <span className="rounded-full bg-[#2563eb]/15 px-3 py-1 font-bold text-blue-700">{workRadius} km</span>
               </p>
               <input
                 type="range"
@@ -814,17 +852,31 @@ export default function PartnerBewerbenPage() {
                 step={1}
                 value={workRadius}
                 onChange={(e) => setWorkRadius(Number(e.target.value))}
-                aria-label="Arbeitsradius"
+                aria-label={t('Arbeitsradius', 'نطاق العمل', 'Work radius')}
                 className="h-2 w-full accent-blue-600"
               />
             </div>
 
             <div className="space-y-3">
               {[
-                { checked: hasGewerbe, set: setHasGewerbe, de: 'Ich besitze ein Gewerbe *', ar: 'هل لديك سجل تجاري Gewerbe؟' },
-                { checked: hasHaftpflicht, set: setHasHaftpflicht, de: 'Ich besitze Haftpflicht *', ar: 'هل لديك تأمين Haftpflicht؟' },
+                {
+                  key: 'gewerbe',
+                  checked: hasGewerbe,
+                  set: setHasGewerbe,
+                  label: t('Ich besitze ein Gewerbe *', 'لدي سجل تجاري *', 'I have a registered business *'),
+                },
+                {
+                  key: 'haftpflicht',
+                  checked: hasHaftpflicht,
+                  set: setHasHaftpflicht,
+                  label: t(
+                    'Ich besitze Haftpflicht *',
+                    'لدي تأمين المسؤولية المهنية *',
+                    'I have liability insurance *'
+                  ),
+                },
               ].map((c) => (
-                <label key={c.de} className="flex cursor-pointer items-center gap-4 rounded-2xl border border-gray-200 p-4 hover:border-[#2563eb]">
+                <label key={c.key} className="flex cursor-pointer items-center gap-4 rounded-2xl border border-gray-200 p-4 hover:border-[#2563eb]">
                   <input type="checkbox" checked={c.checked} onChange={(e) => c.set(e.target.checked)} className="peer sr-only" />
                   <span
                     className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border-2 border-gray-300 text-transparent peer-checked:border-[#2563eb] peer-checked:bg-[#2563eb] peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-[#2563eb]/50"
@@ -832,37 +884,34 @@ export default function PartnerBewerbenPage() {
                   >
                     <Check className="h-6 w-6" strokeWidth={3} />
                   </span>
-                  <span className="min-w-0 flex-1 text-sm font-medium">
-                    <Bi de={c.de} ar={c.ar} />
-                  </span>
+                  <span className="min-w-0 flex-1 text-sm font-medium">{c.label}</span>
                 </label>
               ))}
             </div>
 
             {!requirementsMet && (
               <div role="status" className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-                <p>
-                  <strong>Voraussetzung:</strong> Ein angemeldetes Gewerbe und eine Betriebshaftpflichtversicherung sind
-                  Pflicht, um als Partner zu arbeiten.
-                </p>
-                <p dir="rtl" lang="ar" className="mt-1">
-                  <strong>شرط:</strong> يجب أن يكون لديك سجل تجاري Gewerbe وتأمين Haftpflicht لتتمكن من إرسال الطلب.
-                </p>
+                <strong>{t('Voraussetzung:', 'شرط:', 'Requirement:')}</strong>{' '}
+                {t(
+                  'Ein angemeldetes Gewerbe und eine Betriebshaftpflichtversicherung sind Pflicht, um als Partner zu arbeiten.',
+                  'يجب أن يكون لديك سجل تجاري وتأمين المسؤولية المهنية لتتمكن من إرسال الطلب.',
+                  'A registered business and liability insurance are required to work as a partner.'
+                )}
               </div>
             )}
 
             <div className="rounded-2xl border border-green-200 bg-green-50 p-4 text-sm text-green-900">
-              <p>
-                <strong>Hinweis:</strong> Kein Upload jetzt. Dokumente werden nach Annahme angefordert.
-              </p>
-              <p dir="rtl" lang="ar" className="mt-1">
-                <strong>ملاحظة:</strong> لا حاجة لرفع الوثائق الآن، سيتم طلب صور الوثائق بعد قبول طلبك
-              </p>
+              <strong>{t('Hinweis:', 'ملاحظة:', 'Note:')}</strong>{' '}
+              {t(
+                'Kein Upload jetzt. Dokumente werden nach Annahme angefordert.',
+                'لا حاجة لرفع الوثائق الآن، سيتم طلب صور الوثائق بعد قبول طلبك.',
+                'No upload needed now. Documents will be requested after acceptance.'
+              )}
             </div>
 
             {error && (
               <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">
-                {error}
+                {errorText[error]}
               </p>
             )}
 
@@ -874,10 +923,12 @@ export default function PartnerBewerbenPage() {
                 style={{ backgroundColor: submitting || !requirementsMet ? undefined : BLUE }}
                 className="w-full rounded-2xl px-6 py-4 text-lg font-bold text-white shadow-md transition hover:opacity-90 disabled:cursor-not-allowed disabled:bg-gray-300"
               >
-                {submitting ? 'Wird gesendet…' : 'Antrag senden (إرسال الطلب)'}
+                {submitting
+                  ? t('Wird gesendet…', 'جارٍ الإرسال…', 'Sending…')
+                  : t('Antrag senden', 'إرسال الطلب', 'Submit application')}
               </button>
               <button type="button" className={secondaryBtn} disabled={submitting} onClick={() => setStep(2)}>
-                Zurück / رجوع
+                {t('Zurück', 'رجوع', 'Back')}
               </button>
             </div>
           </div>
