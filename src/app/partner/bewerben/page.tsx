@@ -15,7 +15,6 @@ import {
 } from '@/lib/applications'
 
 const BLUE = '#2563eb'
-const MITARBEITER_OPTIONS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 30, 50]
 const inputClass =
   'w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-base outline-none focus:border-[#2563eb] focus:ring-2 focus:ring-[#2563eb]/30'
 
@@ -46,7 +45,6 @@ export default function PartnerBewerbenPage() {
   const [companyAddress, setCompanyAddress] = useState('')
 
   const [employeeCount, setEmployeeCount] = useState(1)
-  const [employeeCountError, setEmployeeCountError] = useState('')
   const [cleaningPrices, setCleaningPrices] = useState(DEFAULT_CLEANING_PRICES)
   const [selectedTypes, setSelectedTypes] = useState<CleaningTypeId[]>(() => CLEANING_TYPES.map((type) => type.id))
   const [languages, setLanguages] = useState<string[]>(['DE'])
@@ -66,7 +64,7 @@ export default function PartnerBewerbenPage() {
   const step2Valid =
     Number.isInteger(employeeCount) &&
     employeeCount >= 1 &&
-    employeeCount <= 1000 &&
+    employeeCount <= 50 &&
     selectedTypes.length > 0 &&
     CLEANING_TYPES.every(
       (type) =>
@@ -256,62 +254,58 @@ export default function PartnerBewerbenPage() {
             <p className="text-sm text-gray-500">
               Wählen Sie Ihre Leistungen und legen Sie Ihren Preis fest ({CLEANING_PRICE_MIN}–{CLEANING_PRICE_MAX} € pro Stunde).
             </p>
-            <fieldset className="min-w-0 rounded-xl border border-blue-100 bg-blue-50/60 p-4 text-sm font-semibold text-gray-900">
-              <legend className="flex items-center gap-2 px-1">
-                <span aria-hidden="true">👥</span>
-                Anzahl Mitarbeiter
-              </legend>
-              <div className="flex flex-wrap gap-2">
-                {MITARBEITER_OPTIONS.map((num) => (
-                  <button
-                    key={num}
-                    type="button"
-                    aria-pressed={employeeCount === num}
-                    onClick={() => {
-                      setEmployeeCount(num)
-                      setEmployeeCountError('')
-                    }}
-                    className={`rounded-full border px-4 py-2 text-sm font-medium shadow-sm transition-all ${
-                      employeeCount === num
-                        ? 'scale-105 border-blue-600 bg-blue-600 text-white'
-                        : 'border-gray-200 bg-white text-gray-700 hover:border-blue-300 hover:bg-blue-50'
-                    }`}
-                  >
-                    {num}{num === 50 ? '+' : ''}
-                  </button>
-                ))}
+            <div className="space-y-4 rounded-3xl border bg-white p-5 shadow-sm">
+              <div className="flex items-center justify-between">
+                <h3 className="text-[22px] font-bold tracking-tight text-gray-900">Anzahl Mitarbeiter</h3>
+                <div className="rounded-full bg-[#2563eb] px-5 py-2 text-[17px] font-bold text-white shadow-lg" aria-live="polite">
+                  {employeeCount} Mitarbeiter
+                </div>
+              </div>
+
+              <div className="relative pt-2">
+                <input
+                  type="range"
+                  min={1}
+                  max={50}
+                  step={1}
+                  value={employeeCount}
+                  aria-label="Anzahl Mitarbeiter"
+                  onChange={(e) => setEmployeeCount(parseInt(e.target.value, 10))}
+                  className="h-[14px] w-full cursor-pointer appearance-none rounded-full bg-[#eef2ff] [&::-moz-range-thumb]:h-9 [&::-moz-range-thumb]:w-9 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-[3px] [&::-moz-range-thumb]:border-white [&::-moz-range-thumb]:bg-[#2563eb] [&::-webkit-slider-thumb]:h-9 [&::-webkit-slider-thumb]:w-9 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:border-[3px] [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:bg-[#2563eb] [&::-webkit-slider-thumb]:shadow-lg"
+                  style={{
+                    background: `linear-gradient(to right, #2563eb ${((employeeCount - 1) / 49) * 100}%, #eef2ff ${((employeeCount - 1) / 49) * 100}%)`,
+                  }}
+                />
+                <div className="mt-2 flex justify-between text-[13px] font-medium text-gray-400">
+                  <span>1</span>
+                  <span>50</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
                 <button
                   type="button"
-                  onClick={() => {
-                    const custom = window.prompt('Anzahl Mitarbeiter eingeben:')
-                    if (custom === null) return
-                    const count = Number(custom.trim())
-                    if (!/^\d+$/.test(custom.trim()) || !Number.isInteger(count) || count < 1 || count > 1000) {
-                      setEmployeeCountError('Bitte eine ganze Zahl zwischen 1 und 1000 eingeben.')
-                      return
-                    }
-                    setEmployeeCount(count)
-                    setEmployeeCountError('')
-                  }}
-                  className="rounded-full border border-dashed border-gray-300 bg-gray-100 px-4 py-2 text-sm font-normal text-gray-600 hover:bg-white"
+                  aria-label="Weniger Mitarbeiter"
+                  onClick={() => setEmployeeCount((n) => Math.max(1, n - 1))}
+                  className="flex h-12 w-12 items-center justify-center rounded-full border border-gray-200 bg-white text-xl font-light shadow-sm hover:bg-gray-50"
                 >
-                  Andere...
+                  ?
+                </button>
+                <div className="flex h-12 flex-1 items-center justify-center rounded-full border border-[#e0e7ff] bg-[#f8faff]">
+                  <div className="mx-4 h-1 w-full rounded-full bg-[#e0e7ff] opacity-50" />
+                </div>
+                <button
+                  type="button"
+                  aria-label="Mehr Mitarbeiter"
+                  onClick={() => setEmployeeCount((n) => Math.min(50, n + 1))}
+                  className="flex h-12 w-12 items-center justify-center rounded-full bg-[#2563eb] text-2xl font-light text-white shadow-md hover:bg-blue-700"
+                >
+                  +
                 </button>
               </div>
-              {employeeCount > 0 && (
-                <p className="mt-2 text-xs font-normal text-gray-500" aria-live="polite">
-                  {employeeCount} Mitarbeiter ausgewählt
-                </p>
-              )}
-              {employeeCountError && (
-                <p role="alert" className="mt-2 text-xs font-normal text-red-700">
-                  {employeeCountError}
-                </p>
-              )}
-              <span className="mt-2 block text-xs font-normal text-gray-500">
-                Gesamtanzahl der Mitarbeiter im Reinigungsteam
-              </span>
-            </fieldset>
+
+              <p className="pt-1 text-center text-[14px] text-gray-400">Ziehen zum Einstellen</p>
+            </div>
             <ul className="space-y-3">
               {CLEANING_TYPES.map((type) => {
                 const active = selectedTypes.includes(type.id)
