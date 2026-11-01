@@ -10,6 +10,9 @@ create table if not exists partner_applications (
   city text not null default 'Stuttgart',
   company_address text not null,
   services jsonb not null,
+  employee_count int default 1,
+  cleaning_prices jsonb,
+  cleaning_types text[],
   team_size int default 1,
   languages text[],
   work_radius int default 20,
@@ -18,6 +21,10 @@ create table if not exists partner_applications (
   status text default 'pending_review',
   created_at timestamp default now()
 );
+
+alter table partner_applications add column if not exists employee_count int;
+alter table partner_applications add column if not exists cleaning_prices jsonb;
+alter table partner_applications add column if not exists cleaning_types text[];
 
 alter table partner_applications enable row level security;
 
