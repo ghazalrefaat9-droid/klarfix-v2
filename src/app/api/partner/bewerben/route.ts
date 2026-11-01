@@ -24,7 +24,11 @@ const escapeHtml = (v: string) =>
   v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
 function parse(body: Record<string, unknown>): ApplicationPayload | null {
-  const full_name = str(body.full_name)
+  const anrede = str(body.anrede, 20)
+  const vorname = str(body.vorname)
+  const nachname = str(body.nachname)
+  if (!['Herr', 'Frau', 'Divers', 'Dr.', 'Firma'].includes(anrede) || !vorname || !nachname) return null
+  const full_name = `${anrede} ${vorname} ${nachname}`.trim()
   const email = str(body.email, 254).toLowerCase()
   const phone_fixed = str(body.phone_fixed, 40)
   const city = str(body.city, 100)
@@ -60,6 +64,9 @@ function parse(body: Record<string, unknown>): ApplicationPayload | null {
 
   return {
     full_name,
+    vorname,
+    nachname,
+    anrede,
     email,
     phone_fixed,
     phone_whatsapp: str(body.phone_whatsapp, 40) || null,
@@ -138,9 +145,31 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Bitte alle Pflichtfelder korrekt ausfüllen.' }, { status: 400 })
   }
 
-  const { error } = await supabase.from('partner_applications').insert({ ...application, status: 'pending_review' })
+  const insertData: ApplicationPayload & {
+    status: string
+    vollstaendiger_name?: string
+    fullName?: string
+  } = {
+    ...application,
+    status: 'pending_review',
+    vollstaendiger_name: application.full_name,
+    fullName: application.full_name,
+  }
+  let { error } = await supabase.from('partner_applications').insert(insertData)
+  // Older schemas may have either name alias, or neither.
+  for (let attempt = 0; error && attempt < 2; attempt++) {
+    const missingColumn = error.code === 'PGRST204'
+      ? /Could not find the '([^']+)' column of 'partner_applications'/.exec(error.message)?.[1]
+      : undefined
+    if (missingColumn !== 'vollstaendiger_name' && missingColumn !== 'fullName') break
+    if (!(missingColumn in insertData)) break
+    console.warn('partner_applications compatibility column unavailable', missingColumn, error.message)
+    delete insertData[missingColumn]
+    const result = await supabase.from('partner_applications').insert(insertData)
+    error = result.error
+  }
   if (error) {
-    console.error('partner_applications insert failed', error.message)
+    console.error('partner_applications insert failed', error)
     return NextResponse.json({ error: 'Antrag konnte nicht gespeichert werden.' }, { status: 500 })
   }
 

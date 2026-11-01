@@ -4,6 +4,9 @@
 create table if not exists partner_applications (
   id uuid primary key default gen_random_uuid(),
   full_name text not null,
+  vorname text,
+  nachname text,
+  anrede text,
   email text not null,
   phone_fixed text not null,
   phone_whatsapp text null,
@@ -25,6 +28,9 @@ create table if not exists partner_applications (
 alter table partner_applications add column if not exists employee_count int;
 alter table partner_applications add column if not exists cleaning_prices jsonb;
 alter table partner_applications add column if not exists cleaning_types text[];
+alter table partner_applications add column if not exists vorname text;
+alter table partner_applications add column if not exists nachname text;
+alter table partner_applications add column if not exists anrede text;
 
 alter table partner_applications enable row level security;
 

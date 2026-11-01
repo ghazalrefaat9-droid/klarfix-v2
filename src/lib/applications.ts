@@ -45,6 +45,9 @@ export type ApplicationService = { key: string; price: number }
 
 export type ApplicationPayload = {
   full_name: string
+  vorname: string
+  nachname: string
+  anrede: string
   email: string
   phone_fixed: string
   phone_whatsapp: string | null
@@ -61,7 +64,7 @@ export type ApplicationPayload = {
   has_haftpflicht: boolean
 }
 
-export type ApplicationRow = Omit<ApplicationPayload, 'employee_count' | 'cleaning_prices' | 'cleaning_types'> & {
+export type ApplicationRow = Omit<ApplicationPayload, 'employee_count' | 'cleaning_prices' | 'cleaning_types' | 'vorname' | 'nachname' | 'anrede'> & {
   employee_count?: number | null
   cleaning_prices?: Record<CleaningTypeId, number> | null
   cleaning_types?: CleaningTypeId[] | null

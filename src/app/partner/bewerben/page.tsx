@@ -36,7 +36,6 @@ export default function PartnerBewerbenPage() {
   const [error, setError] = useState('')
 
   const [anrede, setAnrede] = useState('')
-  const [titel, setTitel] = useState('')
   const [vorname, setVorname] = useState('')
   const [nachname, setNachname] = useState('')
   const [email, setEmail] = useState('')
@@ -53,7 +52,7 @@ export default function PartnerBewerbenPage() {
   const [hasGewerbe, setHasGewerbe] = useState(false)
   const [hasHaftpflicht, setHasHaftpflicht] = useState(false)
 
-  const fullName = `${titel} ${vorname} ${nachname}`.trim()
+  const fullName = `${anrede} ${vorname} ${nachname}`.trim()
   const step1Valid =
     anrede !== '' &&
     vorname.trim() !== '' &&
@@ -82,6 +81,11 @@ export default function PartnerBewerbenPage() {
     setSubmitting(true)
     const data = {
       full_name: fullName.trim(),
+      vorname: vorname.trim(),
+      nachname: nachname.trim(),
+      anrede,
+      vollstaendiger_name: fullName.trim(),
+      fullName: fullName.trim(),
       email: email.trim(),
       phone_fixed: phoneFixed.trim(),
       phone_whatsapp: phoneWhatsapp.trim() || null,
@@ -168,21 +172,12 @@ export default function PartnerBewerbenPage() {
                 <option value="Firma">Firma</option>
               </select>
             </label>
-            <label className="block text-sm font-medium">
-              <Bi de="Titel (optional)" ar="اللقب (اختياري)" />
-              <input
-                className={`${inputClass} mt-1`}
-                placeholder="z.B. Dr., Prof."
-                value={titel}
-                onChange={(e) => setTitel(e.target.value)}
-              />
-            </label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-4">
               <label className="block text-sm font-medium">
                 <Bi de="Vorname *" ar="الاسم الأول" />
                 <input
                   className={`${inputClass} mt-1`}
-                  placeholder="Refaat"
+                  placeholder=""
                   value={vorname}
                   onChange={(e) => setVorname(e.target.value)}
                   required
@@ -192,16 +187,18 @@ export default function PartnerBewerbenPage() {
                 <Bi de="Nachname *" ar="اسم العائلة" />
                 <input
                   className={`${inputClass} mt-1`}
-                  placeholder="Ghazal"
+                  placeholder=""
                   value={nachname}
                   onChange={(e) => setNachname(e.target.value)}
                   required
                 />
               </label>
             </div>
-            <p className="rounded-xl bg-blue-50 px-4 py-3 text-sm text-gray-700">
-              <span className="font-semibold">Vollständiger Name:</span> {fullName}
-            </p>
+            {anrede && vorname.trim() && nachname.trim() && (
+              <p className="rounded-xl bg-blue-50 px-4 py-3 text-sm text-gray-700">
+                <span className="font-semibold">Vollständiger Name:</span> {fullName}
+              </p>
+            )}
             <label className="block text-sm font-medium">
               <Bi de="E-Mail *" ar="البريد الإلكتروني" />
               <input type="email" className={`${inputClass} mt-1`} value={email} onChange={(e) => setEmail(e.target.value)} required />
