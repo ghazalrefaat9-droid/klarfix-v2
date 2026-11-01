@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Check, Sparkles } from 'lucide-react'
 import {
@@ -29,6 +29,70 @@ function Bi({ de, ar }: { de: string; ar: string }) {
   )
 }
 
+type AddressSuggestion = {
+  city: string
+  postcode: string
+  state: string
+  street: string
+  housenumber: string
+  lat: number
+  lon: number
+}
+
+type PhotonFeature = {
+  geometry: { coordinates: [number, number] }
+  properties: {
+    name?: string
+    city?: string
+    postcode?: string
+    state?: string
+    street?: string
+    housenumber?: string
+    countrycode?: string
+  }
+}
+
+// Photon is built for search-as-you-type; the public Nominatim API forbids autocomplete use.
+const PHOTON_URL = 'https://photon.komoot.io/api/'
+const GERMANY_BBOX = '5.87,47.27,15.04,55.06'
+const AUTOCOMPLETE_DELAY_MS = 300
+const MAX_SUGGESTIONS = 6
+
+type PhotonPlace = AddressSuggestion & { name: string }
+
+async function searchPhoton(params: Record<string, string>, signal: AbortSignal): Promise<PhotonPlace[]> {
+  const query = new URLSearchParams({ lang: 'de', limit: '15', bbox: GERMANY_BBOX, ...params })
+  const res = await fetch(`${PHOTON_URL}?${query}`, { signal })
+  if (!res.ok) throw new Error(`Photon ${res.status}`)
+  const data = (await res.json()) as { features?: PhotonFeature[] }
+  return (data.features ?? [])
+    .filter((f) => f.properties.countrycode === 'DE')
+    .map((f) => ({
+      name: f.properties.name ?? '',
+      city: f.properties.city ?? '',
+      postcode: f.properties.postcode ?? '',
+      state: f.properties.state ?? '',
+      street: f.properties.street ?? '',
+      housenumber: f.properties.housenumber ?? '',
+      lat: f.geometry.coordinates[1],
+      lon: f.geometry.coordinates[0],
+    }))
+}
+
+function uniqueBy<T>(items: T[], key: (item: T) => string) {
+  const seen = new Set<string>()
+  return items.filter((item) => {
+    const k = key(item)
+    if (seen.has(k)) return false
+    seen.add(k)
+    return true
+  })
+}
+
+const suggestionListClass =
+  'absolute z-50 mt-1 max-h-56 w-full overflow-auto rounded-xl border border-gray-200 bg-white text-sm font-normal shadow-xl'
+const suggestionItemClass = 'cursor-pointer border-b border-gray-100 p-3 last:border-0 hover:bg-blue-50'
+
 export default function PartnerBewerbenPage() {
   const router = useRouter()
   const [step, setStep] = useState<1 | 2 | 3>(1)
@@ -41,8 +105,17 @@ export default function PartnerBewerbenPage() {
   const [email, setEmail] = useState('')
   const [phoneFixed, setPhoneFixed] = useState('')
   const [phoneWhatsapp, setPhoneWhatsapp] = useState('')
+  const [street, setStreet] = useState('')
+  const [houseNumber, setHouseNumber] = useState('')
+  const [plz, setPLZ] = useState('')
   const [city, setCity] = useState('')
-  const [companyAddress, setCompanyAddress] = useState('')
+  const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(null)
+  const [showMap, setShowMap] = useState(false)
+  const [streetSuggestions, setStreetSuggestions] = useState<AddressSuggestion[]>([])
+  const [plzSuggestions, setPlzSuggestions] = useState<AddressSuggestion[]>([])
+  const [citySuggestions, setCitySuggestions] = useState<AddressSuggestion[]>([])
+  const searchTimers = useRef<Partial<Record<'street' | 'plz' | 'city', ReturnType<typeof setTimeout>>>>({})
+  const searchControllers = useRef<Partial<Record<'street' | 'plz' | 'city', AbortController>>>({})
 
   const [employeeCount, setEmployeeCount] = useState(1)
   const [selectedServices, setSelectedServices] = useState<CleaningTypeId[]>([])
@@ -54,14 +127,17 @@ export default function PartnerBewerbenPage() {
   const [hasHaftpflicht, setHasHaftpflicht] = useState(false)
 
   const fullName = `${anrede} ${vorname} ${nachname}`.trim()
+  const streetLine = [street.trim(), houseNumber.trim()].filter(Boolean).join(' ')
+  const companyAddress = `${streetLine}, ${plz} ${city.trim()}`
   const step1Valid =
     anrede !== '' &&
     vorname.trim() !== '' &&
     nachname.trim() !== '' &&
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) &&
     phoneFixed.trim() !== '' &&
-    city.trim() !== '' &&
-    companyAddress.trim() !== ''
+    street.trim() !== '' &&
+    /^\d{5}$/.test(plz) &&
+    city.trim() !== ''
   const step2Valid =
     Number.isInteger(employeeCount) &&
     employeeCount >= 1 &&
@@ -71,6 +147,144 @@ export default function PartnerBewerbenPage() {
       const price = servicePrices[id]
       return price !== undefined && Number.isInteger(price) && price >= CLEANING_PRICE_MIN && price <= CLEANING_PRICE_MAX
     })
+
+  useEffect(() => {
+    const timers = searchTimers.current
+    const controllers = searchControllers.current
+    return () => {
+      Object.values(timers).forEach((t) => clearTimeout(t))
+      Object.values(controllers).forEach((c) => c?.abort())
+    }
+  }, [])
+
+  const cancelSearch = (field: 'street' | 'plz' | 'city') => {
+    clearTimeout(searchTimers.current[field])
+    searchControllers.current[field]?.abort()
+  }
+
+  const scheduleSearch = (
+    field: 'street' | 'plz' | 'city',
+    run: (signal: AbortSignal) => Promise<AddressSuggestion[]>,
+    setSuggestions: (s: AddressSuggestion[]) => void
+  ) => {
+    cancelSearch(field)
+    searchTimers.current[field] = setTimeout(async () => {
+      const controller = new AbortController()
+      searchControllers.current[field] = controller
+      try {
+        const results = await run(controller.signal)
+        if (!controller.signal.aborted) setSuggestions(results.slice(0, MAX_SUGGESTIONS))
+      } catch (err) {
+        if (!controller.signal.aborted) {
+          console.warn('Adressvorschläge nicht verfügbar', err)
+          setSuggestions([])
+        }
+      }
+    }, AUTOCOMPLETE_DELAY_MS)
+  }
+
+  const handleCitySearch = (q: string) => {
+    setCity(q)
+    setCoords(null)
+    if (q.trim().length < 2) {
+      cancelSearch('city')
+      setCitySuggestions([])
+      return
+    }
+    scheduleSearch(
+      'city',
+      async (signal) =>
+        uniqueBy(
+          (await searchPhoton({ q: q.trim(), layer: 'city' }, signal))
+            .filter((p) => p.name)
+            .map((p) => ({ ...p, city: p.name })),
+          (s) => `${s.city}|${s.postcode}|${s.state}`
+        ),
+      setCitySuggestions
+    )
+  }
+
+  const handlePLZSearch = (value: string) => {
+    const q = value.replace(/\D/g, '').slice(0, 5)
+    setPLZ(q)
+    setCoords(null)
+    if (q.length < 2) {
+      cancelSearch('plz')
+      setPlzSuggestions([])
+      return
+    }
+    scheduleSearch(
+      'plz',
+      async (signal) => {
+        // Photon matches 4-digit input exactly against foreign postcodes (e.g. LU "7372") instead of
+        // prefix-matching German ones, so search by the 3-digit prefix and filter locally. A high limit plus
+        // a bias toward the centre of Germany keeps foreign postcodes (e.g. PL "70-123") from crowding out
+        // German results.
+        const params = { q: q.length === 4 ? q.slice(0, 3) : q, limit: '50', lat: '51.16', lon: '10.45' }
+        return uniqueBy(
+          (await searchPhoton({ ...params, osm_tag: 'place:postcode' }, signal))
+            .filter((p) => /^\d{5}$/.test(p.name) && p.name.startsWith(q))
+            .map((p) => ({ ...p, postcode: p.name })),
+          (s) => `${s.postcode}|${s.city}`
+        )
+      },
+      setPlzSuggestions
+    )
+  }
+
+  const handleStreetSearch = (q: string) => {
+    setStreet(q)
+    if (q.trim().length < 2) {
+      cancelSearch('street')
+      setStreetSuggestions([])
+      return
+    }
+    const term = q.trim()
+    // Adding the PLZ to the query drowns out the street term in Photon; bias by city + location instead.
+    const params: Record<string, string> = { q: [term, city.trim()].filter(Boolean).join(' '), layer: 'street' }
+    if (coords) {
+      params.lat = String(coords.lat)
+      params.lon = String(coords.lon)
+    }
+    scheduleSearch(
+      'street',
+      async (signal) => {
+        const places = (await searchPhoton(params, signal)).filter((p) => p.name).map((p) => ({ ...p, street: p.name }))
+        const matching = places.filter((p) => p.street.toLowerCase().includes(term.toLowerCase()))
+        const ranked = (matching.length > 0 ? matching : places).sort(
+          (x, y) => Number(y.postcode === plz) - Number(x.postcode === plz)
+        )
+        return uniqueBy(ranked, (s) => `${s.street}|${s.postcode}|${s.city}`)
+      },
+      setStreetSuggestions
+    )
+  }
+
+  const selectStreet = (s: AddressSuggestion) => {
+    cancelSearch('street')
+    setStreet(s.street)
+    if (s.housenumber) setHouseNumber(s.housenumber)
+    if (s.postcode) setPLZ(s.postcode)
+    if (s.city) setCity(s.city)
+    setCoords({ lat: s.lat, lon: s.lon })
+    setStreetSuggestions([])
+  }
+
+  const selectPLZ = (s: AddressSuggestion) => {
+    cancelSearch('plz')
+    setPLZ(s.postcode)
+    if (s.city) setCity(s.city)
+    setCoords({ lat: s.lat, lon: s.lon })
+    setPlzSuggestions([])
+  }
+
+  const selectCity = (s: AddressSuggestion) => {
+    cancelSearch('city')
+    setCity(s.city)
+    if (s.postcode) setPLZ(s.postcode)
+    setCoords({ lat: s.lat, lon: s.lon })
+    setCitySuggestions([])
+  }
 
   const toggleService = (id: CleaningTypeId) => {
     if (selectedServices.includes(id)) {
@@ -108,7 +322,7 @@ export default function PartnerBewerbenPage() {
       phone_fixed: phoneFixed.trim(),
       phone_whatsapp: phoneWhatsapp.trim() || null,
       city: city.trim(),
-      company_address: companyAddress.trim(),
+      company_address: companyAddress,
       employee_count: employeeCount,
       cleaning_prices: Object.fromEntries(selectedServices.map((id) => [id, servicePrices[id]])),
       cleaning_types: selectedServices,
@@ -242,26 +456,142 @@ export default function PartnerBewerbenPage() {
                 onChange={(e) => setPhoneWhatsapp(e.target.value)}
               />
             </label>
-            <label className="block text-sm font-medium">
-              <Bi de="Stadt *" ar="المدينة" />
-              <input
-                className={`${inputClass} mt-1`}
-                placeholder="z.B. Stuttgart"
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                required
-              />
-            </label>
-            <label className="block text-sm font-medium">
-              <Bi de="Firmenadresse *" ar="عنوان الشركة" />
-              <input
-                className={`${inputClass} mt-1`}
-                placeholder="z.B. Hauptstr. 12, 70173 Stuttgart"
-                value={companyAddress}
-                onChange={(e) => setCompanyAddress(e.target.value)}
-                required
-              />
-            </label>
+            <div className="grid gap-4">
+              <div className="grid grid-cols-[2fr_1fr] gap-3">
+                <div className="relative">
+                  <label className="block text-sm font-medium">
+                    <Bi de="Straße *" ar="الشارع" />
+                    <input
+                      className={`${inputClass} mt-1`}
+                      placeholder="z.B. Hauptstr."
+                      value={street}
+                      onChange={(e) => handleStreetSearch(e.target.value)}
+                      onBlur={() => setStreetSuggestions([])}
+                      onKeyDown={(e) => e.key === 'Escape' && setStreetSuggestions([])}
+                      autoComplete="off"
+                      required
+                    />
+                  </label>
+                  {streetSuggestions.length > 0 && (
+                    <ul className={suggestionListClass} role="listbox" aria-label="Straßenvorschläge">
+                      {streetSuggestions.map((s) => (
+                        <li
+                          key={`${s.street}|${s.postcode}|${s.city}`}
+                          role="option"
+                          aria-selected={false}
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => selectStreet(s)}
+                          className={suggestionItemClass}
+                        >
+                          📍 {s.street}
+                          {s.housenumber ? ` ${s.housenumber}` : ''} - {s.city} {s.postcode}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+                <label className="block text-sm font-medium">
+                  <Bi de="Hausnr." ar="رقم" />
+                  <input
+                    className={`${inputClass} mt-1`}
+                    placeholder="12"
+                    value={houseNumber}
+                    onChange={(e) => setHouseNumber(e.target.value)}
+                  />
+                </label>
+              </div>
+
+              <div className="grid grid-cols-[1fr_2fr] gap-3">
+                <div className="relative">
+                  <label className="block text-sm font-medium">
+                    <Bi de="Postleitzahl *" ar="الرمز البريدي" />
+                    <input
+                      className={`${inputClass} mt-1`}
+                      placeholder="70173"
+                      inputMode="numeric"
+                      maxLength={5}
+                      value={plz}
+                      onChange={(e) => handlePLZSearch(e.target.value)}
+                      onBlur={() => setPlzSuggestions([])}
+                      onKeyDown={(e) => e.key === 'Escape' && setPlzSuggestions([])}
+                      autoComplete="off"
+                      required
+                    />
+                  </label>
+                  {plzSuggestions.length > 0 && (
+                    <ul className={suggestionListClass} role="listbox" aria-label="PLZ-Vorschläge">
+                      {plzSuggestions.map((s) => (
+                        <li
+                          key={`${s.postcode}|${s.city}`}
+                          role="option"
+                          aria-selected={false}
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => selectPLZ(s)}
+                          className={suggestionItemClass}
+                        >
+                          {s.postcode} - {s.city}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+                <div className="relative">
+                  <label className="block text-sm font-medium">
+                    <Bi de="Stadt / Ort *" ar="المدينة" />
+                    <input
+                      className={`${inputClass} mt-1`}
+                      placeholder="Stuttgart"
+                      value={city}
+                      onChange={(e) => handleCitySearch(e.target.value)}
+                      onBlur={() => setCitySuggestions([])}
+                      onKeyDown={(e) => e.key === 'Escape' && setCitySuggestions([])}
+                      autoComplete="off"
+                      required
+                    />
+                  </label>
+                  {citySuggestions.length > 0 && (
+                    <ul className={suggestionListClass} role="listbox" aria-label="Ortsvorschläge">
+                      {citySuggestions.map((s) => (
+                        <li
+                          key={`${s.city}|${s.postcode}|${s.state}`}
+                          role="option"
+                          aria-selected={false}
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => selectCity(s)}
+                          className={suggestionItemClass}
+                        >
+                          🏙️ {s.city}
+                          {s.postcode ? ` - ${s.postcode}` : ''} {s.state}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+              <p className="text-xs text-gray-400">
+                Adressvorschläge ab 2 Zeichen · Daten ©{' '}
+                <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer" className="underline">
+                  OpenStreetMap-Mitwirkende
+                </a>
+              </p>
+            </div>
+
+            <div>
+              <button type="button" onClick={() => setShowMap((v) => !v)} className="text-sm text-blue-600 hover:underline">
+                📍 {showMap ? 'Karte ausblenden' : 'Karte anzeigen'}
+              </button>
+              {showMap &&
+                (coords ? (
+                  <iframe
+                    title="Karte der Firmenadresse"
+                    className="mt-2 h-[200px] w-full rounded-xl border"
+                    loading="lazy"
+                    src={`https://www.openstreetmap.org/export/embed.html?bbox=${coords.lon - 0.01},${coords.lat - 0.01},${coords.lon + 0.01},${coords.lat + 0.01}&marker=${coords.lat},${coords.lon}`}
+                  />
+                ) : (
+                  <p className="mt-2 text-sm text-gray-500">Bitte zuerst eine Adresse, PLZ oder Stadt aus den Vorschlägen wählen.</p>
+                ))}
+            </div>
             <div className="flex justify-end pt-2">
               <button type="button" className={primaryBtn} disabled={!step1Valid} onClick={() => setStep(2)}>
                 Weiter / التالي
