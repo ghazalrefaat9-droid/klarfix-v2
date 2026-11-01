@@ -232,9 +232,14 @@ export default function AdminDashboardPage() {
     <main className="mx-auto max-w-6xl px-4 py-10">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-[#0F60C6]">Admin-Dashboard</h1>
-        <button onClick={logout} className="text-sm text-gray-600 underline hover:text-gray-900">
-          Abmelden
-        </button>
+        <div className="flex items-center gap-4">
+          <a href="/admin/partner-applications" className="text-sm font-medium text-[#0F60C6] underline hover:opacity-80">
+            Partner-Anträge
+          </a>
+          <button onClick={logout} className="text-sm text-gray-600 underline hover:text-gray-900">
+            Abmelden
+          </button>
+        </div>
       </div>
 
       <nav className="mb-6 flex gap-2 border-b border-gray-200">
