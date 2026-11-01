@@ -41,7 +41,7 @@ export default function PartnerBewerbenPage() {
   const [email, setEmail] = useState('')
   const [phoneFixed, setPhoneFixed] = useState('')
   const [phoneWhatsapp, setPhoneWhatsapp] = useState('')
-  const [city, setCity] = useState('Stuttgart')
+  const [city, setCity] = useState('')
   const [companyAddress, setCompanyAddress] = useState('')
 
   const [employeeCount, setEmployeeCount] = useState(1)
@@ -244,13 +244,19 @@ export default function PartnerBewerbenPage() {
             </label>
             <label className="block text-sm font-medium">
               <Bi de="Stadt *" ar="المدينة" />
-              <input className={`${inputClass} mt-1`} value={city} onChange={(e) => setCity(e.target.value)} required />
+              <input
+                className={`${inputClass} mt-1`}
+                placeholder="z.B. Stuttgart"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                required
+              />
             </label>
             <label className="block text-sm font-medium">
               <Bi de="Firmenadresse *" ar="عنوان الشركة" />
               <input
                 className={`${inputClass} mt-1`}
-                placeholder="Hauptstr. 12, 70173 Stuttgart"
+                placeholder="z.B. Hauptstr. 12, 70173 Stuttgart"
                 value={companyAddress}
                 onChange={(e) => setCompanyAddress(e.target.value)}
                 required
