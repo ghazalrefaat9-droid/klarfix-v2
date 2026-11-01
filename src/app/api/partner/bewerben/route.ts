@@ -4,20 +4,21 @@ import { loadAdmin } from '@/lib/adminAuth'
 import { CAMPAIGN_TEXT, SITE_NAME, sendMail } from '@/lib/mailer'
 import {
   APPLICATION_LANGUAGES,
-  APPLICATION_SERVICES,
-  PRICE_MAX,
-  PRICE_MIN,
+  CLEANING_PRICE_MAX,
+  CLEANING_PRICE_MIN,
+  CLEANING_TYPES,
   RADIUS_MAX,
   RADIUS_MIN,
-  TEAM_MAX,
-  TEAM_MIN,
   serviceLabel,
   type ApplicationPayload,
+  type CleaningTypeId,
 } from '@/lib/applications'
 
 const str = (v: unknown, max = 200) => (typeof v === 'string' ? v.trim().slice(0, max) : '')
-const inRange = (v: unknown, min: number, max: number) =>
+const inRange = (v: unknown, min: number, max: number): v is number =>
   typeof v === 'number' && Number.isInteger(v) && v >= min && v <= max
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value)
 
 const escapeHtml = (v: string) =>
   v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
@@ -31,20 +32,27 @@ function parse(body: Record<string, unknown>): ApplicationPayload | null {
   if (!full_name || !phone_fixed || !city || !company_address) return null
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return null
 
-  if (!Array.isArray(body.services)) return null
-  const allowed = new Set<string>(APPLICATION_SERVICES.map((s) => s.key))
-  const seen = new Set<string>()
-  const services: ApplicationPayload['services'] = []
-  for (const raw of body.services) {
-    const item = raw as { key?: unknown; price?: unknown }
-    if (typeof item?.key !== 'string' || !allowed.has(item.key) || seen.has(item.key)) return null
-    if (!inRange(item.price, PRICE_MIN, PRICE_MAX)) return null
-    seen.add(item.key)
-    services.push({ key: item.key as ApplicationPayload['services'][number]['key'], price: item.price as number })
+  if (!inRange(body.employee_count, 1, 1000) || !inRange(body.work_radius, RADIUS_MIN, RADIUS_MAX)) return null
+  if (!Array.isArray(body.cleaning_types)) return null
+  const cleaning_types: CleaningTypeId[] = []
+  for (const raw of body.cleaning_types) {
+    if (typeof raw !== 'string') return null
+    const type = CLEANING_TYPES.find((item) => item.id === raw)
+    if (!type || cleaning_types.includes(type.id)) return null
+    cleaning_types.push(type.id)
   }
-  if (services.length === 0) return null
+  if (cleaning_types.length === 0) return null
 
-  if (!inRange(body.team_size, TEAM_MIN, TEAM_MAX) || !inRange(body.work_radius, RADIUS_MIN, RADIUS_MAX)) return null
+  if (!isRecord(body.cleaning_prices)) return null
+  const priceInput = body.cleaning_prices
+  const cleaning_prices = {} as Record<CleaningTypeId, number>
+  for (const type of CLEANING_TYPES) {
+    const price = priceInput[type.id]
+    if (!inRange(price, CLEANING_PRICE_MIN, CLEANING_PRICE_MAX)) return null
+    cleaning_prices[type.id] = price
+  }
+  const services = cleaning_types.map((key) => ({ key, price: cleaning_prices[key] }))
+
   const languages = Array.isArray(body.languages)
     ? body.languages.filter((l): l is string => typeof l === 'string' && (APPLICATION_LANGUAGES as readonly string[]).includes(l))
     : []
@@ -58,9 +66,12 @@ function parse(body: Record<string, unknown>): ApplicationPayload | null {
     city,
     company_address,
     services,
-    team_size: body.team_size as number,
+    employee_count: body.employee_count,
+    cleaning_prices,
+    cleaning_types,
+    team_size: body.employee_count,
     languages: [...new Set(languages)],
-    work_radius: body.work_radius as number,
+    work_radius: body.work_radius,
     has_gewerbe: body.has_gewerbe,
     has_haftpflicht: body.has_haftpflicht,
   }
@@ -101,6 +112,7 @@ async function sendNotifications(a: ApplicationPayload) {
     `Telefon: ${a.phone_fixed}`,
     `WhatsApp: ${a.phone_whatsapp ?? '-'}`,
     `Adresse: ${a.company_address}, ${a.city}`,
+    `Mitarbeiter: ${a.employee_count}`,
     `Leistungen: ${serviceLines.join('; ')}`,
     `Team: ${a.team_size} | Radius: ${a.work_radius} km | Sprachen: ${a.languages.join(', ') || '-'}`,
     `Gewerbe: ${a.has_gewerbe ? 'Ja' : 'Nein'} | Haftpflicht: ${a.has_haftpflicht ? 'Ja' : 'Nein'}`,
