@@ -24,7 +24,7 @@ export default function Footer() {
           <ul className="space-y-1">
             <li>
               <Link href="/buchen" className="hover:text-card">
-                {t('Jetzt buchen', 'احجز الآن', 'Book now')}
+                {t('Jetzt anfragen', 'اطلب الآن', 'Request now')}
               </Link>
             </li>
             <li>

@@ -39,7 +39,7 @@ export default function Navbar() {
             href="/buchen"
             className="rounded-full bg-primary px-5 py-2 text-card transition-colors hover:bg-primary-hover"
           >
-            {t('Jetzt buchen', 'احجز الآن', 'Book now')}
+            {t('Jetzt anfragen', 'اطلب الآن', 'Request now')}
           </Link>
           <div ref={menuRef} className="relative">
             <button
