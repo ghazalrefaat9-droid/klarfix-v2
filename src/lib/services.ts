@@ -22,6 +22,26 @@ export function serviceDesc(s: Service, lang: Lang) {
   return lang === 'ar' ? s.descAr : lang === 'en' ? s.descEn : s.descDe
 }
 
+export type Reinigungsart = { id: string; label: string; desc: string }
+
+export const REINIGUNGSARTEN: Reinigungsart[] = [
+  { id: 'wohnungsreinigung', label: 'Wohnungsreinigung', desc: 'Standardreinigung von Wohnräumen, Küche und Bad' },
+  { id: 'hausreinigung', label: 'Hausreinigung', desc: 'Komplettreinigung für Ein- und Mehrfamilienhäuser' },
+  { id: 'bueroreinigung', label: 'Büroreinigung', desc: 'Reinigung von Büroräumen, Schreibtischen und Gemeinschaftsbereichen' },
+  { id: 'fensterreinigung', label: 'Fensterreinigung', desc: 'Professionelle Reinigung von Fenstern, Glasflächen und Rahmen' },
+  { id: 'teppichreinigung', label: 'Teppichreinigung', desc: 'Tiefenreinigung von Teppichen und Teppichböden' },
+  { id: 'polsterreinigung', label: 'Polsterreinigung', desc: 'Reinigung von Sofas, Sesseln und Polstermöbeln' },
+  { id: 'praxisreinigung', label: 'Praxisreinigung', desc: 'Hygienereinigung für Arztpraxen nach Desinfektionsstandard' },
+  { id: 'gewerbereinigung', label: 'Gewerbereinigung', desc: 'Regelmäßige Reinigung für Büros, Praxen und Geschäftsräume' },
+  { id: 'industriereinigung', label: 'Industriereinigung', desc: 'Reinigung von Produktions- und Lagerhallen, Maschinen & Anlagen' },
+  { id: 'grundreinigung', label: 'Grundreinigung', desc: 'Intensive Grundreinigung für starke Verschmutzungen und Erstpflege' },
+  { id: 'bauendreinigung', label: 'Bauendreinigung', desc: 'Reinigung nach Baumaßnahmen inkl. Staub- und Bauschuttabfuhr' },
+  { id: 'treppenhausreinigung', label: 'Treppenhausreinigung', desc: 'Regelmäßige Reinigung von Treppenhäusern und Gemeinschaftsflächen' },
+  { id: 'entruempelung', label: 'Entrümpelung + Reinigung', desc: 'Entrümpelung von Räumen inkl. fachgerechter Entsorgung & Reinigung' },
+  { id: 'umzugsreinigung', label: 'Umzugsreinigung / Endreinigung', desc: 'Endreinigung bei Auszug inkl. Übergabereinigung nach Vermieterstandard' },
+  { id: 'sonstiges', label: 'Sonstiges', desc: 'Andere Reinigungsart - bitte beschreiben' },
+]
+
 export const SERVICES: Service[] = [
   {
     key: 'Wohnungsreinigung',
