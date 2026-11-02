@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase, LEADS_TABLE } from '@/lib/supabase'
 import { REINIGUNGSARTEN } from '@/lib/services'
 import { useLang } from '@/components/LanguageProvider'
+import AddressAutocomplete from '@/components/AddressAutocomplete'
 
 const inputClass =
   'mt-1 w-full rounded-lg border border-primary/20 bg-card px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-50'
@@ -206,17 +207,24 @@ function BookingForm() {
           {t('Telefon', 'الهاتف', 'Phone')}
           <input type="tel" value={form.phone} onChange={update('phone')} className={inputClass} />
         </label>
-        <label className="block text-sm font-medium">
-          {t('Adresse / Straße *', 'العنوان / الشارع *', 'Address / Street *')}
-          <input
+        <div className="block text-sm font-medium">
+          <label htmlFor="buchen-address">{t('Adresse / Straße *', 'العنوان / الشارع *', 'Address / Street *')}</label>
+          <AddressAutocomplete
+            id="buchen-address"
             required
-            autoComplete="street-address"
-            placeholder={t('z.B. Musterstraße 12, 3. OG', 'مثال: Musterstraße 12, 3. OG', 'e.g. Musterstraße 12, 3rd floor')}
+            placeholder={t(
+              'z.B. Musterstraße 12, 70173 Stuttgart',
+              'مثال: Musterstraße 12, 70173 Stuttgart',
+              'e.g. Musterstraße 12, 70173 Stuttgart',
+            )}
             value={form.address}
-            onChange={update('address')}
+            onChange={(address) => setForm((prev) => ({ ...prev, address }))}
+            onSelect={(pick) => {
+              if (pick.postcode) setForm((prev) => ({ ...prev, postcode: pick.postcode }))
+            }}
             className={inputClass}
           />
-        </label>
+        </div>
         <label className="block text-sm font-medium">
           {t('PLZ *', 'الرمز البريدي *', 'Postcode *')}
           <input required value={form.postcode} onChange={update('postcode')} className={inputClass} />
