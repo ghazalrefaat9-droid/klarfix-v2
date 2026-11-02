@@ -2,7 +2,7 @@
 
 import { Suspense, useState, type FormEvent } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { supabase } from '@/lib/supabaseClient'
+import { supabase, LEADS_TABLE } from '@/lib/supabase'
 import { SERVICES, serviceName } from '@/lib/services'
 import { useLang } from '@/components/LanguageProvider'
 
@@ -46,20 +46,37 @@ function BookingForm() {
       .filter(Boolean)
       .join('\n')
 
-    const { error: insertError } = await supabase.from('requests').insert({
-      customer_name: form.name.trim(),
-      customer_email: form.email.trim(),
-      customer_phone: form.phone.trim() || null,
-      postcode: form.postcode.trim(),
-      service_type: form.service,
-      area_sqm: form.area ? Math.round(Number(form.area)) : null,
-      message: fullMessage || null,
-      status: 'new',
-    })
+    const areaSqm = form.area ? Math.round(Number(form.area)) : null
+
+    // Leads table for lead tracking; requests table keeps the admin/partner dashboards working.
+    const [leadResult, requestResult] = await Promise.all([
+      supabase.from(LEADS_TABLE).insert({
+        name: form.name.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim() || null,
+        postcode: form.postcode.trim(),
+        service: form.service,
+        area_sqm: areaSqm,
+        message: fullMessage || null,
+      }),
+      supabase.from('requests').insert({
+        customer_name: form.name.trim(),
+        customer_email: form.email.trim(),
+        customer_phone: form.phone.trim() || null,
+        postcode: form.postcode.trim(),
+        service_type: form.service,
+        area_sqm: areaSqm,
+        message: fullMessage || null,
+        status: 'new',
+      }),
+    ])
+
+    if (leadResult.error) console.error('Lead insert failed:', leadResult.error.message)
+    if (requestResult.error) console.error('Request insert failed:', requestResult.error.message)
 
     setLoading(false)
 
-    if (insertError) {
+    if (leadResult.error && requestResult.error) {
       setError(
         t(
           'Die Anfrage konnte nicht gesendet werden. Bitte versuchen Sie es erneut.',
