@@ -4,7 +4,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import PasswordInput from '@/components/PasswordInput'
 
 const inputClass =
-  'mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#0F60C6] focus:outline-none focus:ring-2 focus:ring-[#0F60C6]/30'
+  'mt-1 w-full rounded-lg border border-primary/20 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
 
 type Loaded = { email: string; companyName: string; contactEmail: string }
 
@@ -76,7 +76,7 @@ export default function SettingsPanel({ onMessage }: { onMessage: (msg: string) 
   }
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-xl space-y-6 rounded-xl bg-white p-6 shadow-sm">
+    <form onSubmit={handleSubmit} className="max-w-xl space-y-6 rounded-xl bg-card p-6 shadow-sm">
       <section className="space-y-4">
         <h2 className="text-lg font-semibold">Allgemein</h2>
         <label className="block text-sm font-medium">
@@ -94,10 +94,10 @@ export default function SettingsPanel({ onMessage }: { onMessage: (msg: string) 
         </label>
       </section>
 
-      <section className="space-y-4 border-t border-gray-200 pt-6">
+      <section className="space-y-4 border-t border-primary/10 pt-6">
         <h2 className="text-lg font-semibold">Zugang</h2>
-        <p className="text-sm text-gray-500">
-          Aktuelle Admin-E-Mail: <span className="font-medium text-gray-800">{loaded?.email || '–'}</span>
+        <p className="text-sm text-primary/70">
+          Aktuelle Admin-E-Mail: <span className="font-medium text-primary">{loaded?.email || '–'}</span>
         </p>
         <label className="block text-sm font-medium">
           Neue E-Mail (leer lassen, wenn unverändert)
@@ -123,7 +123,7 @@ export default function SettingsPanel({ onMessage }: { onMessage: (msg: string) 
         </label>
       </section>
 
-      <section className="space-y-4 border-t border-gray-200 pt-6">
+      <section className="space-y-4 border-t border-primary/10 pt-6">
         <label className="block text-sm font-medium">
           Aktuelles Passwort (zur Bestätigung erforderlich) *
           <PasswordInput
@@ -134,12 +134,12 @@ export default function SettingsPanel({ onMessage }: { onMessage: (msg: string) 
             className={inputClass}
           />
         </label>
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-primary">{error}</p>}
         <div className="flex justify-end">
           <button
             type="submit"
             disabled={saving}
-            className="rounded-lg bg-[#0F60C6] px-5 py-2.5 font-semibold text-white hover:opacity-90 disabled:opacity-50"
+            className="rounded-lg bg-primary px-5 py-2.5 font-semibold text-card hover:bg-primary-hover disabled:opacity-50"
           >
             {saving ? 'Speichern…' : 'Einstellungen speichern'}
           </button>

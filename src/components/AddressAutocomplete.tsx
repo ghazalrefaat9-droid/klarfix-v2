@@ -108,12 +108,12 @@ export default function AddressAutocomplete({ value, onChange, onSelect, classNa
           className={className}
         />
         {loading && (
-          <Loader2 size={18} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-[#0F60C6]" />
+          <Loader2 size={18} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-primary" />
         )}
       </div>
 
       {open && suggestions.length > 0 && (
-        <ul className="absolute z-20 mt-1 w-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg">
+        <ul className="absolute z-20 mt-1 w-full overflow-hidden rounded-lg border border-primary/10 bg-card shadow-lg">
           {suggestions.map((s, i) => (
             <li key={`${s.label}-${i}`}>
               <button
@@ -122,7 +122,7 @@ export default function AddressAutocomplete({ value, onChange, onSelect, classNa
                   e.preventDefault()
                   handlePick(s)
                 }}
-                className="w-full px-4 py-3 text-left text-sm transition-colors hover:bg-blue-50"
+                className="w-full px-4 py-3 text-left text-sm transition-colors hover:bg-primary/5"
               >
                 {s.label}
               </button>

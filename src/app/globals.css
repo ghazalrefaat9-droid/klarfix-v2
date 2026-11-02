@@ -1,20 +1,58 @@
 @import "tailwindcss";
+@config "../../tailwind.config.js";
 
+/* Klarfix Eye Calm – 70% background, 20% card, 10% primary.
+   Utility colors come from tailwind.config.js; these vars are for plain CSS. */
 :root {
   color-scheme: light;
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #DDEDE3;
+  --card: #FAF3EB;
+  --primary: #1B4332;
+  --primary-hover: #2D5A4C;
+  --text: #1B4332;
+}
+
+/* Default Tailwind palette is removed so only the Eye Calm colors exist */
+@theme {
+  --color-*: initial;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  --shadow-2xs: 0 1px rgb(27 67 50 / 0.04);
+  --shadow-xs: 0 1px 2px 0 rgb(27 67 50 / 0.05);
+  --shadow-sm: 0 1px 3px 0 rgb(27 67 50 / 0.06), 0 1px 2px -1px rgb(27 67 50 / 0.06);
+  --shadow-md: 0 4px 10px -2px rgb(27 67 50 / 0.08), 0 2px 4px -2px rgb(27 67 50 / 0.06);
+  --shadow-lg: 0 12px 24px -6px rgb(27 67 50 / 0.1), 0 4px 8px -4px rgb(27 67 50 / 0.06);
+  --shadow-xl: 0 20px 32px -8px rgb(27 67 50 / 0.12), 0 8px 12px -6px rgb(27 67 50 / 0.06);
+  --shadow-2xl: 0 28px 56px -12px rgb(27 67 50 / 0.18);
+}
+
+html {
+  background: var(--background);
+}
+
+*,
+::before,
+::after {
+  --tw-ring-offset-color: var(--background);
 }
 
 body {
   background: var(--background);
-  color: var(--foreground);
+  color: var(--text);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+::selection {
+  background: var(--primary);
+  color: var(--card);
+}
+
+input,
+select,
+textarea {
+  accent-color: var(--primary);
 }

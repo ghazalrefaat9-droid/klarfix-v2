@@ -7,10 +7,10 @@ export default function Footer() {
   const { t } = useLang()
 
   return (
-    <footer className="mt-16 bg-gray-900 text-gray-300">
+    <footer className="mt-16 bg-primary text-card/80">
       <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:grid-cols-3">
         <div>
-          <p className="text-lg font-bold text-white">KlarFix</p>
+          <p className="text-lg font-bold text-card">KlarFix</p>
           <p className="mt-2 text-sm">
             {t(
               'Reinigungsservice in Stuttgart und Umgebung.',
@@ -20,27 +20,27 @@ export default function Footer() {
           </p>
         </div>
         <div className="text-sm">
-          <p className="mb-2 font-semibold text-white">{t('Navigation', 'التنقل', 'Navigation')}</p>
+          <p className="mb-2 font-semibold text-card">{t('Navigation', 'التنقل', 'Navigation')}</p>
           <ul className="space-y-1">
             <li>
-              <Link href="/buchen" className="hover:text-white">
+              <Link href="/buchen" className="hover:text-card">
                 {t('Jetzt buchen', 'احجز الآن', 'Book now')}
               </Link>
             </li>
             <li>
-              <Link href="/partner/werden" className="hover:text-white">
+              <Link href="/partner/werden" className="hover:text-card">
                 {t('Partner werden', 'كن شريكاً', 'Become a partner')}
               </Link>
             </li>
             <li>
-              <Link href="/partner/login" className="hover:text-white">
+              <Link href="/partner/login" className="hover:text-card">
                 {t('Partner-Login', 'دخول الشركاء', 'Partner login')}
               </Link>
             </li>
           </ul>
         </div>
         <div className="text-sm">
-          <p className="mb-2 font-semibold text-white">{t('Rechtliches', 'قانوني', 'Legal')}</p>
+          <p className="mb-2 font-semibold text-card">{t('Rechtliches', 'قانوني', 'Legal')}</p>
           <ul className="space-y-1">
             <li>
               <span>{t('Impressum', 'بيانات الشركة', 'Imprint')}</span>
@@ -51,7 +51,7 @@ export default function Footer() {
           </ul>
         </div>
       </div>
-      <div className="border-t border-gray-800 py-4 text-center text-xs text-gray-500">
+      <div className="border-t border-card/15 py-4 text-center text-xs text-card/60">
         © KlarFix
       </div>
     </footer>

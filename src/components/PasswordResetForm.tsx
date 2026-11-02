@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation'
 import PasswordInput from '@/components/PasswordInput'
 
 const inputClass =
-  'w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:border-[#0F60C6] focus:outline-none focus:ring-2 focus:ring-[#0F60C6]/30'
+  'w-full rounded-lg border border-primary/20 bg-card px-3 py-2 text-primary focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
 
 type Props = {
   accountType: 'partner' | 'admin'
@@ -82,11 +82,11 @@ function ResetForm({ accountType, loginHref }: Props) {
 
   return (
     <main className="mx-auto max-w-md px-4 py-16">
-      <h1 className="mb-6 text-3xl font-bold text-[#0F60C6]">Passwort zurücksetzen</h1>
+      <h1 className="mb-6 text-3xl font-bold text-primary">Passwort zurücksetzen</h1>
 
       {step === 'email' && (
-        <form onSubmit={requestCode} className="space-y-5 rounded-xl bg-white p-6 shadow-sm">
-          <p className="text-sm text-gray-600">
+        <form onSubmit={requestCode} className="space-y-5 rounded-xl bg-card p-6 shadow-sm">
+          <p className="text-sm text-primary/80">
             Geben Sie Ihre E-Mail-Adresse ein. Wir senden Ihnen einen 6-stelligen Code.
           </p>
           <div>
@@ -99,11 +99,11 @@ function ResetForm({ accountType, loginHref }: Props) {
               className={inputClass}
             />
           </div>
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-primary">{error}</p>}
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-lg bg-[#0F60C6] py-3 font-semibold text-white hover:opacity-90 disabled:opacity-50"
+            className="w-full rounded-lg bg-primary py-3 font-semibold text-card hover:bg-primary-hover disabled:opacity-50"
           >
             {loading ? 'Sende Code…' : 'Code senden'}
           </button>
@@ -111,8 +111,8 @@ function ResetForm({ accountType, loginHref }: Props) {
       )}
 
       {step === 'code' && (
-        <form onSubmit={resetPassword} className="space-y-5 rounded-xl bg-white p-6 shadow-sm">
-          {info && <p className="rounded-lg bg-blue-50 p-3 text-sm text-[#0F60C6]">{info}</p>}
+        <form onSubmit={resetPassword} className="space-y-5 rounded-xl bg-card p-6 shadow-sm">
+          {info && <p className="rounded-lg bg-primary/5 p-3 text-sm text-primary">{info}</p>}
           <div>
             <label className="mb-1 block text-sm font-medium">Bestätigungscode (6 Ziffern)</label>
             <input
@@ -145,11 +145,11 @@ function ResetForm({ accountType, loginHref }: Props) {
               className={inputClass}
             />
           </div>
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-primary">{error}</p>}
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-lg bg-[#0F60C6] py-3 font-semibold text-white hover:opacity-90 disabled:opacity-50"
+            className="w-full rounded-lg bg-primary py-3 font-semibold text-card hover:bg-primary-hover disabled:opacity-50"
           >
             {loading ? 'Speichere…' : 'Passwort speichern'}
           </button>
@@ -159,7 +159,7 @@ function ResetForm({ accountType, loginHref }: Props) {
               setStep('email')
               setError('')
             }}
-            className="w-full text-sm text-gray-500 hover:underline"
+            className="w-full text-sm text-primary/70 hover:underline"
           >
             Keinen Code erhalten? Erneut anfordern
           </button>
@@ -167,11 +167,11 @@ function ResetForm({ accountType, loginHref }: Props) {
       )}
 
       {step === 'done' && (
-        <div className="space-y-5 rounded-xl bg-white p-6 text-center shadow-sm">
-          <p className="text-lg font-semibold text-green-700">Ihr Passwort wurde geändert.</p>
+        <div className="space-y-5 rounded-xl bg-card p-6 text-center shadow-sm">
+          <p className="text-lg font-semibold text-primary">Ihr Passwort wurde geändert.</p>
           <Link
             href={loginHref}
-            className="inline-block rounded-lg bg-[#0F60C6] px-6 py-3 font-semibold text-white hover:opacity-90"
+            className="inline-block rounded-lg bg-primary px-6 py-3 font-semibold text-card hover:bg-primary-hover"
           >
             Zum Login
           </Link>

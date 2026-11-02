@@ -64,23 +64,23 @@ function DetailModal({
   children: ReactNode
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary/40 p-4" onClick={onClose}>
       <div
         role="dialog"
         aria-modal="true"
-        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl"
+        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-card p-6 shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mb-5 flex items-start justify-between gap-4 border-b border-gray-100 pb-4">
+        <div className="mb-5 flex items-start justify-between gap-4 border-b border-primary/10 pb-4">
           <div className="min-w-0">
-            <h2 className="break-words text-xl font-bold text-[#0F60C6]">{title}</h2>
-            {subtitle && <p className="text-sm text-gray-500">{subtitle}</p>}
+            <h2 className="break-words text-xl font-bold text-primary">{title}</h2>
+            {subtitle && <p className="text-sm text-primary/70">{subtitle}</p>}
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Schließen"
-            className="shrink-0 rounded-lg p-1 text-gray-500 hover:bg-gray-100"
+            className="shrink-0 rounded-lg p-1 text-primary/70 hover:bg-primary/5"
           >
             <X className="h-5 w-5" />
           </button>
@@ -95,8 +95,8 @@ function DetailModal({
 function DetailSection({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section>
-      <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">{title}</h3>
-      <dl className="grid gap-3 rounded-xl bg-gray-50 p-4 text-sm sm:grid-cols-2">{children}</dl>
+      <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-primary/55">{title}</h3>
+      <dl className="grid gap-3 rounded-xl bg-background p-4 text-sm sm:grid-cols-2">{children}</dl>
     </section>
   )
 }
@@ -112,8 +112,8 @@ function DetailField({
 }) {
   return (
     <div className={wide ? 'sm:col-span-2' : undefined}>
-      <dt className="text-gray-500">{label}</dt>
-      <dd className="break-words whitespace-pre-line font-medium text-gray-900">{value || '–'}</dd>
+      <dt className="text-primary/70">{label}</dt>
+      <dd className="break-words whitespace-pre-line font-medium text-primary">{value || '–'}</dd>
     </div>
   )
 }
@@ -213,7 +213,7 @@ export default function AdminDashboardPage() {
   }
 
   if (loading) {
-    return <main className="p-8 text-center text-gray-500">Lade…</main>
+    return <main className="p-8 text-center text-primary/70">Lade…</main>
   }
 
   const selectedRequest = detail?.kind === 'request' ? requests.find((r) => r.id === detail.id) ?? null : null
@@ -231,24 +231,24 @@ export default function AdminDashboardPage() {
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-[#0F60C6]">Admin-Dashboard</h1>
+        <h1 className="text-2xl font-bold text-primary">Admin-Dashboard</h1>
         <div className="flex items-center gap-4">
-          <a href="/admin/partner-applications" className="text-sm font-medium text-[#0F60C6] underline hover:opacity-80">
+          <a href="/admin/partner-applications" className="text-sm font-medium text-primary underline hover:opacity-80">
             Partner-Anträge
           </a>
-          <button onClick={logout} className="text-sm text-gray-600 underline hover:text-gray-900">
+          <button onClick={logout} className="text-sm text-primary/80 underline hover:text-primary-hover">
             Abmelden
           </button>
         </div>
       </div>
 
-      <nav className="mb-6 flex gap-2 border-b border-gray-200">
+      <nav className="mb-6 flex gap-2 border-b border-primary/10">
         {TABS.map((t) => (
           <button
             key={t.key}
             onClick={() => setTab(t.key)}
             className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium ${
-              tab === t.key ? 'border-[#0F60C6] text-[#0F60C6]' : 'border-transparent text-gray-500 hover:text-gray-800'
+              tab === t.key ? 'border-primary text-primary' : 'border-transparent text-primary/70 hover:text-primary-hover'
             }`}
           >
             {t.label}
@@ -256,12 +256,12 @@ export default function AdminDashboardPage() {
         ))}
       </nav>
 
-      {message && <p className="mb-4 rounded-lg bg-blue-50 p-3 text-sm text-[#0F60C6]">{message}</p>}
+      {message && <p className="mb-4 rounded-lg bg-primary/5 p-3 text-sm text-primary">{message}</p>}
 
       {tab === 'requests' && (
-        <div className="overflow-x-auto rounded-xl bg-white shadow-sm">
+        <div className="overflow-x-auto rounded-xl bg-card shadow-sm">
           <table className="min-w-full text-left text-sm">
-            <thead className="bg-gray-100 text-gray-600">
+            <thead className="bg-primary/5 text-primary/80">
               <tr>
                 <th className="px-4 py-3">Datum</th>
                 <th className="px-4 py-3">Kunde</th>
@@ -273,27 +273,27 @@ export default function AdminDashboardPage() {
                 <th className="px-4 py-3">Partner zuweisen</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-primary/10">
               {requests.map((r) => (
-                <tr key={r.id} onClick={() => setDetail({ kind: 'request', id: r.id })} className="align-top cursor-pointer hover:bg-blue-50">
+                <tr key={r.id} onClick={() => setDetail({ kind: 'request', id: r.id })} className="align-top cursor-pointer hover:bg-primary/5">
                   <td className="px-4 py-3">{new Date(r.created_at).toLocaleDateString('de-DE')}</td>
                   <td className="px-4 py-3">{r.customer_name || '–'}</td>
                   <td className="px-4 py-3">
                     <div>{r.customer_email}</div>
-                    <div className="text-gray-500">{r.customer_phone || ''}</div>
+                    <div className="text-primary/70">{r.customer_phone || ''}</div>
                   </td>
                   <td className="px-4 py-3">{r.postcode}</td>
                   <td className="px-4 py-3">{r.service_type}</td>
                   <td className="px-4 py-3">{r.area_sqm ?? '–'}</td>
                   <td className="px-4 py-3">
-                    <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs">{r.status}</span>
+                    <span className="rounded-full bg-primary/5 px-2 py-0.5 text-xs">{r.status}</span>
                   </td>
                   <td className="px-4 py-3">
                     <select
                       value={r.partner_id ?? ''}
                       onClick={(e) => e.stopPropagation()}
                                             onChange={(e) => assignPartner(r.id, e.target.value)}
-                      className="rounded-lg border border-gray-300 px-2 py-1"
+                      className="rounded-lg border border-primary/20 px-2 py-1"
                     >
                       <option value="">– kein Partner –</option>
                       {partners.map((p) => (
@@ -307,7 +307,7 @@ export default function AdminDashboardPage() {
               ))}
               {requests.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-6 text-center text-gray-500">
+                  <td colSpan={8} className="px-4 py-6 text-center text-primary/70">
                     Keine Anfragen vorhanden.
                   </td>
                 </tr>
@@ -318,9 +318,9 @@ export default function AdminDashboardPage() {
       )}
 
       {tab === 'partners' && (
-        <div className="overflow-x-auto rounded-xl bg-white shadow-sm">
+        <div className="overflow-x-auto rounded-xl bg-card shadow-sm">
           <table className="min-w-full text-left text-sm">
-            <thead className="bg-gray-100 text-gray-600">
+            <thead className="bg-primary/5 text-primary/80">
               <tr>
                 <th className="px-4 py-3">Firma</th>
                 <th className="px-4 py-3">E-Mail</th>
@@ -331,9 +331,9 @@ export default function AdminDashboardPage() {
                 <th className="px-4 py-3 text-right">Aktion</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-primary/10">
               {partners.map((p) => (
-                <tr key={p.id} onClick={() => setDetail({ kind: 'partner', id: p.id })} className="cursor-pointer hover:bg-blue-50">
+                <tr key={p.id} onClick={() => setDetail({ kind: 'partner', id: p.id })} className="cursor-pointer hover:bg-primary/5">
                   <td className="px-4 py-3 font-medium">{p.company_name}</td>
                   <td className="px-4 py-3">{p.email}</td>
                   <td className="px-4 py-3">{p.phone || '–'}</td>
@@ -344,7 +344,7 @@ export default function AdminDashboardPage() {
                   <td className="px-4 py-3">
                     <span
                       className={`rounded-full px-2 py-0.5 text-xs ${
-                        p.verified ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                        p.verified ? 'bg-primary text-card' : 'bg-background text-primary ring-1 ring-primary/30'
                       }`}
                     >
                       {p.verified ? 'Verifiziert' : 'Ausstehend'}
@@ -357,7 +357,7 @@ export default function AdminDashboardPage() {
                                               verifyPartner(p.id)
                                             }}
                       disabled={p.verified}
-                      className="w-28 rounded-lg bg-[#0F60C6] px-3 py-1 text-white hover:opacity-90 disabled:bg-gray-300 disabled:text-gray-600"
+                      className="w-28 rounded-lg bg-primary px-3 py-1 text-card hover:bg-primary-hover disabled:bg-primary/30 disabled:text-primary/80"
                     >
                       {p.verified ? 'Verifiziert' : 'Verify'}
                     </button>
@@ -366,7 +366,7 @@ export default function AdminDashboardPage() {
               ))}
               {partners.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-6 text-center text-gray-500">
+                  <td colSpan={7} className="px-4 py-6 text-center text-primary/70">
                     Keine Partner registriert.
                   </td>
                 </tr>
@@ -385,9 +385,9 @@ export default function AdminDashboardPage() {
             { label: 'Partner gesamt', value: stats.totalPartners },
             { label: 'Verifizierte Partner', value: stats.verifiedPartners },
           ].map((s) => (
-            <div key={s.label} className="rounded-xl bg-white p-6 shadow-sm">
-              <p className="text-sm text-gray-500">{s.label}</p>
-              <p className="mt-2 text-3xl font-bold text-[#0F60C6]">{s.value}</p>
+            <div key={s.label} className="rounded-xl bg-card p-6 shadow-sm">
+              <p className="text-sm text-primary/70">{s.label}</p>
+              <p className="mt-2 text-3xl font-bold text-primary">{s.value}</p>
             </div>
           ))}
         </div>
@@ -398,7 +398,7 @@ export default function AdminDashboardPage() {
         onClick={() => setSettingsOpen(true)}
         aria-label="Einstellungen"
         title="Einstellungen"
-        className="fixed bottom-6 end-6 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-white text-[#0F60C6] shadow-md ring-1 ring-blue-100 transition hover:-translate-y-0.5 hover:bg-blue-50 hover:shadow-lg"
+        className="fixed bottom-6 end-6 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-card text-primary shadow-md ring-1 ring-primary/10 transition hover:-translate-y-0.5 hover:bg-primary/5 hover:shadow-lg"
       >
         <Settings className="h-5 w-5" />
       </button>
@@ -443,7 +443,7 @@ export default function AdminDashboardPage() {
               <button
                 type="button"
                 onClick={() => setDetail(null)}
-                className="rounded-lg border border-gray-300 px-4 py-2 font-medium text-gray-700 hover:bg-gray-50"
+                className="rounded-lg border border-primary/20 px-4 py-2 font-medium text-primary hover:bg-primary/5"
               >
                 Schließen
               </button>
@@ -451,7 +451,7 @@ export default function AdminDashboardPage() {
                 type="button"
                 onClick={() => verifyPartner(selectedPartner.id)}
                 disabled={selectedPartner.verified}
-                className="rounded-lg bg-[#0F60C6] px-5 py-2 font-medium text-white hover:opacity-90 disabled:bg-gray-300 disabled:text-gray-600"
+                className="rounded-lg bg-primary px-5 py-2 font-medium text-card hover:bg-primary-hover disabled:bg-primary/30 disabled:text-primary/80"
               >
                 {selectedPartner.verified ? 'Verifiziert' : 'Verify'}
               </button>
@@ -496,18 +496,18 @@ export default function AdminDashboardPage() {
             <DetailSection title="Dokumente">
               <div className="sm:col-span-2 flex flex-wrap gap-3">
                 {selectedPartner.logo_url ? (
-                  <a href={selectedPartner.logo_url} target="_blank" rel="noopener noreferrer" className="rounded-lg border border-[#0F60C6] px-4 py-2 text-sm font-medium text-[#0F60C6] hover:bg-blue-50">
+                  <a href={selectedPartner.logo_url} target="_blank" rel="noopener noreferrer" className="rounded-lg border border-primary px-4 py-2 text-sm font-medium text-primary hover:bg-primary/5">
                     Logo öffnen
                   </a>
                 ) : (
-                  <span className="text-sm text-gray-500">Kein Logo hochgeladen</span>
+                  <span className="text-sm text-primary/70">Kein Logo hochgeladen</span>
                 )}
                 {selectedPartner.license_url ? (
-                  <a href={selectedPartner.license_url} target="_blank" rel="noopener noreferrer" className="rounded-lg border border-[#0F60C6] px-4 py-2 text-sm font-medium text-[#0F60C6] hover:bg-blue-50">
+                  <a href={selectedPartner.license_url} target="_blank" rel="noopener noreferrer" className="rounded-lg border border-primary px-4 py-2 text-sm font-medium text-primary hover:bg-primary/5">
                     Gewerbenachweis öffnen
                   </a>
                 ) : (
-                  <span className="text-sm text-gray-500">Kein Gewerbenachweis hochgeladen</span>
+                  <span className="text-sm text-primary/70">Kein Gewerbenachweis hochgeladen</span>
                 )}
               </div>
             </DetailSection>
@@ -517,22 +517,22 @@ export default function AdminDashboardPage() {
 
       {settingsOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-primary/40 p-4"
           onClick={() => setSettingsOpen(false)}
         >
           <div
             role="dialog"
             aria-modal="true"
-            className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl"
+            className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-card p-6 shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-[#0F60C6]">Einstellungen</h2>
+              <h2 className="text-xl font-bold text-primary">Einstellungen</h2>
               <button
                 type="button"
                 onClick={() => setSettingsOpen(false)}
                 aria-label="Schließen"
-                className="rounded-lg p-1 text-gray-500 hover:bg-gray-100"
+                className="rounded-lg p-1 text-primary/70 hover:bg-primary/5"
               >
                 <X className="h-5 w-5" />
               </button>

@@ -15,7 +15,7 @@ export default function PasswordInput({ className = '', ...props }: Props) {
         type="button"
         onClick={() => setVisible((v) => !v)}
         aria-label={visible ? 'Passwort verbergen' : 'Passwort anzeigen'}
-        className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-gray-500 transition-colors duration-200 hover:text-[#0F60C6]"
+        className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-primary/70 transition-colors duration-200 hover:text-primary-hover"
       >
         <span className="transition-transform duration-200 active:scale-90">
           {visible ? <EyeOff size={20} /> : <Eye size={20} />}

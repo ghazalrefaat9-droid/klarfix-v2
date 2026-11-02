@@ -7,7 +7,7 @@ import { SERVICES, serviceName } from '@/lib/services'
 import { useLang } from '@/components/LanguageProvider'
 
 const inputClass =
-  'mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-[#0F60C6] focus:outline-none focus:ring-2 focus:ring-[#0F60C6]/20'
+  'mt-1 w-full rounded-lg border border-primary/20 bg-card px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20'
 
 function BookingForm() {
   const router = useRouter()
@@ -74,7 +74,7 @@ function BookingForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-8 space-y-5 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200 sm:p-8">
+    <form onSubmit={handleSubmit} className="mt-8 space-y-5 rounded-2xl bg-card p-6 shadow-sm ring-1 ring-primary/10 sm:p-8">
       <div className="grid gap-5 sm:grid-cols-2">
         <label className="block text-sm font-medium">
           {t('Name *', 'الاسم *', 'Name *')}
@@ -117,12 +117,12 @@ function BookingForm() {
         <textarea rows={4} value={form.message} onChange={update('message')} className={inputClass} />
       </label>
 
-      {error && <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+      {error && <p className="rounded-lg bg-card p-3 text-sm text-primary">{error}</p>}
 
       <button
         type="submit"
         disabled={loading}
-        className="w-full rounded-lg bg-[#0F60C6] px-4 py-3 font-semibold text-white hover:opacity-90 disabled:opacity-60"
+        className="w-full rounded-lg bg-primary px-4 py-3 font-semibold text-card hover:bg-primary-hover disabled:opacity-60"
       >
         {loading
           ? t('Wird gesendet…', 'جارٍ الإرسال…', 'Sending…')
@@ -140,7 +140,7 @@ export default function BuchenPage() {
       <h1 className="text-3xl font-bold">
         {t('Jetzt Preis anfragen', 'اطلب السعر الآن', 'Request a quote now')}
       </h1>
-      <p className="mt-2 text-gray-600">
+      <p className="mt-2 text-primary/80">
         {t(
           'Füllen Sie das Formular aus. Wir melden uns mit einem Angebot.',
           'املأ النموذج وسنرسل لك عرض السعر.',
