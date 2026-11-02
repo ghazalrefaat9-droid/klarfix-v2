@@ -12,6 +12,16 @@ const inputClass =
 const TIME_MIN = '08:00'
 const TIME_MAX = '18:00'
 
+const ANREDEN = ['Herr', 'Frau', 'Divers', 'Firma', 'Keine Angabe'] as const
+
+// Only Herr/Frau are used as a name prefix; Firma puts the company name first.
+function buildFullName(anrede: string, vorname: string, nachname: string, firma: string) {
+  const person = `${vorname} ${nachname}`.trim()
+  if (anrede === 'Firma') return firma ? `${firma} (${person})` : person
+  if (anrede === 'Herr' || anrede === 'Frau') return `${anrede} ${person}`.trim()
+  return person
+}
+
 // Accepts both ids ("wohnungsreinigung") and labels ("Wohnungsreinigung") from ?service=
 function findInitialService(param: string | null) {
   if (!param) return ''
@@ -25,7 +35,10 @@ function BookingForm() {
   const { t } = useLang()
 
   const [form, setForm] = useState({
-    name: '',
+    anrede: 'Keine Angabe',
+    vorname: '',
+    nachname: '',
+    firma: '',
     email: '',
     phone: '',
     address: '',
@@ -64,6 +77,7 @@ function BookingForm() {
 
   const selected = REINIGUNGSARTEN.find((r) => r.id === serviceId)
   const isOther = serviceId === 'sonstiges'
+  const isFirma = form.anrede === 'Firma'
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -77,6 +91,10 @@ function BookingForm() {
     setLoading(true)
 
     const label = selected.label
+    const vorname = form.vorname.trim()
+    const nachname = form.nachname.trim()
+    const firma = isFirma ? form.firma.trim() : ''
+    const fullName = buildFullName(form.anrede, vorname, nachname, firma)
     const address = form.address.trim()
     const areaSqm = form.area ? Math.round(Number(form.area)) : null
     const preferredTime = isFlexible ? null : form.time || null
@@ -94,7 +112,11 @@ function BookingForm() {
     // Leads table for lead tracking; requests table keeps the admin/partner dashboards working.
     const [leadResult, requestResult] = await Promise.all([
       supabase.from(LEADS_TABLE).insert({
-        name: form.name.trim(),
+        name: fullName,
+        anrede: form.anrede === 'Keine Angabe' ? null : form.anrede,
+        vorname,
+        nachname,
+        firma: firma || null,
         email: form.email.trim(),
         phone: form.phone.trim() || null,
         address,
@@ -108,7 +130,7 @@ function BookingForm() {
         message: fullMessage || null,
       }),
       supabase.from('requests').insert({
-        customer_name: form.name.trim(),
+        customer_name: fullName,
         customer_email: form.email.trim(),
         customer_phone: form.phone.trim() || null,
         postcode: form.postcode.trim(),
@@ -140,11 +162,42 @@ function BookingForm() {
 
   return (
     <form onSubmit={handleSubmit} className="mt-8 space-y-6 rounded-2xl bg-card p-6 shadow-sm ring-1 ring-primary/10 sm:p-8">
-      <div className="grid gap-5 sm:grid-cols-2">
-        <label className="block text-sm font-medium">
-          {t('Name *', 'الاسم *', 'Name *')}
-          <input required value={form.name} onChange={update('name')} className={inputClass} />
+      <div className="space-y-5">
+        <label className="block text-sm font-medium sm:w-1/3">
+          {t('Anrede', 'اللقب', 'Title')}
+          <select value={form.anrede} onChange={update('anrede')} className={inputClass}>
+            {ANREDEN.map((a) => (
+              <option key={a} value={a}>
+                {a}
+              </option>
+            ))}
+          </select>
         </label>
+        {isFirma && (
+          <label className="block text-sm font-medium">
+            {t('Firmenname *', 'اسم الشركة *', 'Company name *')}
+            <input
+              required
+              autoComplete="organization"
+              value={form.firma}
+              onChange={update('firma')}
+              className={inputClass}
+            />
+          </label>
+        )}
+        <div className="grid gap-5 sm:grid-cols-2">
+          <label className="block text-sm font-medium">
+            {isFirma ? t('Ansprechpartner Vorname *', 'اسم جهة الاتصال *', 'Contact first name *') : t('Vorname *', 'الاسم الأول *', 'First name *')}
+            <input required autoComplete="given-name" value={form.vorname} onChange={update('vorname')} className={inputClass} />
+          </label>
+          <label className="block text-sm font-medium">
+            {isFirma ? t('Ansprechpartner Nachname *', 'اسم عائلة جهة الاتصال *', 'Contact last name *') : t('Nachname *', 'اسم العائلة *', 'Last name *')}
+            <input required autoComplete="family-name" value={form.nachname} onChange={update('nachname')} className={inputClass} />
+          </label>
+        </div>
+      </div>
+
+      <div className="grid gap-5 sm:grid-cols-2">
         <label className="block text-sm font-medium">
           {t('E-Mail *', 'البريد الإلكتروني *', 'Email *')}
           <input type="email" required value={form.email} onChange={update('email')} className={inputClass} />
