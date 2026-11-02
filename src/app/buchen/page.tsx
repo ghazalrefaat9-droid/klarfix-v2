@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useState, type FormEvent } from 'react'
+import { Suspense, useEffect, useRef, useState, type FormEvent } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase, LEADS_TABLE } from '@/lib/supabase'
 import { REINIGUNGSARTEN } from '@/lib/services'
@@ -28,6 +28,7 @@ function BookingForm() {
     name: '',
     email: '',
     phone: '',
+    address: '',
     postcode: '',
     area: '',
     date: '',
@@ -36,9 +37,27 @@ function BookingForm() {
     otherService: '',
   })
   const [serviceId, setServiceId] = useState(() => findInitialService(params.get('service')))
+  const [isOpen, setIsOpen] = useState(false)
   const [isFlexible, setIsFlexible] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!isOpen) return
+    const close = (e: MouseEvent) => {
+      if (!dropdownRef.current?.contains(e.target as Node)) setIsOpen(false)
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsOpen(false)
+    }
+    document.addEventListener('mousedown', close)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', close)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [isOpen])
 
   const update = (field: keyof typeof form) => (e: { target: { value: string } }) =>
     setForm((prev) => ({ ...prev, [field]: e.target.value }))
@@ -58,6 +77,7 @@ function BookingForm() {
     setLoading(true)
 
     const label = selected.label
+    const address = form.address.trim()
     const areaSqm = form.area ? Math.round(Number(form.area)) : null
     const preferredTime = isFlexible ? null : form.time || null
     const timeText = isFlexible ? 'flexibel (ganztägig / Uhrzeit egal)' : form.time
@@ -77,6 +97,7 @@ function BookingForm() {
         name: form.name.trim(),
         email: form.email.trim(),
         phone: form.phone.trim() || null,
+        address,
         postcode: form.postcode.trim(),
         service: label,
         service_label: label,
@@ -93,7 +114,7 @@ function BookingForm() {
         postcode: form.postcode.trim(),
         service_type: label,
         area_sqm: areaSqm,
-        message: fullMessage || null,
+        message: [`Adresse: ${address}`, fullMessage].filter(Boolean).join('\n'),
         status: 'new',
       }),
     ])
@@ -133,6 +154,17 @@ function BookingForm() {
           <input type="tel" value={form.phone} onChange={update('phone')} className={inputClass} />
         </label>
         <label className="block text-sm font-medium">
+          {t('Adresse / Straße *', 'العنوان / الشارع *', 'Address / Street *')}
+          <input
+            required
+            autoComplete="street-address"
+            placeholder={t('z.B. Musterstraße 12, 3. OG', 'مثال: Musterstraße 12, 3. OG', 'e.g. Musterstraße 12, 3rd floor')}
+            value={form.address}
+            onChange={update('address')}
+            className={inputClass}
+          />
+        </label>
+        <label className="block text-sm font-medium">
           {t('PLZ *', 'الرمز البريدي *', 'Postcode *')}
           <input required value={form.postcode} onChange={update('postcode')} className={inputClass} />
         </label>
@@ -150,40 +182,58 @@ function BookingForm() {
             {selected ? 1 : 0} {t('ausgewählt', 'محدد', 'selected')}
           </span>
         </div>
-        <ul className="grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label="Reinigungsarten">
-          {REINIGUNGSARTEN.map((r) => {
-            const isSelected = r.id === serviceId
-            return (
-              <li
-                key={r.id}
-                className={`flex flex-col justify-between gap-3 rounded-xl border-2 p-4 transition ${
-                  isSelected
-                    ? 'border-primary bg-primary/[0.03] shadow-md'
-                    : 'border-primary/10 bg-card hover:border-primary/30'
-                }`}
-              >
-                <div>
-                  <span className="block font-bold text-primary">{r.label}</span>
-                  <span className="mt-1 block text-sm text-primary/70">{r.desc}</span>
-                </div>
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={isSelected}
-                  onClick={() => setServiceId(r.id)}
-                  className={`self-start rounded-lg px-4 py-2 text-sm font-semibold transition ${
-                    isSelected
-                      ? 'bg-primary text-card'
-                      : 'border border-primary/30 text-primary hover:bg-primary/5'
-                  }`}
-                >
-                  {isSelected ? t('✓ Ausgewählt', '✓ تم الاختيار', '✓ Selected') : t('Auswählen', 'اختيار', 'Select')}
-                </button>
-              </li>
-            )
-          })}
-        </ul>
-        {isOther && (
+        <div ref={dropdownRef} className="relative">
+          <button
+            type="button"
+            aria-haspopup="listbox"
+            aria-expanded={isOpen}
+            onClick={() => setIsOpen((v) => !v)}
+            className="flex w-full items-center justify-between gap-3 rounded-lg border border-primary/20 bg-card px-3 py-2.5 text-left text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+          >
+            {selected ? (
+              <span className="min-w-0">
+                <span className="block font-semibold text-primary">{selected.label}</span>
+                <span className="block truncate text-xs text-primary/70">{selected.desc}</span>
+              </span>
+            ) : (
+              <span className="text-primary/60">{t('Bitte wählen...', 'يرجى الاختيار...', 'Please select...')}</span>
+            )}
+            <span aria-hidden="true" className={`shrink-0 text-primary transition ${isOpen ? 'rotate-180' : ''}`}>
+              ▾
+            </span>
+          </button>
+          {isOpen && (
+            <ul
+              role="listbox"
+              aria-label="Reinigungsarten"
+              className="absolute z-20 mt-1 max-h-[320px] w-full overflow-y-auto rounded-lg border border-primary/20 bg-card shadow-lg"
+            >
+              {REINIGUNGSARTEN.map((r) => {
+                const isSelected = r.id === serviceId
+                return (
+                  <li key={r.id} role="option" aria-selected={isSelected}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setServiceId(r.id)
+                        setIsOpen(false)
+                      }}
+                      className={`flex w-full items-start justify-between gap-3 px-3 py-2 text-left hover:bg-primary/5 ${
+                        isSelected ? 'bg-primary/10' : ''
+                      }`}
+                    >
+                      <span className="min-w-0">
+                        <span className="block text-sm font-semibold text-primary">{r.label}</span>
+                        <span className="block text-xs text-primary/70">{r.desc}</span>
+                      </span>
+                      {isSelected && <span className="shrink-0 font-bold text-primary">✓</span>}
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </div>        {isOther && (
           <label className="block text-sm font-medium">
             {t('Welche Reinigung benötigen Sie? *', 'ما نوع التنظيف الذي تحتاجه؟ *', 'What cleaning do you need? *')}
             <textarea
