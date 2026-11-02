@@ -2,8 +2,8 @@
 
 import { Suspense, useEffect, useRef, useState, type FormEvent } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { supabase, LEADS_TABLE } from '@/lib/supabase'
 import { REINIGUNGSARTEN } from '@/lib/services'
+import { ANREDEN, type LeadPayload } from '@/lib/leads'
 import { useLang } from '@/components/LanguageProvider'
 import AddressAutocomplete from '@/components/AddressAutocomplete'
 
@@ -12,16 +12,6 @@ const inputClass =
 
 const TIME_MIN = '08:00'
 const TIME_MAX = '18:00'
-
-const ANREDEN = ['Herr', 'Frau', 'Divers', 'Firma', 'Keine Angabe'] as const
-
-// Only Herr/Frau are used as a name prefix; Firma puts the company name first.
-function buildFullName(anrede: string, vorname: string, nachname: string, firma: string) {
-  const person = `${vorname} ${nachname}`.trim()
-  if (anrede === 'Firma') return firma ? `${firma} (${person})` : person
-  if (anrede === 'Herr' || anrede === 'Frau') return `${anrede} ${person}`.trim()
-  return person
-}
 
 // Accepts both ids ("wohnungsreinigung") and labels ("Wohnungsreinigung") from ?service=
 function findInitialService(param: string | null) {
@@ -91,69 +81,34 @@ function BookingForm() {
 
     setLoading(true)
 
-    const label = selected.label
-    const vorname = form.vorname.trim()
-    const nachname = form.nachname.trim()
-    const firma = isFirma ? form.firma.trim() : ''
-    const fullName = buildFullName(form.anrede, vorname, nachname, firma)
-    const address = form.address.trim()
-    const areaSqm = form.area ? Math.round(Number(form.area)) : null
-    const preferredTime = isFlexible ? null : form.time || null
-    const timeText = isFlexible ? 'flexibel (ganztägig / Uhrzeit egal)' : form.time
+    const payload: LeadPayload = {
+      ...form,
+      firma: isFirma ? form.firma : '',
+      serviceId: selected.id,
+      isFlexible,
+    }
 
-    const fullMessage = [
-      isOther && form.otherService.trim() ? `Sonstiges: ${form.otherService.trim()}` : '',
-      form.date ? `Wunschtermin: ${form.date}` : '',
-      timeText ? `Uhrzeit: ${timeText}` : '',
-      form.message.trim(),
-    ]
-      .filter(Boolean)
-      .join('\n')
-
-    // Leads table for lead tracking; requests table keeps the admin/partner dashboards working.
-    const [leadResult, requestResult] = await Promise.all([
-      supabase.from(LEADS_TABLE).insert({
-        name: fullName,
-        anrede: form.anrede === 'Keine Angabe' ? null : form.anrede,
-        vorname,
-        nachname,
-        firma: firma || null,
-        email: form.email.trim(),
-        phone: form.phone.trim() || null,
-        address,
-        postcode: form.postcode.trim(),
-        service: label,
-        service_label: label,
-        area_sqm: areaSqm,
-        preferred_date: form.date || null,
-        preferred_time: preferredTime,
-        is_flexible: isFlexible,
-        message: fullMessage || null,
-      }),
-      supabase.from('requests').insert({
-        customer_name: fullName,
-        customer_email: form.email.trim(),
-        customer_phone: form.phone.trim() || null,
-        postcode: form.postcode.trim(),
-        service_type: label,
-        area_sqm: areaSqm,
-        message: [`Adresse: ${address}`, fullMessage].filter(Boolean).join('\n'),
-        status: 'new',
-      }),
-    ])
-
-    if (leadResult.error) console.error('Lead insert failed:', leadResult.error.message)
-    if (requestResult.error) console.error('Request insert failed:', requestResult.error.message)
+    const res = await fetch('/api/leads', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }).catch(() => null)
 
     setLoading(false)
 
-    if (leadResult.error && requestResult.error) {
+    if (!res?.ok) {
       setError(
-        t(
-          'Die Anfrage konnte nicht gesendet werden. Bitte versuchen Sie es erneut.',
-          'تعذر إرسال الطلب. حاول مرة أخرى.',
-          'The request could not be sent. Please try again.',
-        ),
+        res?.status === 429
+          ? t(
+              'Zu viele Anfragen. Bitte versuchen Sie es später erneut.',
+              'طلبات كثيرة جداً. حاول لاحقاً.',
+              'Too many requests. Please try again later.',
+            )
+          : t(
+              'Die Anfrage konnte nicht gesendet werden. Bitte versuchen Sie es erneut.',
+              'تعذر إرسال الطلب. حاول مرة أخرى.',
+              'The request could not be sent. Please try again.',
+            ),
       )
       return
     }
