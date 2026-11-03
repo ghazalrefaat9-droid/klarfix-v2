@@ -17,13 +17,20 @@ const STATUS_STYLE: Record<string, string> = {
 }
 
 const COLUMNS =
-  'id, full_name, email, phone_fixed, phone_whatsapp, city, company_address, services, team_size, languages, work_radius, has_gewerbe, has_haftpflicht, status, created_at'
+  'id, full_name, email, phone_fixed, phone_whatsapp, city, company_address, services, team_size, languages, work_radius, has_gewerbe, has_haftpflicht, status, created_at, setup_completed_at'
+
+type Row = ApplicationRow & { setup_completed_at: string | null }
+type SetupLink = { id: string; url: string; emailSent: boolean }
+
+const whatsappLink = (phone: string, text: string) =>
+  `https://wa.me/${phone.replace(/\D/g, '').replace(/^0/, '49')}?text=${encodeURIComponent(text)}`
 
 export default function PartnerApplications() {
-  const [rows, setRows] = useState<ApplicationRow[]>([])
+  const [rows, setRows] = useState<Row[]>([])
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('')
-  const [instructionsFor, setInstructionsFor] = useState<string | null>(null)
+  const [setupLink, setSetupLink] = useState<SetupLink | null>(null)
+  const [busyId, setBusyId] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     const { data, error } = await supabase
@@ -34,7 +41,7 @@ export default function PartnerApplications() {
       setMessage('Anträge konnten nicht geladen werden. Wurde die Tabelle partner_applications angelegt?')
       setRows([])
     } else {
-      setRows((data as ApplicationRow[]) ?? [])
+      setRows((data as Row[]) ?? [])
     }
     setLoading(false)
   }, [])
@@ -46,15 +53,38 @@ export default function PartnerApplications() {
     init()
   }, [load])
 
-  async function setStatus(id: string, status: 'accepted' | 'rejected') {
+  async function reject(id: string) {
     setMessage('')
-    const { error } = await supabase.from('partner_applications').update({ status }).eq('id', id)
+    const { error } = await supabase.from('partner_applications').update({ status: 'rejected' }).eq('id', id)
     if (error) {
       setMessage('Status konnte nicht geändert werden.')
       return
     }
-    setInstructionsFor(status === 'accepted' ? id : null)
     await load()
+  }
+
+  // Accepting (or re-sending) creates a new one-time /partner/setup link; older links stop working.
+  async function accept(id: string) {
+    setMessage('')
+    setBusyId(id)
+    const res = await fetch('/api/admin/accept-application', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ applicationId: id }),
+    }).catch(() => null)
+    const data = (await res?.json().catch(() => null)) as { error?: string; setupUrl?: string; emailSent?: boolean } | null
+    setBusyId(null)
+    if (!res?.ok || !data?.setupUrl) {
+      setMessage(data?.error ?? 'Antrag konnte nicht angenommen werden.')
+      return
+    }
+    setSetupLink({ id, url: data.setupUrl, emailSent: !!data.emailSent })
+    await load()
+  }
+
+  async function copyLink(url: string) {
+    await navigator.clipboard.writeText(url).catch(() => null)
+    setMessage('Setup-Link kopiert.')
   }
 
   if (loading) return <p className="text-primary/70">Lade…</p>
@@ -102,14 +132,15 @@ export default function PartnerApplications() {
             <div className="mt-4 flex flex-wrap gap-3">
               <button
                 type="button"
-                onClick={() => setStatus(a.id, 'accepted')}
-                className="rounded-xl bg-primary px-5 py-2 text-sm font-semibold text-card hover:bg-primary-hover"
+                onClick={() => accept(a.id)}
+                disabled={busyId === a.id}
+                className="rounded-xl bg-primary px-5 py-2 text-sm font-semibold text-card hover:bg-primary-hover disabled:opacity-60"
               >
                 Annehmen
               </button>
               <button
                 type="button"
-                onClick={() => setStatus(a.id, 'rejected')}
+                onClick={() => reject(a.id)}
                 className="rounded-xl border border-primary/40 px-5 py-2 text-sm font-semibold text-primary hover:bg-primary/5"
               >
                 Ablehnen
@@ -117,11 +148,58 @@ export default function PartnerApplications() {
             </div>
           )}
 
-          {instructionsFor === a.id && (
-            <p className="mt-4 rounded-xl border border-primary/20 bg-primary/10 p-3 text-sm text-primary">
-              Jetzt Dokumente anfordern: Gewerbe + Haftpflicht per WhatsApp/Email (
-              {a.phone_whatsapp ? `WhatsApp: ${a.phone_whatsapp}, ` : ''}E-Mail: {a.email}).
+          {a.status === 'accepted' && a.setup_completed_at && (
+            <p className="mt-4 text-sm font-medium text-primary">
+              ✅ Konto eingerichtet am {new Date(a.setup_completed_at).toLocaleString('de-DE')} – Dokumente im Dashboard unter „Partner“ prüfen.
             </p>
+          )}
+
+          {a.status === 'accepted' && !a.setup_completed_at && setupLink?.id !== a.id && (
+            <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-primary/75">
+              <span>Wartet auf Konto-Einrichtung.</span>
+              <button
+                type="button"
+                onClick={() => accept(a.id)}
+                disabled={busyId === a.id}
+                className="rounded-xl border border-primary/40 px-4 py-1.5 font-semibold text-primary hover:bg-primary/5 disabled:opacity-60"
+              >
+                Setup-Link erneut senden
+              </button>
+            </div>
+          )}
+
+          {setupLink?.id === a.id && (
+            <div className="mt-4 space-y-3 rounded-xl border border-primary/20 bg-primary/10 p-3 text-sm text-primary">
+              <p>
+                {setupLink.emailSent
+                  ? `Setup-Link wurde per E-Mail an ${a.email} gesendet.`
+                  : 'E-Mail konnte nicht gesendet werden – bitte den Link manuell schicken.'}{' '}
+                Der Partner lädt dort Passwort, Gewerbenachweis und Haftpflicht hoch.
+              </p>
+              <p className="break-all rounded-lg bg-card px-3 py-2 font-mono text-xs">{setupLink.url}</p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => copyLink(setupLink.url)}
+                  className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-card hover:bg-primary-hover"
+                >
+                  Link kopieren
+                </button>
+                {a.phone_whatsapp && (
+                  <a
+                    href={whatsappLink(
+                      a.phone_whatsapp,
+                      `Hallo ${a.full_name}, Ihr Partnerantrag wurde angenommen! Bitte richten Sie Ihr Konto hier ein: ${setupLink.url}`,
+                    )}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="rounded-lg border border-primary px-3 py-1.5 text-xs font-semibold text-primary hover:bg-card"
+                  >
+                    Per WhatsApp senden
+                  </a>
+                )}
+              </div>
+            </div>
           )}
         </article>
       ))}

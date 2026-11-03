@@ -30,6 +30,7 @@ type Partner = {
   terms_accepted_at: string | null
   logo_url: string | null
   license_url: string | null
+  insurance_url: string | null
   verified: boolean
   created_at: string
 }
@@ -150,7 +151,7 @@ export default function AdminDashboardPage() {
       supabase
         .from('partners')
         .select(
-          'id, company_name, first_name, last_name, email, phone, street, city, postcode, legal_form, employee_count, has_liability_insurance, has_trade_license, experience_years, services, description, website, languages, availability, terms_accepted_at, logo_url, license_url, verified, created_at'
+          'id, company_name, first_name, last_name, email, phone, street, city, postcode, legal_form, employee_count, has_liability_insurance, has_trade_license, experience_years, services, description, website, languages, availability, terms_accepted_at, logo_url, license_url, insurance_url, verified, created_at'
         )
         .order('created_at', { ascending: false }),
       supabase.from('requests').select('id', { count: 'exact', head: true }).not('deleted_at', 'is', null),
@@ -540,24 +541,37 @@ export default function AdminDashboardPage() {
               <DetailField label="Verfügbarkeit" value={selectedPartner.availability} wide />
               <DetailField label="Beschreibung" value={selectedPartner.description} wide />
             </DetailSection>
-            <DetailSection title="Dokumente">
-              <div className="sm:col-span-2 flex flex-wrap gap-3">
-                {selectedPartner.logo_url ? (
-                  <a href={selectedPartner.logo_url} target="_blank" rel="noopener noreferrer" className="rounded-lg border border-primary px-4 py-2 text-sm font-medium text-primary hover:bg-primary/5">
-                    Logo öffnen
-                  </a>
-                ) : (
-                  <span className="text-sm text-primary/70">Kein Logo hochgeladen</span>
-                )}
-                {selectedPartner.license_url ? (
-                  <a href={selectedPartner.license_url} target="_blank" rel="noopener noreferrer" className="rounded-lg border border-primary px-4 py-2 text-sm font-medium text-primary hover:bg-primary/5">
-                    Gewerbenachweis öffnen
-                  </a>
-                ) : (
-                  <span className="text-sm text-primary/70">Kein Gewerbenachweis hochgeladen</span>
+            <section>
+              <div className="mb-2 flex items-center gap-2">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-primary/55">Dokumente</h3>
+                {selectedPartner.license_url && selectedPartner.insurance_url && (
+                  <span className="rounded-full bg-primary px-2.5 py-0.5 text-xs font-semibold text-card">✓ Vollständig</span>
                 )}
               </div>
-            </DetailSection>
+              <ul className="divide-y divide-primary/10 rounded-xl bg-background px-4 text-sm">
+                {[
+                  { label: 'Gewerbe', url: selectedPartner.license_url, missing: 'Kein Gewerbenachweis' },
+                  { label: 'Haftpflicht', url: selectedPartner.insurance_url, missing: 'Keine Haftpflichtversicherung' },
+                  { label: 'Logo', url: selectedPartner.logo_url, missing: 'Kein Logo (optional)' },
+                ].map((doc) => (
+                  <li key={doc.label} className="flex items-center justify-between gap-3 py-3">
+                    <span className="font-medium text-primary">{doc.label}</span>
+                    {doc.url ? (
+                      <a
+                        href={doc.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-medium text-primary underline hover:opacity-80"
+                      >
+                        ✅ Öffnen
+                      </a>
+                    ) : (
+                      <span className="text-primary/70">❌ {doc.missing}</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </section>
           </div>
         </DetailModal>
       )}
