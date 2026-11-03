@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { AlertCircle, ArrowLeft, Calendar, Mail, MapPin, RotateCcw, Trash2, User } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
+import { Modal, ModalButtons } from '@/components/admin/PartnersManager'
 
 type DeletedRequest = {
   id: string
@@ -16,12 +18,17 @@ type DeletedRequest = {
   deleted_by: string | null
 }
 
+const card = 'rounded-[20px] bg-[#FFFFFF] shadow-[0_2px_10px_rgba(0,0,0,0.05)]'
+const actionButton =
+  'flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl bg-[#F5F5F0] py-2.5 text-[12px] font-medium text-[#1A4D2E] transition hover:bg-[#ECECE4] disabled:opacity-50'
+
 export default function AdminTrashPage() {
   const router = useRouter()
   const [items, setItems] = useState<DeletedRequest[]>([])
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [message, setMessage] = useState('')
+  const [confirmTarget, setConfirmTarget] = useState<DeletedRequest | null>(null)
 
   const loadTrash = useCallback(async () => {
     const { data, error } = await supabase
@@ -59,12 +66,12 @@ export default function AdminTrashPage() {
   }
 
   async function deleteForever(id: string) {
-    if (!window.confirm('حذف نهائي؟ لا يمكن التراجع عن هذه العملية.')) return
     setBusyId(id)
     setMessage('')
     // .select() returns the deleted rows, so a delete silently blocked by RLS is detected.
     const { data, error } = await supabase.from('requests').delete().eq('id', id).select('id')
     setBusyId(null)
+    setConfirmTarget(null)
     if (error || !data?.length) {
       setMessage('Endgültiges Löschen fehlgeschlagen.')
       return
@@ -74,80 +81,89 @@ export default function AdminTrashPage() {
   }
 
   if (loading) {
-    return <main className="p-8 text-center text-primary/70">Lade…</main>
+    return <div className="min-h-screen bg-[#E6F1E6] p-8 text-center text-[#4B5563]">Lade…</div>
   }
 
   const formatDate = (iso: string) => new Date(iso).toLocaleString('de-DE')
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-10">
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-primary">🗑️ سلة المهملات ({items.length})</h1>
-        <Link href="/admin/dashboard" className="text-sm font-medium text-primary underline hover:opacity-80">
-          ← Zurück zum Dashboard
-        </Link>
-      </div>
+    <div className="min-h-screen bg-[#E6F1E6]">
+      <main className="mx-auto max-w-5xl px-4 py-6 sm:py-10">
+        <div className="mb-5 flex items-center gap-3">
+          <Link
+            href="/admin/dashboard"
+            aria-label="Zurück zum Dashboard"
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-[#FFFFFF] text-[#1A4D2E] shadow-[0_2px_10px_rgba(0,0,0,0.05)] hover:bg-[#F5F5F0]"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <h1 className="text-2xl font-bold text-[#1A4D2E]">Papierkorb ({items.length})</h1>
+        </div>
 
-      {message && <p className="mb-4 rounded-lg bg-primary/5 p-3 text-sm text-primary">{message}</p>}
+        {message && <p className={`${card} mb-4 p-3 text-sm text-[#1A4D2E]`}>{message}</p>}
 
-      <div className="overflow-x-auto rounded-xl bg-card shadow-sm">
-        <table className="min-w-full text-left text-sm">
-          <thead className="bg-primary/5 text-primary/80">
-            <tr>
-              <th className="px-4 py-3">Eingegangen</th>
-              <th className="px-4 py-3">Kunde</th>
-              <th className="px-4 py-3">PLZ</th>
-              <th className="px-4 py-3">Service</th>
-              <th className="px-4 py-3">Gelöscht am</th>
-              <th className="px-4 py-3 text-right">Aktion</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-primary/10">
+        {items.length === 0 ? (
+          <div className={`${card} flex flex-col items-center px-6 py-12 text-center`}>
+            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-[#A8D5A2]/50 text-[#1A4D2E]">
+              <AlertCircle className="h-8 w-8" />
+            </span>
+            <p className="mt-4 font-semibold text-[#1A4D2E]">Der Papierkorb ist leer</p>
+            <p className="mt-1 text-[13px] text-[#4B5563]">Gelöschte Anfragen erscheinen hier und können wiederhergestellt werden.</p>
+          </div>
+        ) : (
+          <ul className="grid gap-3 lg:grid-cols-2">
             {items.map((r) => (
-              <tr key={r.id} className="align-top">
-                <td className="px-4 py-3">{new Date(r.created_at).toLocaleDateString('de-DE')}</td>
-                <td className="px-4 py-3">
-                  <div>{r.customer_name || '–'}</div>
-                  <div className="text-primary/70">{r.customer_email}</div>
-                </td>
-                <td className="px-4 py-3">{r.postcode}</td>
-                <td className="px-4 py-3">{r.service_type}</td>
-                <td className="px-4 py-3">
-                  {formatDate(r.deleted_at)}
-                  {r.deleted_by && <div className="text-primary/70">von {r.deleted_by}</div>}
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex justify-end gap-2">
-                    <button
-                      type="button"
-                      onClick={() => restore(r.id)}
-                      disabled={busyId === r.id}
-                      className="rounded-lg bg-primary px-3 py-1 text-card hover:bg-primary-hover disabled:opacity-60"
-                    >
-                      ♻️ استعادة
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => deleteForever(r.id)}
-                      disabled={busyId === r.id}
-                      className="rounded-lg bg-danger px-3 py-1 text-card hover:bg-danger-hover disabled:opacity-60"
-                    >
-                      ❌ حذف نهائي
-                    </button>
-                  </div>
-                </td>
-              </tr>
+              <li key={r.id} className={`${card} p-4`}>
+                <h3 className="truncate font-bold text-[#1A4D2E]">{r.service_type}</h3>
+                <div className="mt-2 space-y-1 text-[13px] text-[#4B5563]">
+                  <p className="flex min-w-0 items-center gap-2">
+                    <User className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">{r.customer_name || '–'}</span>
+                  </p>
+                  <p className="flex min-w-0 items-center gap-2">
+                    <Mail className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">{r.customer_email}</span>
+                  </p>
+                  <p className="flex items-center gap-2">
+                    <MapPin className="h-3.5 w-3.5 shrink-0" /> {r.postcode}
+                  </p>
+                  <p className="flex items-center gap-2">
+                    <Calendar className="h-3.5 w-3.5 shrink-0" /> Eingegangen {new Date(r.created_at).toLocaleDateString('de-DE')}
+                  </p>
+                </div>
+                <p className="mt-3 rounded-xl bg-[#F5F5F0] px-3 py-2 text-xs text-[#4B5563]">
+                  Gelöscht am {formatDate(r.deleted_at)}
+                  {r.deleted_by ? ` von ${r.deleted_by}` : ''}
+                </p>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <button type="button" onClick={() => restore(r.id)} disabled={busyId === r.id} className={actionButton}>
+                    <RotateCcw className="h-4 w-4" /> Wiederherstellen
+                  </button>
+                  <button type="button" onClick={() => setConfirmTarget(r)} disabled={busyId === r.id} className={`${actionButton} text-danger`}>
+                    <Trash2 className="h-4 w-4" /> Endgültig löschen
+                  </button>
+                </div>
+              </li>
             ))}
-            {items.length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-primary/70">
-                  سلة المهملات فارغة.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </main>
+          </ul>
+        )}
+
+        {confirmTarget && (
+          <Modal title="Endgültig löschen?" onClose={() => setConfirmTarget(null)}>
+            <p className="text-sm text-[#4B5563]">
+              Die Anfrage von <span className="font-semibold text-[#1A4D2E]">{confirmTarget.customer_name || confirmTarget.customer_email}</span>{' '}
+              wird vollständig gelöscht. Das kann nicht rückgängig gemacht werden.
+            </p>
+            <ModalButtons
+              onCancel={() => setConfirmTarget(null)}
+              confirmLabel="Endgültig löschen"
+              danger
+              busy={busyId === confirmTarget.id}
+              onConfirm={() => deleteForever(confirmTarget.id)}
+            />
+          </Modal>
+        )}
+      </main>
+    </div>
   )
 }

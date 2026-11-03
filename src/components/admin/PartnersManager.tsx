@@ -1,22 +1,51 @@
 'use client'
 
-import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { MoreVertical, X } from 'lucide-react'
+import {
+  ArrowLeft,
+  Ban,
+  CheckCircle,
+  Mail,
+  Pencil,
+  Phone,
+  RotateCcw,
+  Search,
+  ShieldCheck,
+  Trash2,
+  Users,
+  X,
+} from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
 import { CLEANING_TYPES } from '@/lib/applications'
 
 export type PartnerView = 'active' | 'blocked' | 'trash'
 
-type Partner = {
+export type AdminPartner = {
   id: string
   company_name: string
+  first_name: string | null
+  last_name: string | null
   email: string
   phone: string | null
+  street: string | null
   city: string | null
-  services: string[] | null
+  postcode: string | null
   legal_form: string | null
+  employee_count: string | null
+  has_liability_insurance: boolean | null
+  has_trade_license: boolean | null
+  experience_years: number | null
+  services: string[] | null
+  description: string | null
+  website: string | null
+  languages: string[] | null
+  availability: string | null
+  terms_accepted_at: string | null
+  logo_url: string | null
+  license_url: string | null
+  insurance_url: string | null
   hourly_rate: number | null
   verified: boolean
   is_blocked: boolean
@@ -28,27 +57,29 @@ type Partner = {
 }
 
 const COLUMNS =
-  'id, company_name, email, phone, city, services, legal_form, hourly_rate, verified, is_blocked, blocked_at, blocked_reason, deleted_at, deleted_reason, created_at'
+  'id, company_name, first_name, last_name, email, phone, street, city, postcode, legal_form, employee_count, has_liability_insurance, has_trade_license, experience_years, services, description, website, languages, availability, terms_accepted_at, logo_url, license_url, insurance_url, hourly_rate, verified, is_blocked, blocked_at, blocked_reason, deleted_at, deleted_reason, created_at'
 
 const LEGAL_FORMS = ['Einzelunternehmen', 'GbR', 'UG (haftungsbeschränkt)', 'GmbH', 'Sonstige']
 const SERVICE_OPTIONS: string[] = CLEANING_TYPES.map((c) => c.label)
 
-const VIEWS: { key: PartnerView; label: string; title: string; href: string }[] = [
-  { key: 'active', label: 'Aktiv', title: 'Partner', href: '/admin/partners' },
-  { key: 'blocked', label: 'Blockiert', title: 'Blockierte Partner', href: '/admin/partners/blocked' },
-  { key: 'trash', label: 'Papierkorb', title: 'Papierkorb', href: '/admin/partners/trash' },
+const VIEWS: { key: PartnerView; label: string; icon: typeof CheckCircle; href: string }[] = [
+  { key: 'active', label: 'Aktiv', icon: CheckCircle, href: '/admin/partners' },
+  { key: 'blocked', label: 'Blockiert', icon: Ban, href: '/admin/partners/blocked' },
+  { key: 'trash', label: 'Papierkorb', icon: Trash2, href: '/admin/partners/trash' },
 ]
 
 const inputClass =
-  'mt-1 w-full rounded-lg border border-primary/20 bg-card px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20'
+  'mt-1 min-h-[44px] w-full rounded-xl border border-[#1A4D2E]/15 bg-[#FFFFFF] px-3 py-2 text-sm text-[#1A4D2E] focus:border-[#1A4D2E] focus:outline-none focus:ring-2 focus:ring-[#1A4D2E]/15'
+
+const actionButton =
+  'flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl bg-[#F5F5F0] py-2.5 text-[12px] font-medium text-[#1A4D2E] transition hover:bg-[#ECECE4] disabled:opacity-50'
 
 const formatDate = (iso: string | null) => (iso ? new Date(iso).toLocaleString('de-DE') : '–')
 
-function query(view: PartnerView) {
-  const base = supabase.from('partners')
-  if (view === 'trash') return base.select(COLUMNS).not('deleted_at', 'is', null).order('deleted_at', { ascending: false })
+function listQuery(view: PartnerView) {
+  const base = supabase.from('partners').select(COLUMNS)
+  if (view === 'trash') return base.not('deleted_at', 'is', null).order('deleted_at', { ascending: false })
   return base
-    .select(COLUMNS)
     .is('deleted_at', null)
     .eq('is_blocked', view === 'blocked')
     .order(view === 'blocked' ? 'blocked_at' : 'created_at', { ascending: false })
@@ -60,28 +91,33 @@ function countQuery(view: PartnerView) {
   return base.is('deleted_at', null).eq('is_blocked', view === 'blocked')
 }
 
-async function callApi(path: string, method: 'PUT' | 'DELETE', body?: unknown) {
+async function callApi(path: string, method: 'PUT' | 'DELETE' | 'POST', body?: unknown) {
   const res = await fetch(path, {
     method,
     headers: body ? { 'Content-Type': 'application/json' } : undefined,
     body: body ? JSON.stringify(body) : undefined,
   }).catch(() => null)
-  const data = (await res?.json().catch(() => null)) as { error?: string } | null
-  return res?.ok ? null : (data?.error ?? 'Aktion fehlgeschlagen.')
+  const data = (await res?.json().catch(() => null)) as { error?: string; warning?: string; emailSent?: boolean } | null
+  return { error: res?.ok ? null : (data?.error ?? 'Aktion fehlgeschlagen.'), data }
 }
 
-function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
+export function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-primary/60 p-4 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-[9999] flex items-end justify-center bg-[#0F2A1D]/50 p-0 backdrop-blur-sm sm:items-center sm:p-4" onClick={onClose}>
       <div
         role="dialog"
         aria-modal="true"
-        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-card p-6 shadow-2xl"
+        className="max-h-[92vh] w-full overflow-y-auto rounded-t-[24px] bg-[#FFFAF5] p-6 shadow-2xl sm:max-w-md sm:rounded-[20px]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-start justify-between gap-4">
-          <h2 className="text-lg font-bold text-primary">{title}</h2>
-          <button type="button" onClick={onClose} aria-label="Schließen" className="rounded-lg p-1 text-primary/70 hover:bg-primary/5">
+          <h2 className="text-lg font-bold text-[#1A4D2E]">{title}</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Schließen"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-[#1A4D2E]/70 hover:bg-[#1A4D2E]/5"
+          >
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -91,7 +127,7 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
   )
 }
 
-function ModalButtons({
+export function ModalButtons({
   onCancel,
   confirmLabel,
   danger,
@@ -109,7 +145,7 @@ function ModalButtons({
       <button
         type="button"
         onClick={onCancel}
-        className="flex-1 rounded-xl bg-primary/10 py-3 text-sm font-medium text-primary hover:bg-primary/15"
+        className="min-h-[44px] flex-1 rounded-xl bg-[#F5F5F0] py-3 text-sm font-medium text-[#1A4D2E] hover:bg-[#ECECE4]"
       >
         Abbrechen
       </button>
@@ -117,8 +153,8 @@ function ModalButtons({
         type={onConfirm ? 'button' : 'submit'}
         onClick={onConfirm}
         disabled={busy}
-        className={`flex-1 rounded-xl py-3 text-sm font-bold text-card disabled:opacity-60 ${
-          danger ? 'bg-danger hover:bg-danger-hover' : 'bg-primary hover:bg-primary-hover'
+        className={`min-h-[44px] flex-1 rounded-xl py-3 text-sm font-bold text-[#FFFFFF] disabled:opacity-60 ${
+          danger ? 'bg-danger hover:bg-danger-hover' : 'bg-[#1A4D2E] hover:bg-[#143D24]'
         }`}
       >
         {busy ? 'Bitte warten…' : confirmLabel}
@@ -126,12 +162,6 @@ function ModalButtons({
     </div>
   )
 }
-
-type Dialog =
-  | { kind: 'edit'; partner: Partner }
-  | { kind: 'block'; partner: Partner }
-  | { kind: 'trash'; partner: Partner }
-  | { kind: 'hardDelete'; partner: Partner }
 
 type EditForm = {
   company_name: string
@@ -143,7 +173,7 @@ type EditForm = {
   verified: boolean
 }
 
-function EditDialog({ partner, busy, onClose, onSave }: { partner: Partner; busy: boolean; onClose: () => void; onSave: (form: EditForm) => void }) {
+function EditDialog({ partner, busy, onClose, onSave }: { partner: AdminPartner; busy: boolean; onClose: () => void; onSave: (form: EditForm) => void }) {
   const [form, setForm] = useState<EditForm>({
     company_name: partner.company_name,
     city: partner.city ?? '',
@@ -164,7 +194,7 @@ function EditDialog({ partner, busy, onClose, onSave }: { partner: Partner; busy
 
   return (
     <Modal title="Partner bearbeiten" onClose={onClose}>
-      <form onSubmit={submit} className="space-y-4">
+      <form onSubmit={submit} className="space-y-4 text-[#1A4D2E]">
         <label className="block text-sm font-medium">
           Firmenname *
           <input required value={form.company_name} onChange={(e) => set('company_name', e.target.value)} className={inputClass} />
@@ -213,17 +243,18 @@ function EditDialog({ partner, busy, onClose, onSave }: { partner: Partner; busy
             <option value="verified">Verifiziert</option>
             <option value="pending">Ausstehend</option>
           </select>
-          <span className="mt-1 block text-xs text-primary/60">Hinweis: Hier wird keine Annahme-E-Mail gesendet (dafür „Verify“ im Dashboard).</span>
+          <span className="mt-1 block text-xs text-[#4B5563]">Hier wird keine Annahme-E-Mail gesendet – dafür „Verifizieren“ auf der Karte nutzen.</span>
         </label>
         <fieldset>
           <legend className="text-sm font-medium">Leistungen</legend>
-          <div className="mt-2 grid gap-1.5 sm:grid-cols-2">
+          <div className="mt-2 grid gap-1 sm:grid-cols-2">
             {serviceOptions.map((s) => (
-              <label key={s} className="flex items-center gap-2 text-sm">
+              <label key={s} className="flex min-h-[36px] items-center gap-2 text-sm">
                 <input
                   type="checkbox"
                   checked={form.services.includes(s)}
                   onChange={(e) => set('services', e.target.checked ? [...form.services, s] : form.services.filter((x) => x !== s))}
+                  className="h-4 w-4"
                 />
                 {s}
               </label>
@@ -236,15 +267,15 @@ function EditDialog({ partner, busy, onClose, onSave }: { partner: Partner; busy
   )
 }
 
-function BlockDialog({ partner, busy, onClose, onConfirm }: { partner: Partner; busy: boolean; onClose: () => void; onConfirm: (reason: string) => void }) {
+function BlockDialog({ partner, busy, onClose, onConfirm }: { partner: AdminPartner; busy: boolean; onClose: () => void; onConfirm: (reason: string) => void }) {
   const [reason, setReason] = useState('')
   return (
     <Modal title="Partner blockieren?" onClose={onClose}>
-      <p className="text-sm text-primary/75">
-        <span className="font-semibold text-primary">{partner.company_name}</span> kann sich danach nicht mehr anmelden und
+      <p className="text-sm text-[#4B5563]">
+        <span className="font-semibold text-[#1A4D2E]">{partner.company_name}</span> kann sich danach nicht mehr anmelden und
         erscheint nicht mehr bei der Partner-Zuweisung.
       </p>
-      <label className="mt-4 block text-sm font-medium">
+      <label className="mt-4 block text-sm font-medium text-[#1A4D2E]">
         Grund (optional)
         <textarea rows={3} maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} className={inputClass} />
       </label>
@@ -253,237 +284,301 @@ function BlockDialog({ partner, busy, onClose, onConfirm }: { partner: Partner; 
   )
 }
 
-export default function PartnersManager({ view }: { view: PartnerView }) {
-  const router = useRouter()
-  const [ready, setReady] = useState(false)
-  const [partners, setPartners] = useState<Partner[]>([])
+type Dialog =
+  | { kind: 'edit'; partner: AdminPartner }
+  | { kind: 'block'; partner: AdminPartner }
+  | { kind: 'trash'; partner: AdminPartner }
+  | { kind: 'hardDelete'; partner: AdminPartner }
+
+function PartnerCard({
+  partner: p,
+  view,
+  busy,
+  onOpen,
+  onVerify,
+  onEdit,
+  onBlock,
+  onUnblock,
+  onTrash,
+  onRestore,
+  onHardDelete,
+}: {
+  partner: AdminPartner
+  view: PartnerView
+  busy: boolean
+  onOpen?: () => void
+  onVerify: () => void
+  onEdit: () => void
+  onBlock: () => void
+  onUnblock: () => void
+  onTrash: () => void
+  onRestore: () => void
+  onHardDelete: () => void
+}) {
+  const initial = (p.company_name.trim()[0] ?? '?').toUpperCase()
+
+  return (
+    <li className="rounded-[20px] bg-[#FFFFFF] p-4 shadow-[0_2px_10px_rgba(0,0,0,0.05)]">
+      <div
+        className={`flex gap-3 ${onOpen ? 'cursor-pointer' : ''}`}
+        onClick={onOpen}
+        role={onOpen ? 'button' : undefined}
+        tabIndex={onOpen ? 0 : undefined}
+        onKeyDown={(e) => onOpen && (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), onOpen())}
+      >
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#8FBC8F] text-base font-bold text-[#FFFFFF]">
+          {initial}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="truncate font-bold text-[#1A4D2E]">{p.company_name}</h3>
+            {p.verified ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-[#DCFCE7] px-2 py-0.5 text-[11px] font-semibold text-[#166534]">
+                <ShieldCheck className="h-3.5 w-3.5" /> Verifiziert
+              </span>
+            ) : (
+              <span className="rounded-full bg-[#FEF3C7] px-2 py-0.5 text-[11px] font-semibold text-[#92400E]">Ausstehend</span>
+            )}
+            {p.hourly_rate !== null && (
+              <span className="rounded-full bg-[#F5F5F0] px-2 py-0.5 text-[11px] font-medium text-[#4B5563]">{p.hourly_rate} €/Std.</span>
+            )}
+          </div>
+          <div className="mt-1.5 space-y-1 text-[13px] text-[#4B5563]">
+            <p className="flex min-w-0 items-center gap-2">
+              <Mail className="h-3.5 w-3.5 shrink-0" size={14} />
+              <span className="truncate">{p.email}</span>
+            </p>
+            {p.phone && (
+              <p className="flex items-center gap-2">
+                <Phone className="h-3.5 w-3.5 shrink-0" size={14} />
+                <span className="truncate">{p.phone}</span>
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {view === 'blocked' && (
+        <p className="mt-3 rounded-xl bg-danger/10 px-3 py-2 text-xs text-danger">
+          Blockiert am {formatDate(p.blocked_at)}
+          {p.blocked_reason ? ` – ${p.blocked_reason}` : ''}
+        </p>
+      )}
+      {view === 'trash' && (
+        <p className="mt-3 rounded-xl bg-[#F5F5F0] px-3 py-2 text-xs text-[#4B5563]">
+          Gelöscht am {formatDate(p.deleted_at)}
+          {p.deleted_reason ? ` – ${p.deleted_reason}` : ''}
+        </p>
+      )}
+
+      {view === 'active' && !p.verified && (
+        <button
+          type="button"
+          onClick={onVerify}
+          disabled={busy}
+          className="mt-3 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-[#1A4D2E] text-[13px] font-semibold text-[#FFFFFF] hover:bg-[#143D24] disabled:opacity-60"
+        >
+          <ShieldCheck className="h-4 w-4" /> Verifizieren & Annahme-E-Mail senden
+        </button>
+      )}
+
+      {view === 'trash' ? (
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <button type="button" onClick={onRestore} disabled={busy} className={actionButton}>
+            <RotateCcw className="h-4 w-4" /> Wiederherstellen
+          </button>
+          <button type="button" onClick={onHardDelete} disabled={busy} className={`${actionButton} text-danger`}>
+            <Trash2 className="h-4 w-4" /> Endgültig löschen
+          </button>
+        </div>
+      ) : (
+        <div className="mt-3 grid grid-cols-3 gap-2">
+          <button type="button" onClick={onEdit} disabled={busy} className={actionButton}>
+            <Pencil className="h-4 w-4" /> Bearbeiten
+          </button>
+          {view === 'blocked' ? (
+            <button type="button" onClick={onUnblock} disabled={busy} className={actionButton}>
+              <CheckCircle className="h-4 w-4" /> Entsperren
+            </button>
+          ) : (
+            <button type="button" onClick={onBlock} disabled={busy} className={actionButton}>
+              <Ban className="h-4 w-4" /> Blockieren
+            </button>
+          )}
+          <button type="button" onClick={onTrash} disabled={busy} className={`${actionButton} text-danger`}>
+            <Trash2 className="h-4 w-4" /> Papierkorb
+          </button>
+        </div>
+      )}
+    </li>
+  )
+}
+
+// Card list with search + Aktiv/Blockiert/Papierkorb chips. Used in the dashboard "Partner" tab and on /admin/partners.
+export function PartnerList({
+  initialView = 'active',
+  linkViews = false,
+  reloadKey = 0,
+  onOpenDetails,
+  onChanged,
+}: {
+  initialView?: PartnerView
+  linkViews?: boolean
+  reloadKey?: number
+  onOpenDetails?: (partner: AdminPartner) => void
+  onChanged?: () => void
+}) {
+  const [view, setView] = useState<PartnerView>(initialView)
+  const [partners, setPartners] = useState<AdminPartner[]>([])
   const [counts, setCounts] = useState<Record<PartnerView, number>>({ active: 0, blocked: 0, trash: 0 })
+  const [search, setSearch] = useState('')
+  const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('')
-  const [menuId, setMenuId] = useState<string | null>(null)
   const [dialog, setDialog] = useState<Dialog | null>(null)
   const [dialogError, setDialogError] = useState('')
   const [busy, setBusy] = useState(false)
+
+  const load = useCallback(async () => {
+    const [list, active, blocked, trash] = await Promise.all([listQuery(view), countQuery('active'), countQuery('blocked'), countQuery('trash')])
+    if (list.error) setMessage('Partner konnten nicht geladen werden.')
+    setPartners((list.data as AdminPartner[] | null) ?? [])
+    setCounts({ active: active.count ?? 0, blocked: blocked.count ?? 0, trash: trash.count ?? 0 })
+    setLoading(false)
+  }, [view])
+
+  useEffect(() => {
+    const init = async () => {
+      await load()
+    }
+    init()
+  }, [load, reloadKey])
+
+  const visible = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    if (!q) return partners
+    return partners.filter((p) =>
+      [p.company_name, p.email, p.phone, p.city, p.first_name, p.last_name].some((v) => v?.toLowerCase().includes(q)),
+    )
+  }, [partners, search])
 
   const openDialog = (d: Dialog) => {
     setDialogError('')
     setDialog(d)
   }
 
-  const load = useCallback(async () => {
-    const [list, active, blocked, trash] = await Promise.all([query(view), countQuery('active'), countQuery('blocked'), countQuery('trash')])
-    if (list.error) setMessage('Partner konnten nicht geladen werden. Wurde partner_block_trash.sql ausgeführt?')
-    setPartners((list.data as Partner[] | null) ?? [])
-    setCounts({ active: active.count ?? 0, blocked: blocked.count ?? 0, trash: trash.count ?? 0 })
-  }, [view])
+  type ApiResult = Awaited<ReturnType<typeof callApi>>
 
-  useEffect(() => {
-    const init = async () => {
-      if (!localStorage.getItem('admin')) {
-        router.replace('/admin/login')
-        return
-      }
-      await load()
-      setReady(true)
-    }
-    init()
-  }, [router, load])
-
-  useEffect(() => {
-    if (!menuId) return
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setMenuId(null)
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [menuId])
-
-  async function run(action: () => Promise<string | null>, success: string) {
+  async function run(action: () => Promise<ApiResult>, success: string | ((result: ApiResult) => string)) {
     setBusy(true)
     setMessage('')
     setDialogError('')
-    const error = await action()
+    const result = await action()
     setBusy(false)
-    if (error) {
-      if (dialog) setDialogError(error)
-      else setMessage(error)
+    if (result.error) {
+      if (dialog) setDialogError(result.error)
+      else setMessage(result.error)
       return
     }
     setDialog(null)
-    setMessage(success)
+    setMessage(typeof success === 'string' ? success : success(result))
     await load()
+    onChanged?.()
   }
 
   const base = (id: string) => `/api/admin/partners/${id}`
-  const save = (p: Partner, f: EditForm) =>
+  const save = (p: AdminPartner, f: EditForm) =>
     run(() => callApi(base(p.id), 'PUT', { ...f, hourly_rate: f.hourly_rate === '' ? null : Number(f.hourly_rate) }), 'Änderungen gespeichert.')
-  const block = (p: Partner, reason: string) => run(() => callApi(`${base(p.id)}/block`, 'PUT', { blocked: true, reason }), 'Partner blockiert.')
-  const unblock = (p: Partner) => run(() => callApi(`${base(p.id)}/block`, 'PUT', { blocked: false }), 'Partner entsperrt.')
-  const trash = (p: Partner) => run(() => callApi(`${base(p.id)}/trash`, 'PUT', {}), 'In den Papierkorb verschoben.')
-  const restore = (p: Partner) => run(() => callApi(`${base(p.id)}/restore`, 'PUT'), 'Partner wiederhergestellt.')
-  const hardDelete = (p: Partner) =>
+  const block = (p: AdminPartner, reason: string) => run(() => callApi(`${base(p.id)}/block`, 'PUT', { blocked: true, reason }), 'Partner blockiert.')
+  const unblock = (p: AdminPartner) => run(() => callApi(`${base(p.id)}/block`, 'PUT', { blocked: false }), 'Partner entsperrt.')
+  const trash = (p: AdminPartner) => run(() => callApi(`${base(p.id)}/trash`, 'PUT', {}), 'In den Papierkorb verschoben.')
+  const restore = (p: AdminPartner) => run(() => callApi(`${base(p.id)}/restore`, 'PUT'), 'Partner wiederhergestellt.')
+  const hardDelete = (p: AdminPartner) =>
     run(() => callApi(base(p.id), 'DELETE'), 'Partner endgültig gelöscht. Die E-Mail kann sich jetzt neu bewerben.')
+  const verify = (p: AdminPartner) =>
+    run(
+      () => callApi('/api/admin/verify-partner', 'POST', { partnerId: p.id }),
+      (r) => (r.data?.emailSent ? 'Partner verifiziert. Annahme-E-Mail wurde gesendet.' : (r.data?.warning ?? 'Partner verifiziert.')),
+    )
 
-  if (!ready) return <main className="p-8 text-center text-primary/70">Lade…</main>
-
-  const current = VIEWS.find((v) => v.key === view)!
-  const menuItem = 'block w-full px-4 py-2.5 text-left text-sm hover:bg-primary/5'
+  const chipClass = (active: boolean) =>
+    `flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-full px-3 text-[13px] font-medium transition ${
+      active ? 'bg-[#1A4D2E] text-[#FFFFFF]' : 'bg-[#FFFFFF] text-[#1A4D2E] shadow-[0_2px_10px_rgba(0,0,0,0.05)] hover:bg-[#F5F5F0]'
+    }`
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-10">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-primary">{current.title}</h1>
-        <Link href="/admin/dashboard" className="text-sm text-primary/80 underline hover:text-primary-hover">
-          ← Zurück zum Dashboard
-        </Link>
+    <div>
+      <label className="flex min-h-[48px] items-center gap-3 rounded-full bg-[#FFFFFF] px-5 shadow-[0_2px_10px_rgba(0,0,0,0.05)] focus-within:ring-2 focus-within:ring-[#1A4D2E]/20">
+        <Search className="h-4 w-4 shrink-0 text-[#4B5563]" />
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Partner suchen..."
+          aria-label="Partner suchen"
+          className="min-w-0 flex-1 bg-transparent text-sm text-[#1A4D2E] placeholder:text-[#9CA3AF] focus:outline-none"
+        />
+      </label>
+
+      <div className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1">
+        {VIEWS.map((v) => {
+          const Icon = v.icon
+          const content = (
+            <>
+              <Icon className="h-4 w-4" /> {v.label}
+              <span className={`rounded-full px-1.5 text-[11px] ${v.key === view ? 'bg-[#FFFFFF]/20' : 'bg-[#F5F5F0]'}`}>{counts[v.key]}</span>
+            </>
+          )
+          return linkViews ? (
+            <Link key={v.key} href={v.href} className={chipClass(v.key === view)}>
+              {content}
+            </Link>
+          ) : (
+            <button key={v.key} type="button" onClick={() => setView(v.key)} className={chipClass(v.key === view)}>
+              {content}
+            </button>
+          )
+        })}
       </div>
 
-      <nav className="mb-6 flex gap-2 overflow-x-auto border-b border-primary/10">
-        {VIEWS.map((v) => (
-          <Link
-            key={v.key}
-            href={v.href}
-            className={`-mb-px whitespace-nowrap border-b-2 px-4 py-2 text-sm font-medium ${
-              v.key === view ? 'border-primary text-primary' : 'border-transparent text-primary/70 hover:text-primary'
-            }`}
-          >
-            {v.label} ({counts[v.key]})
-          </Link>
-        ))}
-      </nav>
+      {message && <p className="mt-3 rounded-xl bg-[#FFFFFF] p-3 text-sm text-[#1A4D2E] shadow-[0_2px_10px_rgba(0,0,0,0.05)]">{message}</p>}
 
-      {message && <p className="mb-4 rounded-lg bg-primary/5 p-3 text-sm text-primary">{message}</p>}
-
-      {partners.length === 0 ? (
-        <p className="rounded-xl bg-card p-6 text-center text-sm text-primary/70 shadow-sm">
-          {view === 'trash' ? 'Der Papierkorb ist leer.' : view === 'blocked' ? 'Keine blockierten Partner.' : 'Keine aktiven Partner.'}
-        </p>
+      {loading ? (
+        <p className="mt-6 text-center text-sm text-[#4B5563]">Lade…</p>
+      ) : visible.length === 0 ? (
+        <div className="mt-4 flex flex-col items-center rounded-[20px] bg-[#FFFAF5] px-6 py-10 text-center shadow-[0_2px_10px_rgba(0,0,0,0.05)]">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#A8D5A2]/50 text-[#1A4D2E]">
+            {search ? <Search className="h-6 w-6" /> : <Users className="h-6 w-6" />}
+          </div>
+          <p className="mt-3 font-semibold text-[#1A4D2E]">
+            {search
+              ? 'Keine Treffer'
+              : view === 'trash'
+                ? 'Der Papierkorb ist leer'
+                : view === 'blocked'
+                  ? 'Keine blockierten Partner'
+                  : 'Keine aktiven Partner'}
+          </p>
+          <p className="mt-1 text-[13px] text-[#4B5563]">
+            {search ? 'Versuchen Sie einen anderen Suchbegriff.' : 'Hier erscheinen Partner, sobald es welche gibt.'}
+          </p>
+        </div>
       ) : (
-        <ul className="space-y-3">
-          {partners.map((p) => (
-            <li key={p.id} className="relative rounded-2xl bg-card p-4 pr-12 shadow-sm ring-1 ring-primary/10">
-              <div className="flex flex-wrap items-center gap-2">
-                <h2 className="font-semibold text-primary">{p.company_name}</h2>
-                <span
-                  className={`rounded-full px-2 py-0.5 text-xs ${
-                    p.verified ? 'bg-primary text-card' : 'bg-background text-primary ring-1 ring-primary/30'
-                  }`}
-                >
-                  {p.verified ? 'Verifiziert' : 'Ausstehend'}
-                </span>
-              </div>
-              <p className="mt-1 break-words text-sm text-primary/75">
-                {[p.email, p.phone, p.city, p.legal_form, p.hourly_rate !== null ? `${p.hourly_rate} €/Std.` : null]
-                  .filter(Boolean)
-                  .join(' · ')}
-              </p>
-              {p.services && p.services.length > 0 && <p className="mt-1 text-xs text-primary/60">{p.services.join(', ')}</p>}
-
-              {view === 'blocked' && (
-                <p className="mt-2 rounded-lg bg-danger/10 px-3 py-2 text-xs text-danger">
-                  Blockiert am {formatDate(p.blocked_at)}
-                  {p.blocked_reason ? ` – Grund: ${p.blocked_reason}` : ''}
-                </p>
-              )}
-              {view === 'trash' && (
-                <p className="mt-2 rounded-lg bg-primary/5 px-3 py-2 text-xs text-primary/75">
-                  Gelöscht am {formatDate(p.deleted_at)}
-                  {p.deleted_reason ? ` – Grund: ${p.deleted_reason}` : ''}
-                </p>
-              )}
-
-              {view === 'blocked' && (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => unblock(p)}
-                    disabled={busy}
-                    className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-card hover:bg-primary-hover disabled:opacity-60"
-                  >
-                    Entsperren
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => openDialog({ kind: 'trash', partner: p })}
-                    className="rounded-lg border border-danger px-3 py-1.5 text-xs font-semibold text-danger hover:bg-danger/10"
-                  >
-                    Löschen
-                  </button>
-                </div>
-              )}
-              {view === 'trash' && (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => restore(p)}
-                    disabled={busy}
-                    className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-card hover:bg-primary-hover disabled:opacity-60"
-                  >
-                    ♻️ Wiederherstellen
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => openDialog({ kind: 'hardDelete', partner: p })}
-                    className="rounded-lg bg-danger px-3 py-1.5 text-xs font-semibold text-card hover:bg-danger-hover"
-                  >
-                    Endgültig löschen
-                  </button>
-                </div>
-              )}
-
-              {view === 'active' && (
-                <div className="absolute right-2 top-2">
-                  <button
-                    type="button"
-                    onClick={() => setMenuId(menuId === p.id ? null : p.id)}
-                    aria-label="Aktionen"
-                    aria-haspopup="menu"
-                    aria-expanded={menuId === p.id}
-                    className="rounded-lg p-2 text-primary/70 hover:bg-primary/5 hover:text-primary"
-                  >
-                    <MoreVertical className="h-5 w-5" />
-                  </button>
-                  {menuId === p.id && (
-                    <>
-                      <div className="fixed inset-0 z-40" onClick={() => setMenuId(null)} />
-                      <div role="menu" className="absolute right-0 z-50 mt-1 w-44 overflow-hidden rounded-xl bg-card py-1 shadow-lg ring-1 ring-primary/15">
-                        <button
-                          type="button"
-                          role="menuitem"
-                          className={`${menuItem} text-primary`}
-                          onClick={() => {
-                            setMenuId(null)
-                            openDialog({ kind: 'edit', partner: p })
-                          }}
-                        >
-                          Bearbeiten
-                        </button>
-                        <button
-                          type="button"
-                          role="menuitem"
-                          className={`${menuItem} text-primary`}
-                          onClick={() => {
-                            setMenuId(null)
-                            if (p.is_blocked) unblock(p)
-                            else openDialog({ kind: 'block', partner: p })
-                          }}
-                        >
-                          {p.is_blocked ? 'Entsperren' : 'Blockieren'}
-                        </button>
-                        <button
-                          type="button"
-                          role="menuitem"
-                          className={`${menuItem} text-danger`}
-                          onClick={() => {
-                            setMenuId(null)
-                            openDialog({ kind: 'trash', partner: p })
-                          }}
-                        >
-                          Löschen
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              )}
-            </li>
+        <ul className="mt-4 grid gap-3 lg:grid-cols-2">
+          {visible.map((p) => (
+            <PartnerCard
+              key={p.id}
+              partner={p}
+              view={view}
+              busy={busy}
+              onOpen={onOpenDetails ? () => onOpenDetails(p) : undefined}
+              onVerify={() => verify(p)}
+              onEdit={() => openDialog({ kind: 'edit', partner: p })}
+              onBlock={() => openDialog({ kind: 'block', partner: p })}
+              onUnblock={() => unblock(p)}
+              onTrash={() => openDialog({ kind: 'trash', partner: p })}
+              onRestore={() => restore(p)}
+              onHardDelete={() => openDialog({ kind: 'hardDelete', partner: p })}
+            />
           ))}
         </ul>
       )}
@@ -496,8 +591,8 @@ export default function PartnersManager({ view }: { view: PartnerView }) {
       )}
       {dialog?.kind === 'trash' && (
         <Modal title="In Papierkorb verschieben?" onClose={() => setDialog(null)}>
-          <p className="text-sm text-primary/75">
-            <span className="font-semibold text-primary">{dialog.partner.company_name}</span> wird in den Papierkorb verschoben und
+          <p className="text-sm text-[#4B5563]">
+            <span className="font-semibold text-[#1A4D2E]">{dialog.partner.company_name}</span> wird in den Papierkorb verschoben und
             kann dort wiederhergestellt werden.
           </p>
           <ModalButtons onCancel={() => setDialog(null)} confirmLabel="Verschieben" danger busy={busy} onConfirm={() => trash(dialog.partner)} />
@@ -505,8 +600,8 @@ export default function PartnersManager({ view }: { view: PartnerView }) {
       )}
       {dialog?.kind === 'hardDelete' && (
         <Modal title="Endgültig löschen?" onClose={() => setDialog(null)}>
-          <p className="text-sm text-primary/75">
-            <span className="font-semibold text-primary">{dialog.partner.company_name}</span> ({dialog.partner.email}) wird
+          <p className="text-sm text-[#4B5563]">
+            <span className="font-semibold text-[#1A4D2E]">{dialog.partner.company_name}</span> ({dialog.partner.email}) wird
             vollständig aus der Datenbank entfernt. Das kann nicht rückgängig gemacht werden. Zugewiesene Anfragen werden wieder
             freigegeben.
           </p>
@@ -520,10 +615,47 @@ export default function PartnersManager({ view }: { view: PartnerView }) {
         </Modal>
       )}
       {dialog && dialogError && (
-        <p role="alert" className="fixed inset-x-4 top-4 z-[10000] mx-auto max-w-md rounded-xl bg-danger p-3 text-center text-sm font-medium text-card shadow-lg">
+        <p role="alert" className="fixed inset-x-4 top-4 z-[10000] mx-auto max-w-md rounded-xl bg-danger p-3 text-center text-sm font-medium text-[#FFFFFF] shadow-lg">
           {dialogError}
         </p>
       )}
-    </main>
+    </div>
+  )
+}
+
+// Standalone pages /admin/partners, /admin/partners/blocked, /admin/partners/trash.
+export default function PartnersManager({ view }: { view: PartnerView }) {
+  const router = useRouter()
+  const [ready, setReady] = useState(false)
+
+  useEffect(() => {
+    const init = async () => {
+      if (!localStorage.getItem('admin')) {
+        router.replace('/admin/login')
+        return
+      }
+      setReady(true)
+    }
+    init()
+  }, [router])
+
+  if (!ready) return <div className="min-h-screen bg-[#E6F1E6] p-8 text-center text-[#4B5563]">Lade…</div>
+
+  return (
+    <div className="min-h-screen bg-[#E6F1E6]">
+      <main className="mx-auto max-w-5xl px-4 py-6 sm:py-10">
+        <div className="mb-5 flex items-center gap-3">
+          <Link
+            href="/admin/dashboard"
+            aria-label="Zurück zum Dashboard"
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-[#FFFFFF] text-[#1A4D2E] shadow-[0_2px_10px_rgba(0,0,0,0.05)] hover:bg-[#F5F5F0]"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Link>
+          <h1 className="text-2xl font-bold text-[#1A4D2E]">Partner verwalten</h1>
+        </div>
+        <PartnerList initialView={view} linkViews />
+      </main>
+    </div>
   )
 }
