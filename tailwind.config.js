@@ -13,6 +13,9 @@ module.exports = {
       primaryHover: '#2D5A4C',
       'primary-hover': '#2D5A4C',
       text: '#1B4332',
+      // Only for destructive actions (delete buttons/icons).
+      danger: '#B42318',
+      'danger-hover': '#912018',
     },
   },
 }

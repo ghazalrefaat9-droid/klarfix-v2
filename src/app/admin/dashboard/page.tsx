@@ -345,7 +345,7 @@ export default function AdminDashboardPage() {
                       }}
                       aria-label="Anfrage löschen"
                       title="In den Papierkorb verschieben"
-                      className="ml-2 text-gray-400 hover:text-red-600"
+                      className="ml-2 text-primary/50 hover:text-danger"
                     >
                       <Trash2 size={16} />
                     </button>
@@ -590,34 +590,31 @@ export default function AdminDashboardPage() {
       )}
 
       {deleteTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setDeleteTarget(null)}>
-          <div
-            role="alertdialog"
-            aria-modal="true"
-            dir="rtl"
-            className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="text-lg font-bold text-primary">هل متأكد أنك تود الحذف؟</h3>
-            <p className="mt-2 text-sm text-primary/70">سيتم نقل الطلب إلى سلة المهملات</p>
-            <p className="mt-2 text-sm font-medium text-primary" dir="auto">
-              {deleteTarget.customer_name || deleteTarget.customer_email} – {deleteTarget.service_type}
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-primary/60 p-4 backdrop-blur-sm">
+          <div role="alertdialog" aria-modal="true" dir="rtl" className="w-full max-w-sm rounded-2xl bg-card p-6 shadow-2xl">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-danger/10">
+              <span className="text-2xl">🗑️</span>
+            </div>
+            <h3 className="mb-2 text-center text-lg font-bold text-primary">هل متأكد أنك تود الحذف؟</h3>
+            <p className="mb-6 text-center text-sm text-primary/75">سيتم نقل الطلب إلى سلة المهملات</p>
+            <p className="mb-4 text-center text-xs text-primary/60" dir="auto">
+              {deleteTarget.customer_name || deleteTarget.customer_email} - {deleteTarget.postcode}
             </p>
-            <div className="mt-4 flex gap-3">
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setDeleteTarget(null)}
+                className="flex-1 rounded-xl bg-primary/10 py-3 text-sm font-medium text-primary hover:bg-primary/15"
+              >
+                إلغاء
+              </button>
               <button
                 type="button"
                 onClick={confirmDelete}
                 disabled={deleting}
-                className="rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700 disabled:opacity-60"
+                className="flex-1 rounded-xl bg-danger py-3 text-sm font-bold text-card hover:bg-danger-hover disabled:opacity-60"
               >
                 نعم، احذف
-              </button>
-              <button
-                type="button"
-                onClick={() => setDeleteTarget(null)}
-                className="rounded bg-gray-200 px-4 py-2 hover:bg-gray-300"
-              >
-                إلغاء
               </button>
             </div>
           </div>

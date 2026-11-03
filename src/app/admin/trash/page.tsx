@@ -130,7 +130,7 @@ export default function AdminTrashPage() {
                       type="button"
                       onClick={() => deleteForever(r.id)}
                       disabled={busyId === r.id}
-                      className="rounded-lg bg-red-600 px-3 py-1 text-white hover:bg-red-700 disabled:opacity-60"
+                      className="rounded-lg bg-danger px-3 py-1 text-card hover:bg-danger-hover disabled:opacity-60"
                     >
                       ❌ حذف نهائي
                     </button>
