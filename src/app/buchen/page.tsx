@@ -11,7 +11,7 @@ const inputClass =
   'mt-1 w-full rounded-lg border border-primary/20 bg-card px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-50'
 
 const TIME_MIN = '08:00'
-const TIME_MAX = '18:00'
+const TIME_MAX = '20:00'
 
 // Accepts both ids ("wohnungsreinigung") and labels ("Wohnungsreinigung") from ?service=
 function findInitialService(param: string | null) {
@@ -76,6 +76,18 @@ function BookingForm() {
 
     if (!selected) {
       setError(t('Bitte wählen Sie eine Reinigungsart aus.', 'يرجى اختيار نوع التنظيف.', 'Please select a cleaning type.'))
+      return
+    }
+
+    // Validated here instead of native min/max/step, which iOS Safari enforces inconsistently.
+    if (!isFlexible && form.time && (form.time < TIME_MIN || form.time > TIME_MAX)) {
+      setError(
+        t(
+          'Bitte Zeit zwischen 08:00 und 20:00 wählen',
+          'يرجى اختيار وقت بين 08:00 و 20:00',
+          'Please choose a time between 08:00 and 20:00',
+        ),
+      )
       return
     }
 
@@ -275,12 +287,9 @@ function BookingForm() {
             <input type="date" value={form.date} onChange={update('date')} className={inputClass} />
           </label>
           <label className="block text-sm font-medium">
-            {t('Uhrzeit (08:00–18:00)', 'الوقت (08:00–18:00)', 'Time (08:00–18:00)')}
+            {t('Uhrzeit (08:00–20:00)', 'الوقت (08:00–20:00)', 'Time (08:00–20:00)')}
             <input
               type="time"
-              min={TIME_MIN}
-              max={TIME_MAX}
-              step={900}
               value={isFlexible ? '' : form.time}
               onChange={update('time')}
               disabled={isFlexible}
