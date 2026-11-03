@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
-import { Settings, X } from 'lucide-react'
+import Link from 'next/link'
+import { Settings, Trash2, X } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
 import SettingsPanel from '@/components/admin/SettingsPanel'
 
@@ -135,12 +136,16 @@ export default function AdminDashboardPage() {
   const [message, setMessage] = useState('')
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [detail, setDetail] = useState<{ kind: 'request' | 'partner'; id: string } | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<Request | null>(null)
+  const [deleting, setDeleting] = useState(false)
+  const [trashCount, setTrashCount] = useState(0)
 
   const loadData = useCallback(async () => {
-    const [reqRes, partnerRes] = await Promise.all([
+    const [reqRes, partnerRes, trashRes] = await Promise.all([
       supabase
         .from('requests')
         .select('id, customer_name, customer_email, customer_phone, postcode, service_type, area_sqm, message, status, partner_id, created_at')
+        .is('deleted_at', null)
         .order('created_at', { ascending: false }),
       supabase
         .from('partners')
@@ -148,6 +153,7 @@ export default function AdminDashboardPage() {
           'id, company_name, first_name, last_name, email, phone, street, city, postcode, legal_form, employee_count, has_liability_insurance, has_trade_license, experience_years, services, description, website, languages, availability, terms_accepted_at, logo_url, license_url, verified, created_at'
         )
         .order('created_at', { ascending: false }),
+      supabase.from('requests').select('id', { count: 'exact', head: true }).not('deleted_at', 'is', null),
     ])
 
     if (reqRes.error || partnerRes.error) {
@@ -155,7 +161,28 @@ export default function AdminDashboardPage() {
     }
     setRequests((reqRes.data as Request[]) ?? [])
     setPartners((partnerRes.data as Partner[]) ?? [])
+    setTrashCount(trashRes.count ?? 0)
   }, [])
+
+  // Soft delete only: the row is moved to /admin/trash and can be restored there.
+  async function confirmDelete() {
+    if (!deleteTarget) return
+    setDeleting(true)
+    setMessage('')
+    const { error } = await supabase
+      .from('requests')
+      .update({ deleted_at: new Date().toISOString(), deleted_by: 'admin' })
+      .eq('id', deleteTarget.id)
+    setDeleting(false)
+
+    if (error) {
+      setMessage('Löschen fehlgeschlagen.')
+      return
+    }
+    setRequests((prev) => prev.filter((r) => r.id !== deleteTarget.id))
+    setTrashCount((c) => c + 1)
+    setDeleteTarget(null)
+  }
 
   useEffect(() => {
     const init = async () => {
@@ -236,6 +263,9 @@ export default function AdminDashboardPage() {
           <a href="/admin/partner-applications" className="text-sm font-medium text-primary underline hover:opacity-80">
             Partner-Anträge
           </a>
+          <Link href="/admin/trash" className="text-sm font-medium text-primary underline hover:opacity-80">
+            🗑️ سلة المهملات ({trashCount})
+          </Link>
           <button onClick={logout} className="text-sm text-primary/80 underline hover:text-primary-hover">
             Abmelden
           </button>
@@ -271,6 +301,9 @@ export default function AdminDashboardPage() {
                 <th className="px-4 py-3">m²</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Partner zuweisen</th>
+                <th className="px-4 py-3">
+                  <span className="sr-only">Löschen</span>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-primary/10">
@@ -303,11 +336,25 @@ export default function AdminDashboardPage() {
                       ))}
                     </select>
                   </td>
+                  <td className="px-4 py-3">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setDeleteTarget(r)
+                      }}
+                      aria-label="Anfrage löschen"
+                      title="In den Papierkorb verschieben"
+                      className="ml-2 text-gray-400 hover:text-red-600"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </td>
                 </tr>
               ))}
               {requests.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-6 text-center text-primary/70">
+                  <td colSpan={9} className="px-4 py-6 text-center text-primary/70">
                     Keine Anfragen vorhanden.
                   </td>
                 </tr>
@@ -538,6 +585,41 @@ export default function AdminDashboardPage() {
               </button>
             </div>
             <SettingsPanel onMessage={setMessage} />
+          </div>
+        </div>
+      )}
+
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setDeleteTarget(null)}>
+          <div
+            role="alertdialog"
+            aria-modal="true"
+            dir="rtl"
+            className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-bold text-primary">هل متأكد أنك تود الحذف؟</h3>
+            <p className="mt-2 text-sm text-primary/70">سيتم نقل الطلب إلى سلة المهملات</p>
+            <p className="mt-2 text-sm font-medium text-primary" dir="auto">
+              {deleteTarget.customer_name || deleteTarget.customer_email} – {deleteTarget.service_type}
+            </p>
+            <div className="mt-4 flex gap-3">
+              <button
+                type="button"
+                onClick={confirmDelete}
+                disabled={deleting}
+                className="rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700 disabled:opacity-60"
+              >
+                نعم، احذف
+              </button>
+              <button
+                type="button"
+                onClick={() => setDeleteTarget(null)}
+                className="rounded bg-gray-200 px-4 py-2 hover:bg-gray-300"
+              >
+                إلغاء
+              </button>
+            </div>
           </div>
         </div>
       )}
