@@ -97,7 +97,16 @@ export async function POST(request: Request) {
   }
 
   const email = app.email.trim().toLowerCase()
-  const { data: existing } = await supabase.from('partners').select('id').eq('email', email).maybeSingle()
+  // Partners in the trash don't count, so a hard-deleted or trashed partner can set up a new account.
+  const { data: existing } = await supabase
+    .from('partners')
+    .select('id, is_blocked')
+    .ilike('email', email.replace(/[\\%_]/g, '\\$&'))
+    .is('deleted_at', null)
+    .maybeSingle()
+  if (existing?.is_blocked) {
+    return NextResponse.json({ error: 'Dieses Partnerkonto ist gesperrt. Bitte kontaktieren Sie uns.' }, { status: 403 })
+  }
   if (existing) {
     return NextResponse.json({ error: 'Für diese E-Mail existiert bereits ein Partnerkonto. Bitte melden Sie sich an.' }, { status: 409 })
   }

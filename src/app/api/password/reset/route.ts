@@ -55,6 +55,7 @@ export async function POST(req: Request) {
         .from('partners')
         .update({ password_hash: hashPassword(newPassword) })
         .eq('email', email)
+        .is('deleted_at', null)
         .select('id')
         .maybeSingle()
       if (error) throw new Error(error.message)

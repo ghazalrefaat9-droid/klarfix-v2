@@ -153,6 +153,8 @@ export default function AdminDashboardPage() {
         .select(
           'id, company_name, first_name, last_name, email, phone, street, city, postcode, legal_form, employee_count, has_liability_insurance, has_trade_license, experience_years, services, description, website, languages, availability, terms_accepted_at, logo_url, license_url, insurance_url, verified, created_at'
         )
+                  .is('deleted_at', null)
+                  .eq('is_blocked', false)
         .order('created_at', { ascending: false }),
       supabase.from('requests').select('id', { count: 'exact', head: true }).not('deleted_at', 'is', null),
     ])
@@ -258,12 +260,15 @@ export default function AdminDashboardPage() {
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-10">
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold text-primary">Admin-Dashboard</h1>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <a href="/admin/partner-applications" className="text-sm font-medium text-primary underline hover:opacity-80">
             Partner-Anträge
           </a>
+          <Link href="/admin/partners" className="text-sm font-medium text-primary underline hover:opacity-80">
+            Partner verwalten
+          </Link>
           <Link href="/admin/trash" className="text-sm font-medium text-primary underline hover:opacity-80">
             🗑️ سلة المهملات ({trashCount})
           </Link>
@@ -362,6 +367,14 @@ export default function AdminDashboardPage() {
               )}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {tab === 'partners' && (
+        <div className="mb-3 flex justify-end">
+          <Link href="/admin/partners" className="text-sm font-medium text-primary underline hover:opacity-80">
+            Partner verwalten (Bearbeiten · Blockieren · Papierkorb) →
+          </Link>
         </div>
       )}
 

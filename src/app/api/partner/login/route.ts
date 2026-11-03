@@ -13,8 +13,9 @@ export async function POST(request: Request) {
 
   const { data, error } = await supabase
     .from('partners')
-    .select('id, company_name, email, password_hash')
+    .select('id, company_name, email, password_hash, is_blocked')
     .eq('email', email)
+    .is('deleted_at', null)
     .maybeSingle()
 
   if (error) {
@@ -24,6 +25,9 @@ export async function POST(request: Request) {
   const passwordOk = !!data?.password_hash && verifyPasswordHash(password, data.password_hash)
   if (!data || !passwordOk) {
     return NextResponse.json({ error: 'E-Mail oder Passwort ist falsch.' }, { status: 401 })
+  }
+  if (data.is_blocked) {
+    return NextResponse.json({ error: 'Ihr Partnerkonto ist gesperrt. Bitte kontaktieren Sie uns.' }, { status: 403 })
   }
 
   return NextResponse.json({ id: data.id, company_name: data.company_name, email: data.email })

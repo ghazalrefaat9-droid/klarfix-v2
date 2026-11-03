@@ -8,13 +8,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Ungültige Anfrage.' }, { status: 400 })
   }
 
-  const { data, error } = await supabase.from('partners').select('verified').eq('id', id).maybeSingle()
+  const { data, error } = await supabase
+    .from('partners')
+    .select('verified, is_blocked, deleted_at')
+    .eq('id', id)
+    .maybeSingle()
   if (error) {
     return NextResponse.json({ error: 'Server-Fehler.' }, { status: 500 })
   }
-  if (!data) {
+  if (!data || data.deleted_at) {
     return NextResponse.json({ error: 'Partner nicht gefunden.' }, { status: 404 })
   }
 
-  return NextResponse.json({ verified: data.verified === true })
+  // Blocked partners keep their login session but see no orders.
+  return NextResponse.json({ verified: data.verified === true && !data.is_blocked, blocked: data.is_blocked === true })
 }

@@ -21,7 +21,12 @@ async function findAccountEmail(accountType: AccountType, email: string) {
     const admin = await loadAdmin()
     return admin.email && admin.email.toLowerCase() === email ? admin.email : null
   }
-  const { data, error } = await supabase.from('partners').select('email').eq('email', email).maybeSingle()
+  const { data, error } = await supabase
+    .from('partners')
+    .select('email')
+    .eq('email', email)
+    .is('deleted_at', null)
+    .maybeSingle()
   if (error) throw new Error(error.message)
   return data?.email ?? null
 }
