@@ -1,5 +1,14 @@
 export const ANREDEN = ['Herr', 'Frau', 'Divers', 'Firma', 'Keine Angabe'] as const
 
+// The stored value stays German; these are only display labels.
+export const ANREDE_LABELS: Record<(typeof ANREDEN)[number], { ar: string; en: string }> = {
+  Herr: { ar: 'السيد', en: 'Mr' },
+  Frau: { ar: 'السيدة', en: 'Ms' },
+  Divers: { ar: 'آخر', en: 'Diverse' },
+  Firma: { ar: 'شركة', en: 'Company' },
+  'Keine Angabe': { ar: 'بدون تحديد', en: 'Not specified' },
+}
+
 // Only Herr/Frau are used as a name prefix; Firma puts the company name first.
 export function buildFullName(anrede: string, vorname: string, nachname: string, firma: string) {
   const person = `${vorname} ${nachname}`.trim()

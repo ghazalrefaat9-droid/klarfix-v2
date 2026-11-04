@@ -2,8 +2,8 @@
 
 import { Suspense, useEffect, useRef, useState, type FormEvent } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { REINIGUNGSARTEN } from '@/lib/services'
-import { ANREDEN, type LeadPayload } from '@/lib/leads'
+import { REINIGUNGSARTEN, reinigungsartText } from '@/lib/services'
+import { ANREDEN, ANREDE_LABELS, type LeadPayload } from '@/lib/leads'
 import { useLang } from '@/components/LanguageProvider'
 import AddressAutocomplete from '@/components/AddressAutocomplete'
 
@@ -23,7 +23,7 @@ function findInitialService(param: string | null) {
 function BookingForm() {
   const router = useRouter()
   const params = useSearchParams()
-  const { t } = useLang()
+  const { t, lang } = useLang()
 
   const [form, setForm] = useState({
     anrede: 'Keine Angabe',
@@ -143,7 +143,7 @@ function BookingForm() {
           <select value={form.anrede} onChange={update('anrede')} className={inputClass}>
             {ANREDEN.map((a) => (
               <option key={a} value={a}>
-                {a}
+                {lang === 'de' ? a : ANREDE_LABELS[a][lang]}
               </option>
             ))}
           </select>
@@ -227,8 +227,8 @@ function BookingForm() {
           >
             {selected ? (
               <span className="min-w-0">
-                <span className="block font-semibold text-primary">{selected.label}</span>
-                <span className="block truncate text-xs text-primary/70">{selected.desc}</span>
+                <span className="block font-semibold text-primary">{reinigungsartText(selected, lang).label}</span>
+                <span className="block truncate text-xs text-primary/70">{reinigungsartText(selected, lang).desc}</span>
               </span>
             ) : (
               <span className="text-primary/60">{t('Bitte wählen...', 'يرجى الاختيار...', 'Please select...')}</span>
@@ -240,7 +240,7 @@ function BookingForm() {
           {isOpen && (
             <ul
               role="listbox"
-              aria-label="Reinigungsarten"
+              aria-label={t('Reinigungsarten', 'أنواع التنظيف', 'Cleaning types')}
               className="absolute z-20 mt-1 max-h-[320px] w-full overflow-y-auto rounded-lg border border-primary/20 bg-card shadow-lg"
             >
               {REINIGUNGSARTEN.map((r) => {
@@ -258,8 +258,8 @@ function BookingForm() {
                       }`}
                     >
                       <span className="min-w-0">
-                        <span className="block text-sm font-semibold text-primary">{r.label}</span>
-                        <span className="block text-xs text-primary/70">{r.desc}</span>
+                        <span className="block text-sm font-semibold text-primary">{reinigungsartText(r, lang).label}</span>
+                        <span className="block text-xs text-primary/70">{reinigungsartText(r, lang).desc}</span>
                       </span>
                       {isSelected && <span className="shrink-0 font-bold text-primary">✓</span>}
                     </button>

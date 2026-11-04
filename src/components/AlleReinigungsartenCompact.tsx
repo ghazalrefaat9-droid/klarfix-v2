@@ -17,10 +17,10 @@ export default function AlleReinigungsartenCompact() {
   return (
     <section id="leistungen" className="scroll-mt-28 bg-[#E8F0E6] px-3 py-10 md:px-8 md:py-14">
       <h2 className="mb-2 text-center text-3xl font-bold text-[#1A3C34] md:text-4xl">
-        {t('Unsere Leistungen', 'Ø®Ø¯Ù…Ø§ØªÙ†Ø§', 'Our services')}
+        {t('Unsere Leistungen', 'خدماتنا', 'Our services')}
       </h2>
       <p className="mb-6 text-center text-sm text-[#4F6B62]">
-        {t('Alle Reinigungsarten auf einen Blick', 'Ø¬Ù…ÙŠØ¹ Ø£Ù†ÙˆØ§Ø¹ Ø§Ù„ØªÙ†Ø¸ÙŠÙ ÙÙŠ Ù„Ù…Ø­Ø©', 'All cleaning types at a glance')}
+        {t('Alle Reinigungsarten auf einen Blick', 'جميع أنواع التنظيف في لمحة', 'All cleaning types at a glance')}
       </p>
       <ul className="mx-auto grid max-w-5xl grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-4">
         {REINIGUNGSARTEN.map((r) => {

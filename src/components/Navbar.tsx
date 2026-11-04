@@ -22,7 +22,7 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-50 border-b border-primary/10 bg-background/90 backdrop-blur">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-        <Link href="/" aria-label="KlarFix – Startseite" className="shrink-0">
+        <Link href="/" aria-label={t('KlarFix – Startseite', 'KlarFix – الصفحة الرئيسية', 'KlarFix – Home')} className="shrink-0">
           <Image
             src="/logo.svg"
             alt="KlarFix - Reinigung in Stuttgart"

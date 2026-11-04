@@ -1,4 +1,5 @@
 import type { Lang } from '@/components/LanguageProvider'
+import { CLEANING_TYPES } from '@/lib/applications'
 
 // Preise sind Richtpreise in Euro pro m² und müssen vor dem Livegang bestätigt werden.
 export type Service = {
@@ -23,6 +24,21 @@ export function serviceDesc(s: Service, lang: Lang) {
 }
 
 export type Reinigungsart = { id: string; label: string; desc: string }
+
+// German label/desc are what gets stored; the visitor sees the translation from CLEANING_TYPES (same labels).
+const SONSTIGES_TEXT = {
+  labelAr: 'أخرى',
+  descAr: 'نوع تنظيف آخر - يرجى الوصف',
+  labelEn: 'Other',
+  descEn: 'Other cleaning type - please describe',
+}
+
+export function reinigungsartText(r: Reinigungsart, lang: Lang) {
+  if (lang === 'de') return { label: r.label, desc: r.desc }
+  const tr = CLEANING_TYPES.find((c) => c.label === r.label) ?? (r.id === 'sonstiges' ? SONSTIGES_TEXT : null)
+  if (!tr) return { label: r.label, desc: r.desc }
+  return lang === 'ar' ? { label: tr.labelAr, desc: tr.descAr } : { label: tr.labelEn, desc: tr.descEn }
+}
 
 export const REINIGUNGSARTEN: Reinigungsart[] = [
   { id: 'wohnungsreinigung', label: 'Wohnungsreinigung', desc: 'Standardreinigung von Wohnräumen, Küche und Bad' },

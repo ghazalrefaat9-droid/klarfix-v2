@@ -29,7 +29,7 @@ export default function PartnerDashboardPage() {
   const [requests, setRequests] = useState<Request[]>([])
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState<string | null>(null)
-  const [message, setMessage] = useState('')
+  const [message, setMessage] = useState<'' | 'loadError' | 'acceptError' | 'accepted'>('')
   const [selected, setSelected] = useState<Request | null>(null)
 
   const loadRequests = useCallback(async () => {
@@ -40,7 +40,7 @@ export default function PartnerDashboardPage() {
       .order('created_at', { ascending: false })
 
     if (error) {
-      setMessage('Anfragen konnten nicht geladen werden.')
+      setMessage('loadError')
       return
     }
     setRequests((data as Request[]) ?? [])
@@ -94,11 +94,11 @@ export default function PartnerDashboardPage() {
 
     setBusyId(null)
     if (error || !data || data.length === 0) {
-      setMessage('Auftrag konnte nicht angenommen werden (evtl. bereits vergeben).')
+      setMessage('acceptError')
       await loadRequests()
       return
     }
-    setMessage('Auftrag angenommen!')
+    setMessage('accepted')
     await loadRequests()
   }
 
@@ -125,7 +125,19 @@ export default function PartnerDashboardPage() {
         </button>
       </div>
 
-      {message && <p className="mb-4 rounded-lg bg-primary/5 p-3 text-sm text-primary">{message}</p>}
+      {message && (
+        <p className="mb-4 rounded-lg bg-primary/5 p-3 text-sm text-primary">
+          {message === 'loadError'
+            ? t('Anfragen konnten nicht geladen werden.', 'تعذّر تحميل الطلبات.', 'Requests could not be loaded.')
+            : message === 'acceptError'
+              ? t(
+                  'Auftrag konnte nicht angenommen werden (evtl. bereits vergeben).',
+                  'تعذّر قبول الطلب (ربما تم إسناده لشريك آخر).',
+                  'The job could not be accepted (it may already be taken).',
+                )
+              : t('Auftrag angenommen!', 'تم قبول الطلب!', 'Job accepted!')}
+        </p>
+      )}
 
       {!verified ? (
         <div className="rounded-xl bg-card p-8 text-center shadow-sm">
