@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Check, Sparkles } from 'lucide-react'
+import { Check } from 'lucide-react'
 import { useLang } from '@/components/LanguageProvider'
+import { reinigungsartIcon } from '@/lib/reinigungsarten'
 import {
   APPLICATION_LANGUAGES,
   CLEANING_PRICE_MAX,
@@ -712,6 +713,7 @@ export default function PartnerBewerbenPage() {
               {CLEANING_TYPES.map((type) => {
                 const isSelected = selectedServices.includes(type.id)
                 const price = servicePrices[type.id] ?? DEFAULT_CLEANING_PRICES[type.id]
+                const TypeIcon = reinigungsartIcon(type.id)
                 return (
                   <li
                     key={type.id}
@@ -734,7 +736,7 @@ export default function PartnerBewerbenPage() {
                           isSelected ? 'bg-primary/10 text-primary' : 'bg-primary/5 text-primary/55'
                         }`}
                       >
-                        <Sparkles className="h-5 w-5" aria-hidden="true" />
+                        <TypeIcon className="h-5 w-5" aria-hidden="true" />
                       </span>
                       <span className="min-w-0">
                         <span className="block font-bold text-primary">{typeLabel(type)}</span>
