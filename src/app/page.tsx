@@ -1,8 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { SERVICES, serviceDesc, serviceName } from '@/lib/services'
-import { HAUPT_REINIGUNGSARTEN, reinigungsartIcon, reinigungsartName } from '@/lib/reinigungsarten'
+import { SERVICES, serviceName } from '@/lib/services'
 import { useLang } from '@/components/LanguageProvider'
 import AlleReinigungsartenCompact from '@/components/AlleReinigungsartenCompact'
 
@@ -44,27 +43,6 @@ export default function HomePage() {
               {t('Leistungen ansehen', 'عرض الخدمات', 'View services')}
             </a>
           </div>
-        </div>
-      </section>
-
-      <section id="leistungen" className="mx-auto max-w-6xl px-4 py-16">
-        <h2 className="text-center text-3xl font-bold text-primary">
-          {t('Unsere Leistungen', 'خدماتنا', 'Our services')}
-        </h2>
-        <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {HAUPT_REINIGUNGSARTEN.map((r) => {
-            const Icon = reinigungsartIcon(r.id)
-            const s = SERVICES.find((x) => x.key === r.name)
-            return (
-              <div key={r.id} className="rounded-2xl bg-card p-6 shadow-sm ring-1 ring-primary/10">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-background text-primary">
-                  <Icon className="h-6 w-6" strokeWidth={1.5} aria-hidden="true" />
-                </div>
-                <h3 className="mt-4 text-lg font-semibold">{s ? serviceName(s, lang) : reinigungsartName(r, lang)}</h3>
-                {s && <p className="mt-2 text-sm text-primary/80">{serviceDesc(s, lang)}</p>}
-              </div>
-            )
-          })}
         </div>
       </section>
 

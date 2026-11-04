@@ -71,12 +71,6 @@ export const REINIGUNGSARTEN: Reinigungsart[] = CLEANING_TYPES.map((type) => ({
   iconName: ICON_BY_ID[type.id] ?? 'Sparkles',
 }))
 
-export const HAUPT_REINIGUNGSARTEN_IDS: CleaningTypeId[] = ['wohnung', 'buero', 'fenster', 'grund']
-
-export const HAUPT_REINIGUNGSARTEN = HAUPT_REINIGUNGSARTEN_IDS.map(
-  (id) => REINIGUNGSARTEN.find((r) => r.id === id)!,
-)
-
 export function reinigungsartIcon(id: CleaningTypeId): LucideIcon {
   return ICONS[ICON_BY_ID[id] ?? 'Sparkles']
 }

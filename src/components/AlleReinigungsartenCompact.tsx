@@ -1,74 +1,45 @@
 'use client'
 
-import Link from 'next/link'
-import { useState } from 'react'
 import { useLang } from '@/components/LanguageProvider'
 import { REINIGUNGSARTEN, reinigungsartIcon, reinigungsartName } from '@/lib/reinigungsarten'
+import type { CleaningTypeId } from '@/lib/applications'
 
-const VISIBLE_MOBILE = 6
-const VISIBLE_DESKTOP = 12
+function selectService(serviceId: CleaningTypeId) {
+  localStorage.setItem('klarfix-selected-service', serviceId)
+  document.getElementById('preise')?.scrollIntoView({ behavior: 'smooth' })
+  window.dispatchEvent(new CustomEvent('klarfix-service', { detail: serviceId }))
+}
 
 export default function AlleReinigungsartenCompact() {
   const { t, lang } = useLang()
-  const [expanded, setExpanded] = useState(false)
-  const total = REINIGUNGSARTEN.length
-  const hiddenMobile = Math.max(0, total - VISIBLE_MOBILE)
-  const hiddenDesktop = Math.max(0, total - VISIBLE_DESKTOP)
 
   return (
-    <section id="alle-leistungen" aria-labelledby="alle-leistungen-title" className="scroll-mt-32 px-4 py-6">
-      <div className="mx-auto max-w-6xl">
-        <p
-          id="alle-leistungen-title"
-          className="text-center text-sm font-semibold uppercase tracking-widest text-[#4F6B62]"
-        >
-          {t('Alle Reinigungsleistungen', 'جميع خدمات التنظيف', 'All cleaning services')}
-        </p>
-        <ul id="alle-leistungen-liste" className="mt-4 flex flex-wrap justify-center gap-2">
-          {REINIGUNGSARTEN.map((r, i) => {
-            const Icon = reinigungsartIcon(r.id)
-            // Collapsed: 6 pills (~120px) on mobile, 12 from sm up.
-            const visibility = expanded
-              ? 'flex'
-              : i >= VISIBLE_DESKTOP
-                ? 'hidden'
-                : i >= VISIBLE_MOBILE
-                  ? 'hidden sm:flex'
-                  : 'flex'
-            return (
-              <li key={r.id} className={visibility}>
-                <Link
-                  href={`/buchen?service=${encodeURIComponent(r.name)}`}
-                  className="flex items-center gap-1.5 rounded-full border border-[#E6F0E8] bg-[#FFFFFF] px-3 py-1.5 text-[13px] text-[#1A3C34] transition-colors hover:bg-[#E6F0E8]"
-                >
-                  <Icon className="h-3.5 w-3.5 shrink-0 text-[#2F7A55]" strokeWidth={2} aria-hidden="true" />
-                  {reinigungsartName(r, lang)}
-                </Link>
-              </li>
-            )
-          })}
-          {hiddenMobile > 0 && (
-            <li className={hiddenDesktop > 0 || expanded ? 'flex' : 'flex sm:hidden'}>
+    <section id="leistungen" className="scroll-mt-28 bg-[#E8F0E6] px-4 py-12 md:px-8 md:py-16">
+      <h2 className="mb-2 text-center text-3xl font-bold text-[#1A3C34] md:text-4xl">
+        {t('Unsere Leistungen', 'خدماتنا', 'Our services')}
+      </h2>
+      <p className="mb-8 text-center text-sm text-[#4F6B62]">
+        {t('Alle Reinigungsarten auf einen Blick', 'جميع أنواع التنظيف في لمحة', 'All cleaning types at a glance')}
+      </p>
+      <ul className="mx-auto grid max-w-4xl grid-cols-1 gap-3 sm:grid-cols-2 md:gap-4">
+        {REINIGUNGSARTEN.map((r) => {
+          const Icon = reinigungsartIcon(r.id)
+          return (
+            <li key={r.id}>
               <button
                 type="button"
-                onClick={() => setExpanded((v) => !v)}
-                aria-expanded={expanded}
-                aria-controls="alle-leistungen-liste"
-                className="rounded-full px-3 py-1.5 text-[13px] font-semibold text-[#2F7A55] underline-offset-4 transition-colors hover:bg-[#E6F0E8] hover:underline"
+                onClick={() => selectService(r.id)}
+                className="flex w-full items-center gap-3 rounded-2xl border border-[#D5E5D5] bg-[#FFFFFF] px-5 py-4 text-start text-[15px] font-medium text-[#1A3C34] shadow-sm transition-all hover:bg-[#FFFBF5] hover:shadow-md md:text-[16px]"
               >
-                {expanded ? (
-                  t('Weniger anzeigen', 'عرض أقل', 'Show less')
-                ) : (
-                  <>
-                    <span className="sm:hidden">+{hiddenMobile} {t('mehr', 'المزيد', 'more')}</span>
-                    <span className="hidden sm:inline">+{hiddenDesktop} {t('mehr', 'المزيد', 'more')}</span>
-                  </>
-                )}
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#E6F0E8]">
+                  <Icon size={18} className="text-[#2F7A55]" aria-hidden="true" />
+                </span>
+                <span>{reinigungsartName(r, lang)}</span>
               </button>
             </li>
-          )}
-        </ul>
-      </div>
+          )
+        })}
+      </ul>
     </section>
   )
 }
