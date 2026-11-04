@@ -26,10 +26,10 @@ export default function Navbar() {
           <Image
             src="/logo.svg"
             alt="KlarFix - Reinigung in Stuttgart"
-            width={280}
+            width={205}
             height={70}
             preload
-            className="h-auto w-[140px] md:w-[180px]"
+            className="h-auto w-[120px] md:w-[152px]"
           />
         </Link>
 
