@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 import { Globe, Check } from 'lucide-react'
@@ -21,8 +22,15 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-50 border-b border-primary/10 bg-background/90 backdrop-blur">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-        <Link href="/" className="text-xl font-bold text-primary">
-          KlarFix
+        <Link href="/" aria-label="KlarFix – Startseite" className="shrink-0">
+          <Image
+            src="/logo.svg"
+            alt="KlarFix - Reinigung in Stuttgart"
+            width={280}
+            height={70}
+            preload
+            className="h-auto w-[140px] md:w-[180px]"
+          />
         </Link>
 
         <nav className="flex flex-wrap items-center gap-4 text-sm font-medium text-primary">
