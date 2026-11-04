@@ -1,12 +1,11 @@
 'use client'
 
 import Link from 'next/link'
-import { SERVICES, serviceName } from '@/lib/services'
 import { useLang } from '@/components/LanguageProvider'
 import AlleReinigungsartenCompact from '@/components/AlleReinigungsartenCompact'
 
 export default function HomePage() {
-  const { t, lang } = useLang()
+  const { t } = useLang()
 
   return (
     <main>
@@ -47,37 +46,6 @@ export default function HomePage() {
       </section>
 
       <AlleReinigungsartenCompact />
-
-      <section id="preise" className="bg-background px-4 py-16">
-        <div className="mx-auto max-w-6xl">
-          <h2 className="text-center text-3xl font-bold text-primary">{t('Preise', 'الأسعار', 'Prices')}</h2>
-          <p className="mt-3 text-center text-sm text-primary/70">
-            {t(
-              'Richtpreise pro m². Der genaue Preis erhalten Sie nach Ihrer Anfrage.',
-              'أسعار تقريبية لكل م². السعر النهائي يُرسل بعد طلبك.',
-              'Indicative prices per m². You receive the exact price after your request.',
-            )}
-          </p>
-          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {SERVICES.map((s) => (
-              <div key={s.key} className="flex flex-col rounded-2xl bg-card p-6 text-center shadow-sm ring-1 ring-primary/10">
-                <h3 className="font-semibold">{serviceName(s, lang)}</h3>
-                <p className="mt-4 text-sm text-primary/70">{t('ab', 'من', 'from')}</p>
-                <p className="text-3xl font-extrabold text-primary">
-                  {s.priceFrom} €
-                </p>
-                <p className="text-sm text-primary/70">{t('pro m²', 'لكل م²', 'per m²')}</p>
-                <Link
-                  href={`/buchen?service=${encodeURIComponent(s.key)}`}
-                  className="mt-6 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-card transition-colors hover:bg-primary-hover"
-                >
-                  {t('Anfragen', 'اطلب', 'Request')}
-                </Link>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       <section className="mx-auto max-w-6xl px-4 py-16">
         <h2 className="text-center text-3xl font-bold text-primary">

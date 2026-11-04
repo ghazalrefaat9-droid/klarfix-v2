@@ -40,7 +40,14 @@ function BookingForm() {
     message: '',
     otherService: '',
   })
-  const [serviceId, setServiceId] = useState(() => findInitialService(params.get('service')))
+  const serviceParam = params.get('service')
+  const [serviceId, setServiceId] = useState(() => findInitialService(serviceParam))
+  // The page stays mounted between client navigations, so re-sync when ?service= changes.
+  const [syncedParam, setSyncedParam] = useState(serviceParam)
+  if (serviceParam !== syncedParam) {
+    setSyncedParam(serviceParam)
+    if (serviceParam) setServiceId(findInitialService(serviceParam))
+  }
   const [isOpen, setIsOpen] = useState(false)
   const [isFlexible, setIsFlexible] = useState(false)
   const [loading, setLoading] = useState(false)

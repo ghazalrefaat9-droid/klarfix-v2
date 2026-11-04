@@ -37,9 +37,6 @@ export default function Navbar() {
           <Link href="/#leistungen" className="hover:text-primary-hover">
             {t('Leistungen', 'الخدمات', 'Services')}
           </Link>
-          <Link href="/#preise" className="hover:text-primary-hover">
-            {t('Preise', 'الأسعار', 'Prices')}
-          </Link>
           <Link href="/partner/werden" className="hover:text-primary-hover">
             {t('Partner werden', 'كن شريكاً', 'Become a partner')}
           </Link>
