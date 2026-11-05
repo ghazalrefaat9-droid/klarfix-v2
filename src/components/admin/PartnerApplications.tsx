@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { Trash2 } from 'lucide-react'
 import { supabase } from '@/lib/supabaseClient'
 import { serviceLabel, type ApplicationRow } from '@/lib/applications'
 
@@ -82,6 +83,25 @@ export default function PartnerApplications() {
     await load()
   }
 
+  async function remove(a: Row) {
+    const warning = a.setup_completed_at
+      ? `Antrag von ${a.full_name} endgültig löschen?\n\nAchtung: Das zugehörige Partnerkonto wird ebenfalls gelöscht. Die Person kann danach einen neuen Antrag stellen.`
+      : `Antrag von ${a.full_name} endgültig löschen?\n\nDie Person kann danach einen neuen Antrag stellen.`
+    if (!window.confirm(warning)) return
+    setMessage('')
+    setBusyId(a.id)
+    const res = await fetch(`/api/admin/applications/${a.id}`, { method: 'DELETE' }).catch(() => null)
+    const data = (await res?.json().catch(() => null)) as { error?: string } | null
+    setBusyId(null)
+    if (!res?.ok) {
+      setMessage(data?.error ?? 'Antrag konnte nicht gelöscht werden.')
+      return
+    }
+    if (setupLink?.id === a.id) setSetupLink(null)
+    setRows((prev) => prev.filter((r) => r.id !== a.id))
+    setMessage(`Antrag von ${a.full_name} wurde gelöscht.`)
+  }
+
   async function copyLink(url: string) {
     await navigator.clipboard.writeText(url).catch(() => null)
     setMessage('Setup-Link kopiert.')
@@ -101,9 +121,21 @@ export default function PartnerApplications() {
               <h2 className="text-lg font-bold text-primary">{a.full_name}</h2>
               <p className="text-sm text-primary/70">{new Date(a.created_at).toLocaleString('de-DE')}</p>
             </div>
-            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${STATUS_STYLE[a.status] ?? 'bg-primary/5 text-primary'}`}>
-              {STATUS_LABEL[a.status] ?? a.status}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className={`rounded-full px-3 py-1 text-xs font-semibold ${STATUS_STYLE[a.status] ?? 'bg-primary/5 text-primary'}`}>
+                {STATUS_LABEL[a.status] ?? a.status}
+              </span>
+              <button
+                type="button"
+                onClick={() => remove(a)}
+                disabled={busyId === a.id}
+                aria-label={`Antrag von ${a.full_name} löschen`}
+                title="Endgültig löschen"
+                className="flex h-8 w-8 items-center justify-center rounded-full text-red-600 ring-1 ring-red-600/30 hover:bg-red-50 disabled:opacity-60"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
           </div>
 
           <dl className="mt-3 grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
