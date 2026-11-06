@@ -17,7 +17,7 @@ import {
   Users,
   X,
 } from 'lucide-react'
-import { supabase } from '@/lib/supabaseClient'
+import { callApi as requestApi } from '@/lib/apiClient'
 import { CLEANING_TYPES } from '@/lib/applications'
 
 export type PartnerView = 'active' | 'blocked' | 'trash'
@@ -56,9 +56,6 @@ export type AdminPartner = {
   created_at: string
 }
 
-const COLUMNS =
-  'id, company_name, first_name, last_name, email, phone, street, city, postcode, legal_form, employee_count, has_liability_insurance, has_trade_license, experience_years, services, description, website, languages, availability, terms_accepted_at, logo_url, license_url, insurance_url, hourly_rate, verified, is_blocked, blocked_at, blocked_reason, deleted_at, deleted_reason, created_at'
-
 const LEGAL_FORMS = ['Einzelunternehmen', 'GbR', 'UG (haftungsbeschränkt)', 'GmbH', 'Sonstige']
 const SERVICE_OPTIONS: string[] = CLEANING_TYPES.map((c) => c.label)
 
@@ -76,29 +73,9 @@ const actionButton =
 
 const formatDate = (iso: string | null) => (iso ? new Date(iso).toLocaleString('de-DE') : '–')
 
-function listQuery(view: PartnerView) {
-  const base = supabase.from('partners').select(COLUMNS)
-  if (view === 'trash') return base.not('deleted_at', 'is', null).order('deleted_at', { ascending: false })
-  return base
-    .is('deleted_at', null)
-    .eq('is_blocked', view === 'blocked')
-    .order(view === 'blocked' ? 'blocked_at' : 'created_at', { ascending: false })
-}
-
-function countQuery(view: PartnerView) {
-  const base = supabase.from('partners').select('id', { count: 'exact', head: true })
-  if (view === 'trash') return base.not('deleted_at', 'is', null)
-  return base.is('deleted_at', null).eq('is_blocked', view === 'blocked')
-}
-
 async function callApi(path: string, method: 'PUT' | 'DELETE' | 'POST', body?: unknown) {
-  const res = await fetch(path, {
-    method,
-    headers: body ? { 'Content-Type': 'application/json' } : undefined,
-    body: body ? JSON.stringify(body) : undefined,
-  }).catch(() => null)
-  const data = (await res?.json().catch(() => null)) as { error?: string; warning?: string; emailSent?: boolean } | null
-  return { error: res?.ok ? null : (data?.error ?? 'Aktion fehlgeschlagen.'), data }
+  const { ok, data } = await requestApi<{ warning?: string; emailSent?: boolean }>('admin', path, method, body)
+  return { error: ok ? null : (data?.error ?? 'Aktion fehlgeschlagen.'), data }
 }
 
 export function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
@@ -439,10 +416,13 @@ export function PartnerList({
   const [busy, setBusy] = useState(false)
 
   const load = useCallback(async () => {
-    const [list, active, blocked, trash] = await Promise.all([listQuery(view), countQuery('active'), countQuery('blocked'), countQuery('trash')])
-    if (list.error) setMessage('Partner konnten nicht geladen werden.')
-    setPartners((list.data as AdminPartner[] | null) ?? [])
-    setCounts({ active: active.count ?? 0, blocked: blocked.count ?? 0, trash: trash.count ?? 0 })
+    const { ok, data } = await requestApi<{ partners: AdminPartner[]; counts: { active: number; blocked: number; trash: number } }>(
+      'admin',
+      `/api/admin/partners?view=${view}`,
+    )
+    if (!ok) setMessage(data?.error ?? 'Partner konnten nicht geladen werden.')
+    setPartners(data?.partners ?? [])
+    setCounts(data?.counts ?? { active: 0, blocked: 0, trash: 0 })
     setLoading(false)
   }, [view])
 

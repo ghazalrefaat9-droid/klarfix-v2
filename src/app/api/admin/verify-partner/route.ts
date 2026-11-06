@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabaseClient'
+import { supabase } from '@/lib/supabaseServer'
 import { CAMPAIGN_TEXT, SITE_NAME, sendMail } from '@/lib/mailer'
+import { requireAdmin } from '@/lib/session'
 
 function escapeHtml(value: string) {
   return value
@@ -33,6 +34,8 @@ function approvalMessage(companyName: string, loginUrl: string) {
 }
 
 export async function POST(request: Request) {
+  const denied = await requireAdmin()
+  if (denied) return denied
   const body = (await request.json().catch(() => null)) as { partnerId?: unknown } | null
   const partnerId = typeof body?.partnerId === 'string' ? body.partnerId : ''
   if (!partnerId) {

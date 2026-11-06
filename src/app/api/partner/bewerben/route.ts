@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabaseClient'
+import { supabase } from '@/lib/supabaseServer'
 import { loadAdmin } from '@/lib/adminAuth'
 import { CAMPAIGN_TEXT, SITE_NAME, sendMail } from '@/lib/mailer'
 import {

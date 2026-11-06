@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabaseClient'
+import { supabase } from '@/lib/supabaseServer'
 import { CAMPAIGN_TEXT, SITE_NAME, sendMail } from '@/lib/mailer'
 import { createSetupToken } from '@/lib/partnerSetup'
+import { requireAdmin } from '@/lib/session'
 
 function escapeHtml(value: string) {
   return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
@@ -34,6 +35,8 @@ function setupMessage(name: string, setupUrl: string) {
 
 // Accepts an application (or re-issues the link) and returns a fresh one-time setup link.
 export async function POST(request: Request) {
+  const denied = await requireAdmin()
+  if (denied) return denied
   const body = (await request.json().catch(() => null)) as { applicationId?: unknown } | null
   const applicationId = typeof body?.applicationId === 'string' ? body.applicationId : ''
   if (!applicationId) {

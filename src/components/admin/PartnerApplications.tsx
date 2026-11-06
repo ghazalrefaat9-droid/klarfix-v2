@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { Trash2 } from 'lucide-react'
-import { supabase } from '@/lib/supabaseClient'
+import { callApi } from '@/lib/apiClient'
 import { serviceLabel, type ApplicationRow } from '@/lib/applications'
 
 const STATUS_LABEL: Record<string, string> = {
@@ -16,9 +16,6 @@ const STATUS_STYLE: Record<string, string> = {
   accepted: 'bg-primary text-card',
   rejected: 'bg-card text-primary/60 ring-1 ring-primary/15',
 }
-
-const COLUMNS =
-  'id, full_name, email, phone_fixed, phone_whatsapp, city, company_address, services, team_size, languages, work_radius, has_gewerbe, has_haftpflicht, status, created_at, setup_completed_at'
 
 type Row = ApplicationRow & { setup_completed_at: string | null }
 type SetupLink = { id: string; url: string; emailSent: boolean }
@@ -34,15 +31,12 @@ export default function PartnerApplications() {
   const [busyId, setBusyId] = useState<string | null>(null)
 
   const load = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('partner_applications')
-      .select(COLUMNS)
-      .order('created_at', { ascending: false })
-    if (error) {
-      setMessage('Anträge konnten nicht geladen werden. Wurde die Tabelle partner_applications angelegt?')
+    const res = await callApi<{ applications: Row[] }>('admin', '/api/admin/applications')
+    if (!res.ok) {
+      setMessage(res.data?.error ?? 'Anträge konnten nicht geladen werden.')
       setRows([])
     } else {
-      setRows((data as Row[]) ?? [])
+      setRows(res.data?.applications ?? [])
     }
     setLoading(false)
   }, [])
@@ -56,9 +50,9 @@ export default function PartnerApplications() {
 
   async function reject(id: string) {
     setMessage('')
-    const { error } = await supabase.from('partner_applications').update({ status: 'rejected' }).eq('id', id)
-    if (error) {
-      setMessage('Status konnte nicht geändert werden.')
+    const res = await callApi('admin', `/api/admin/applications/${id}`, 'PATCH', { status: 'rejected' })
+    if (!res.ok) {
+      setMessage(res.data?.error ?? 'Status konnte nicht geändert werden.')
       return
     }
     await load()
@@ -68,14 +62,11 @@ export default function PartnerApplications() {
   async function accept(id: string) {
     setMessage('')
     setBusyId(id)
-    const res = await fetch('/api/admin/accept-application', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ applicationId: id }),
-    }).catch(() => null)
-    const data = (await res?.json().catch(() => null)) as { error?: string; setupUrl?: string; emailSent?: boolean } | null
+    const { ok, data } = await callApi<{ setupUrl?: string; emailSent?: boolean }>('admin', '/api/admin/accept-application', 'POST', {
+      applicationId: id,
+    })
     setBusyId(null)
-    if (!res?.ok || !data?.setupUrl) {
+    if (!ok || !data?.setupUrl) {
       setMessage(data?.error ?? 'Antrag konnte nicht angenommen werden.')
       return
     }
@@ -90,11 +81,10 @@ export default function PartnerApplications() {
     if (!window.confirm(warning)) return
     setMessage('')
     setBusyId(a.id)
-    const res = await fetch(`/api/admin/applications/${a.id}`, { method: 'DELETE' }).catch(() => null)
-    const data = (await res?.json().catch(() => null)) as { error?: string } | null
+    const res = await callApi('admin', `/api/admin/applications/${a.id}`, 'DELETE')
     setBusyId(null)
-    if (!res?.ok) {
-      setMessage(data?.error ?? 'Antrag konnte nicht gelöscht werden.')
+    if (!res.ok) {
+      setMessage(res.data?.error ?? 'Antrag konnte nicht gelöscht werden.')
       return
     }
     if (setupLink?.id === a.id) setSetupLink(null)

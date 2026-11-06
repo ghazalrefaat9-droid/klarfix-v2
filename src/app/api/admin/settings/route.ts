@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server'
 import { checkPassword, hashPassword, loadAdmin, saveAdminSettings } from '@/lib/adminAuth'
+import { ADMIN_COOKIE, adminVersion, requireAdmin, setSession } from '@/lib/session'
 
 export async function GET() {
+  const denied = await requireAdmin()
+  if (denied) return denied
   try {
     const admin = await loadAdmin()
     return NextResponse.json({
@@ -27,6 +30,8 @@ function str(value: unknown) {
 }
 
 export async function POST(request: Request) {
+  const denied = await requireAdmin()
+  if (denied) return denied
   const body = (await request.json().catch(() => null)) as SettingsBody | null
   const currentPassword = typeof body?.currentPassword === 'string' ? body.currentPassword : ''
   const newEmail = str(body?.newEmail).toLowerCase()
@@ -55,6 +60,8 @@ export async function POST(request: Request) {
     if (typeof body?.contactEmail === 'string') values.contact_email = contactEmail
 
     await saveAdminSettings(values)
+    // Email/password changed → re-issue the session so this browser stays logged in.
+    await setSession(ADMIN_COOKIE, values.admin_email.toLowerCase(), adminVersion(values.admin_password_hash))
 
     return NextResponse.json({ ok: true, email: newEmail || admin.email })
   } catch {

@@ -1,5 +1,5 @@
 import { createHash, randomInt } from 'crypto'
-import { supabase } from '@/lib/supabaseClient'
+import { supabase } from '@/lib/supabaseServer'
 import { CAMPAIGN_TEXT, SITE_NAME } from '@/lib/mailer'
 
 export type AccountType = 'partner' | 'admin'

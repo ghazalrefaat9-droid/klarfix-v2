@@ -1,5 +1,5 @@
 import { randomBytes, scryptSync, timingSafeEqual } from 'crypto'
-import { supabase } from '@/lib/supabaseClient'
+import { supabase } from '@/lib/supabaseServer'
 
 export type AdminSettings = {
   email: string

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { hashPassword, loadAdmin, saveAdminSettings } from '@/lib/adminAuth'
-import { supabase } from '@/lib/supabaseClient'
+import { supabase } from '@/lib/supabaseServer'
 import {
   MAX_ATTEMPTS,
   clearResets,

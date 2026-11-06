@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { checkPassword, loadAdmin, safeEqual } from '@/lib/adminAuth'
+import { ADMIN_COOKIE, adminVersion, setSession } from '@/lib/session'
 
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => null)) as { email?: unknown; password?: unknown } | null
@@ -12,6 +13,7 @@ export async function POST(request: Request) {
     if (!emailOk || !checkPassword(password, admin.passwordHash)) {
       return NextResponse.json({ error: 'E-Mail oder Passwort ist falsch.' }, { status: 401 })
     }
+    await setSession(ADMIN_COOKIE, admin.email.toLowerCase(), adminVersion(admin.passwordHash))
     return NextResponse.json({ email: admin.email })
   } catch {
     return NextResponse.json({ error: 'Server-Fehler.' }, { status: 500 })

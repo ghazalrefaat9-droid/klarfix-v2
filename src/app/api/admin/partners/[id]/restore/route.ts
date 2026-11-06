@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server'
 import { jsonError, loadPartnerState, updatePartner } from '@/lib/partnerAdmin'
+import { requireAdmin } from '@/lib/session'
 
 // Restore from trash: the partner becomes active again (and unblocked).
 export async function PUT(_request: Request, ctx: RouteContext<'/api/admin/partners/[id]/restore'>) {
+  const denied = await requireAdmin()
+  if (denied) return denied
   const { id } = await ctx.params
   if (!(await loadPartnerState(id))) return jsonError('Partner nicht gefunden.', 404)
 

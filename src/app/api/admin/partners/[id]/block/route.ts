@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server'
 import { cleanReason, jsonError, loadPartnerState, readJson, updatePartner } from '@/lib/partnerAdmin'
+import { requireAdmin } from '@/lib/session'
 
 // Block / unblock. Body: { blocked?: boolean, reason?: string } – without "blocked" the current state is toggled.
 export async function PUT(request: Request, ctx: RouteContext<'/api/admin/partners/[id]/block'>) {
+  const denied = await requireAdmin()
+  if (denied) return denied
   const { id } = await ctx.params
   const partner = await loadPartnerState(id)
   if (!partner) return jsonError('Partner nicht gefunden.', 404)

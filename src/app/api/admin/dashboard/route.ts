@@ -1,0 +1,36 @@
+import { NextResponse } from 'next/server'
+import { supabase } from '@/lib/supabaseServer'
+import { requireAdmin } from '@/lib/session'
+
+// Data for /admin/dashboard: active requests, selectable partners and badge counters.
+export async function GET() {
+  const denied = await requireAdmin()
+  if (denied) return denied
+
+  const [reqRes, partnerRes, trashRes, appRes] = await Promise.all([
+    supabase
+      .from('requests')
+      .select('id, customer_name, customer_email, customer_phone, postcode, service_type, area_sqm, message, status, partner_id, created_at')
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('partners')
+      .select('id, company_name')
+      .is('deleted_at', null)
+      .eq('is_blocked', false)
+      .order('company_name', { ascending: true }),
+    supabase.from('requests').select('id', { count: 'exact', head: true }).not('deleted_at', 'is', null),
+    supabase.from('partner_applications').select('id', { count: 'exact', head: true }).eq('status', 'pending_review'),
+  ])
+
+  if (reqRes.error || partnerRes.error) {
+    console.error('Dashboard load failed:', reqRes.error?.message ?? partnerRes.error?.message)
+    return NextResponse.json({ error: 'Daten konnten nicht geladen werden.' }, { status: 500 })
+  }
+  return NextResponse.json({
+    requests: reqRes.data ?? [],
+    partners: partnerRes.data ?? [],
+    trashCount: trashRes.count ?? 0,
+    newApplications: appRes.count ?? 0,
+  })
+}

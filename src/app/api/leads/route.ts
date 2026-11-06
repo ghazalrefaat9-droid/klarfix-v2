@@ -1,5 +1,5 @@
 import { after, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabaseClient'
+import { supabase } from '@/lib/supabaseServer'
 import { LEADS_TABLE } from '@/lib/supabase'
 import { loadAdmin } from '@/lib/adminAuth'
 import { sendMail } from '@/lib/mailer'

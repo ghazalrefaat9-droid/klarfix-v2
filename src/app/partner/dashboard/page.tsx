@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabaseClient'
+import { callApi, logout as logoutSession } from '@/lib/apiClient'
 import { useLang } from '@/components/LanguageProvider'
 
 type Partner = { id: string; company_name: string; email: string }
@@ -33,28 +33,19 @@ export default function PartnerDashboardPage() {
   const [selected, setSelected] = useState<Request | null>(null)
 
   const loadRequests = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('requests')
-      .select('id, customer_name, customer_email, customer_phone, postcode, service_type, area_sqm, message, status, created_at')
-      .eq('status', 'new')
-      .order('created_at', { ascending: false })
-
-    if (error) {
+    const res = await callApi<{ requests: Request[] }>('partner', '/api/partner/requests')
+    if (!res.ok) {
       setMessage('loadError')
       return
     }
-    setRequests((data as Request[]) ?? [])
+    setRequests(res.data?.requests ?? [])
   }, [])
 
   const checkAccess = useCallback(
-    async (p: Partner) => {
+    async () => {
       setLoading(true)
-      const res = await fetch('/api/partner/status', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: p.id }),
-      })
-      const isVerified = res.ok && ((await res.json()) as { verified: boolean }).verified === true
+      const res = await callApi<{ verified: boolean }>('partner', '/api/partner/status', 'POST')
+      const isVerified = res.ok && res.data?.verified === true
       setVerified(isVerified)
       if (isVerified) {
         await loadRequests()
@@ -75,7 +66,7 @@ export default function PartnerDashboardPage() {
       }
       const storedPartner = JSON.parse(stored) as Partner
       setPartner(storedPartner)
-      await checkAccess(storedPartner)
+      await checkAccess()
     }
     init()
   }, [router, checkAccess])
@@ -85,15 +76,10 @@ export default function PartnerDashboardPage() {
     setBusyId(requestId)
     setMessage('')
 
-    const { data, error } = await supabase
-      .from('requests')
-      .update({ partner_id: partner.id, status: 'assigned' })
-      .eq('id', requestId)
-      .eq('status', 'new')
-      .select('id')
+    const res = await callApi('partner', `/api/partner/requests/${requestId}`, 'POST')
 
     setBusyId(null)
-    if (error || !data || data.length === 0) {
+    if (!res.ok) {
       setMessage('acceptError')
       await loadRequests()
       return
@@ -103,8 +89,7 @@ export default function PartnerDashboardPage() {
   }
 
   function logout() {
-    localStorage.removeItem('partner')
-    router.push('/partner/login')
+    void logoutSession('partner')
   }
 
   if (loading) {
@@ -152,7 +137,7 @@ export default function PartnerDashboardPage() {
             )}
           </p>
           <button
-            onClick={() => partner && checkAccess(partner)}
+            onClick={() => checkAccess()}
             className="mt-6 rounded-lg border border-primary px-5 py-2 font-medium text-primary hover:bg-primary/5"
           >
             {t('Status neu prüfen', 'إعادة التحقق من الحالة', 'Check status again')}

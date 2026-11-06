@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabaseClient'
+import { supabase } from '@/lib/supabaseServer'
 import { hashPassword } from '@/lib/adminAuth'
 import { serviceLabel, type ApplicationService } from '@/lib/applications'
 import {

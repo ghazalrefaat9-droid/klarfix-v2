@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { loadAdmin } from '@/lib/adminAuth'
 import { sendMail } from '@/lib/mailer'
-import { supabase } from '@/lib/supabaseClient'
+import { supabase } from '@/lib/supabaseServer'
 import {
   CODE_TTL_MS,
   RESEND_COOLDOWN_MS,

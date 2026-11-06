@@ -25,7 +25,7 @@ import {
   X,
   type LucideIcon,
 } from 'lucide-react'
-import { supabase } from '@/lib/supabaseClient'
+import { callApi, logout as logoutSession } from '@/lib/apiClient'
 import SettingsPanel from '@/components/admin/SettingsPanel'
 import { Modal, ModalButtons, PartnerList, type AdminPartner } from '@/components/admin/PartnersManager'
 
@@ -216,27 +216,20 @@ export default function AdminDashboardPage() {
   const [partnerReloadKey, setPartnerReloadKey] = useState(0)
 
   const loadData = useCallback(async () => {
-    const [reqRes, partnerRes, trashRes, appRes] = await Promise.all([
-      supabase
-        .from('requests')
-        .select('id, customer_name, customer_email, customer_phone, postcode, service_type, area_sqm, message, status, partner_id, created_at')
-        .is('deleted_at', null)
-        .order('created_at', { ascending: false }),
-      supabase
-        .from('partners')
-        .select('id, company_name')
-        .is('deleted_at', null)
-        .eq('is_blocked', false)
-        .order('company_name', { ascending: true }),
-      supabase.from('requests').select('id', { count: 'exact', head: true }).not('deleted_at', 'is', null),
-      supabase.from('partner_applications').select('id', { count: 'exact', head: true }).eq('status', 'pending_review'),
-    ])
-
-    if (reqRes.error || partnerRes.error) setMessage('Daten konnten nicht geladen werden.')
-    setRequests((reqRes.data as Request[]) ?? [])
-    setPartners((partnerRes.data as PartnerOption[]) ?? [])
-    setTrashCount(trashRes.count ?? 0)
-    setNewApplications(appRes.count ?? 0)
+    const res = await callApi<{
+      requests: Request[]
+      partners: PartnerOption[]
+      trashCount: number
+      newApplications: number
+    }>('admin', '/api/admin/dashboard')
+    if (!res.ok || !res.data) {
+      setMessage(res.data?.error ?? 'Daten konnten nicht geladen werden.')
+      return
+    }
+    setRequests(res.data.requests ?? [])
+    setPartners(res.data.partners ?? [])
+    setTrashCount(res.data.trashCount ?? 0)
+    setNewApplications(res.data.newApplications ?? 0)
   }, [])
 
   useEffect(() => {
@@ -256,14 +249,11 @@ export default function AdminDashboardPage() {
     if (!deleteTarget) return
     setDeleting(true)
     setMessage('')
-    const { error } = await supabase
-      .from('requests')
-      .update({ deleted_at: new Date().toISOString(), deleted_by: 'admin' })
-      .eq('id', deleteTarget.id)
+    const res = await callApi('admin', `/api/admin/requests/${deleteTarget.id}`, 'PATCH', { action: 'trash' })
     setDeleting(false)
 
-    if (error) {
-      setMessage('Löschen fehlgeschlagen.')
+    if (!res.ok) {
+      setMessage(res.data?.error ?? 'Löschen fehlgeschlagen.')
       return
     }
     setRequests((prev) => prev.filter((r) => r.id !== deleteTarget.id))
@@ -273,12 +263,9 @@ export default function AdminDashboardPage() {
 
   async function assignPartner(requestId: string, partnerId: string) {
     setMessage('')
-    const { error } = await supabase
-      .from('requests')
-      .update({ partner_id: partnerId || null, status: partnerId ? 'assigned' : 'new' })
-      .eq('id', requestId)
-    if (error) {
-      setMessage('Zuweisung fehlgeschlagen.')
+    const res = await callApi('admin', `/api/admin/requests/${requestId}`, 'PATCH', { action: 'assign', partnerId })
+    if (!res.ok) {
+      setMessage(res.data?.error ?? 'Zuweisung fehlgeschlagen.')
       return
     }
     setMessage('Zuweisung gespeichert.')
@@ -287,13 +274,10 @@ export default function AdminDashboardPage() {
 
   async function verifyPartner(partner: AdminPartner) {
     setMessage('')
-    const res = await fetch('/api/admin/verify-partner', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ partnerId: partner.id }),
+    const { ok, data } = await callApi<{ emailSent?: boolean; warning?: string }>('admin', '/api/admin/verify-partner', 'POST', {
+      partnerId: partner.id,
     })
-    const data = (await res.json().catch(() => null)) as { error?: string; emailSent?: boolean; warning?: string } | null
-    if (!res.ok) {
+    if (!ok) {
       setMessage(data?.error ?? 'Verifizierung fehlgeschlagen.')
       return
     }
@@ -303,8 +287,7 @@ export default function AdminDashboardPage() {
   }
 
   function logout() {
-    localStorage.removeItem('admin')
-    router.push('/admin/login')
+    void logoutSession('admin')
   }
 
   if (loading) {

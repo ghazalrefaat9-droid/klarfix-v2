@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabaseClient'
+import { supabase } from '@/lib/supabaseServer'
 
 export type PartnerState = { id: string; is_blocked: boolean; deleted_at: string | null }
 

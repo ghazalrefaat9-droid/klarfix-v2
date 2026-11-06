@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { verifyPasswordHash } from '@/lib/adminAuth'
-import { supabase } from '@/lib/supabaseClient'
+import { supabase } from '@/lib/supabaseServer'
+import { PARTNER_COOKIE, passwordFingerprint, setSession } from '@/lib/session'
 
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => null)) as { email?: unknown; password?: unknown } | null
@@ -30,5 +31,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Ihr Partnerkonto ist gesperrt. Bitte kontaktieren Sie uns.' }, { status: 403 })
   }
 
+  await setSession(PARTNER_COOKIE, data.id, passwordFingerprint(data.password_hash))
   return NextResponse.json({ id: data.id, company_name: data.company_name, email: data.email })
 }

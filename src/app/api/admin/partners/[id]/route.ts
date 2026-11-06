@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabaseClient'
+import { supabase } from '@/lib/supabaseServer'
 import { jsonError, loadPartnerState, readJson, updatePartner } from '@/lib/partnerAdmin'
+import { requireAdmin } from '@/lib/session'
 
 type EditBody = {
   company_name: unknown
@@ -16,6 +17,8 @@ const text = (v: unknown, max = 200) => (typeof v === 'string' ? v.trim().slice(
 
 // Edit partner fields (only the fields sent are changed).
 export async function PUT(request: Request, ctx: RouteContext<'/api/admin/partners/[id]'>) {
+  const denied = await requireAdmin()
+  if (denied) return denied
   const { id } = await ctx.params
   if (!(await loadPartnerState(id))) return jsonError('Partner nicht gefunden.', 404)
 
@@ -55,6 +58,8 @@ export async function PUT(request: Request, ctx: RouteContext<'/api/admin/partne
 
 // Permanent delete – only allowed for partners that are already in the trash.
 export async function DELETE(_request: Request, ctx: RouteContext<'/api/admin/partners/[id]'>) {
+  const denied = await requireAdmin()
+  if (denied) return denied
   const { id } = await ctx.params
   const partner = await loadPartnerState(id)
   if (!partner) return jsonError('Partner nicht gefunden.', 404)

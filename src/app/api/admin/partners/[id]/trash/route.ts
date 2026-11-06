@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server'
 import { cleanReason, jsonError, loadPartnerState, readJson, updatePartner } from '@/lib/partnerAdmin'
+import { requireAdmin } from '@/lib/session'
 
 // Soft delete: moves the partner to the trash (/admin/partners/trash). Nothing is removed from the database.
 export async function PUT(request: Request, ctx: RouteContext<'/api/admin/partners/[id]/trash'>) {
+  const denied = await requireAdmin()
+  if (denied) return denied
   const { id } = await ctx.params
   if (!(await loadPartnerState(id))) return jsonError('Partner nicht gefunden.', 404)
 

@@ -1,10 +1,30 @@
 import { NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabaseClient'
-import { jsonError } from '@/lib/partnerAdmin'
+import { supabase } from '@/lib/supabaseServer'
+import { jsonError, readJson } from '@/lib/partnerAdmin'
+import { requireAdmin } from '@/lib/session'
+
+// Reject an application (body: { status: 'rejected' }).
+export async function PATCH(request: Request, ctx: RouteContext<'/api/admin/applications/[id]'>) {
+  const denied = await requireAdmin()
+  if (denied) return denied
+  const { id } = await ctx.params
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return jsonError('Antrag nicht gefunden.', 404)
+
+  const body = await readJson<{ status: unknown }>(request)
+  if (body.status !== 'rejected') return jsonError('Ungültiger Status.', 400)
+  const { data, error } = await supabase.from('partner_applications').update({ status: 'rejected' }).eq('id', id).select('id')
+  if (error || !data?.length) {
+    console.error('Application reject failed:', error?.message ?? 'no rows updated')
+    return jsonError('Status konnte nicht geändert werden.', 500)
+  }
+  return NextResponse.json({ ok: true })
+}
 
 // Permanently deletes an application. A partner account created from it is deleted too,
 // so the same person can apply again and set up a fresh account.
 export async function DELETE(_request: Request, ctx: RouteContext<'/api/admin/applications/[id]'>) {
+  const denied = await requireAdmin()
+  if (denied) return denied
   const { id } = await ctx.params
   if (!/^[0-9a-f-]{36}$/i.test(id)) return jsonError('Antrag nicht gefunden.', 404)
 

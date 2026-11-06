@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { AlertCircle, ArrowLeft, Calendar, Mail, MapPin, RotateCcw, Trash2, User } from 'lucide-react'
-import { supabase } from '@/lib/supabaseClient'
+import { callApi } from '@/lib/apiClient'
 import { Modal, ModalButtons } from '@/components/admin/PartnersManager'
 
 type DeletedRequest = {
@@ -31,13 +31,9 @@ export default function AdminTrashPage() {
   const [confirmTarget, setConfirmTarget] = useState<DeletedRequest | null>(null)
 
   const loadTrash = useCallback(async () => {
-    const { data, error } = await supabase
-      .from('requests')
-      .select('id, customer_name, customer_email, postcode, service_type, created_at, deleted_at, deleted_by')
-      .not('deleted_at', 'is', null)
-      .order('deleted_at', { ascending: false })
-    if (error) setMessage('Daten konnten nicht geladen werden.')
-    setItems((data as DeletedRequest[]) ?? [])
+    const res = await callApi<{ items: DeletedRequest[] }>('admin', '/api/admin/requests')
+    if (!res.ok) setMessage(res.data?.error ?? 'Daten konnten nicht geladen werden.')
+    setItems(res.data?.items ?? [])
   }, [])
 
   useEffect(() => {
@@ -55,10 +51,10 @@ export default function AdminTrashPage() {
   async function restore(id: string) {
     setBusyId(id)
     setMessage('')
-    const { error } = await supabase.from('requests').update({ deleted_at: null, deleted_by: null }).eq('id', id)
+    const res = await callApi('admin', `/api/admin/requests/${id}`, 'PATCH', { action: 'restore' })
     setBusyId(null)
-    if (error) {
-      setMessage('Wiederherstellen fehlgeschlagen.')
+    if (!res.ok) {
+      setMessage(res.data?.error ?? 'Wiederherstellen fehlgeschlagen.')
       return
     }
     setItems((prev) => prev.filter((i) => i.id !== id))
@@ -68,12 +64,11 @@ export default function AdminTrashPage() {
   async function deleteForever(id: string) {
     setBusyId(id)
     setMessage('')
-    // .select() returns the deleted rows, so a delete silently blocked by RLS is detected.
-    const { data, error } = await supabase.from('requests').delete().eq('id', id).select('id')
+    const res = await callApi('admin', `/api/admin/requests/${id}`, 'DELETE')
     setBusyId(null)
     setConfirmTarget(null)
-    if (error || !data?.length) {
-      setMessage('Endgültiges Löschen fehlgeschlagen.')
+    if (!res.ok) {
+      setMessage(res.data?.error ?? 'Endgültiges Löschen fehlgeschlagen.')
       return
     }
     setItems((prev) => prev.filter((i) => i.id !== id))
