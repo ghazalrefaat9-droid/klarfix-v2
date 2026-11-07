@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabaseServer'
 import { requireAdmin } from '@/lib/session'
+import { unreadForAdmin } from '@/lib/messages'
 
 // Data for /admin/dashboard: active requests, selectable partners and badge counters.
 export async function GET() {
@@ -27,10 +28,13 @@ export async function GET() {
     console.error('Dashboard load failed:', reqRes.error?.message ?? partnerRes.error?.message)
     return NextResponse.json({ error: 'Daten konnten nicht geladen werden.' }, { status: 500 })
   }
+  // A missing partner_messages table (migration not run yet) must not break the dashboard.
+  const unread = await unreadForAdmin().catch(() => ({}) as Record<string, number>)
   return NextResponse.json({
     requests: reqRes.data ?? [],
     partners: partnerRes.data ?? [],
     trashCount: trashRes.count ?? 0,
     newApplications: appRes.count ?? 0,
+    unreadMessages: Object.values(unread).reduce((sum, n) => sum + n, 0),
   })
 }

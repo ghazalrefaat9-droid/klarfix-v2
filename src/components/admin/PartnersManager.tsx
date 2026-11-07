@@ -8,6 +8,7 @@ import {
   Ban,
   CheckCircle,
   Mail,
+  MessageCircle,
   Pencil,
   Phone,
   RotateCcw,
@@ -19,6 +20,7 @@ import {
 } from 'lucide-react'
 import { callApi as requestApi } from '@/lib/apiClient'
 import { CLEANING_TYPES } from '@/lib/applications'
+import ChatBox, { type ChatLabels } from '@/components/ChatBox'
 
 export type PartnerView = 'active' | 'blocked' | 'trash'
 
@@ -266,12 +268,24 @@ type Dialog =
   | { kind: 'block'; partner: AdminPartner }
   | { kind: 'trash'; partner: AdminPartner }
   | { kind: 'hardDelete'; partner: AdminPartner }
+  | { kind: 'chat'; partner: AdminPartner }
+
+const ADMIN_CHAT_LABELS: ChatLabels = {
+  placeholder: 'Nachricht schreiben… (Enter = senden, Umschalt+Enter = neue Zeile)',
+  send: 'Senden',
+  empty: 'Noch keine Nachrichten. Schreiben Sie die erste!',
+  loadError: 'Nachrichten konnten nicht geladen werden.',
+  sendError: 'Nachricht konnte nicht gesendet werden.',
+  otherName: 'Partner',
+}
 
 function PartnerCard({
   partner: p,
   view,
   busy,
+  unread = 0,
   onOpen,
+  onChat,
   onVerify,
   onEdit,
   onBlock,
@@ -283,7 +297,9 @@ function PartnerCard({
   partner: AdminPartner
   view: PartnerView
   busy: boolean
+  unread?: number
   onOpen?: () => void
+  onChat: () => void
   onVerify: () => void
   onEdit: () => void
   onBlock: () => void
@@ -359,6 +375,21 @@ function PartnerCard({
         </button>
       )}
 
+      {view === 'active' && p.verified && (
+        <button
+          type="button"
+          onClick={onChat}
+          className="relative mt-3 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-[#1A4D2E] text-[13px] font-semibold text-[#FFFFFF] hover:bg-[#143D24]"
+        >
+          <MessageCircle className="h-4 w-4" /> Chat
+          {unread > 0 && (
+            <span className="ms-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1.5 text-[11px] font-bold text-[#FFFFFF]">
+              {unread > 99 ? '99+' : unread}
+            </span>
+          )}
+        </button>
+      )}
+
       {view === 'trash' ? (
         <div className="mt-3 grid grid-cols-2 gap-2">
           <button type="button" onClick={onRestore} disabled={busy} className={actionButton}>
@@ -414,6 +445,24 @@ export function PartnerList({
   const [dialog, setDialog] = useState<Dialog | null>(null)
   const [dialogError, setDialogError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [unread, setUnread] = useState<Record<string, number>>({})
+
+  const loadUnread = useCallback(async () => {
+    const { ok, data } = await requestApi<{ byPartner: Record<string, number> }>('admin', '/api/admin/messages')
+    if (ok && data?.byPartner) setUnread(data.byPartner)
+  }, [])
+
+  // Keep the chat badges fresh while the list is open.
+  useEffect(() => {
+    const init = async () => {
+      await loadUnread()
+    }
+    init()
+    const timer = setInterval(() => {
+      if (document.visibilityState === 'visible') loadUnread()
+    }, 30000)
+    return () => clearInterval(timer)
+  }, [loadUnread])
 
   const load = useCallback(async () => {
     const { ok, data } = await requestApi<{ partners: AdminPartner[]; counts: { active: number; blocked: number; trash: number } }>(
@@ -550,7 +599,9 @@ export function PartnerList({
               partner={p}
               view={view}
               busy={busy}
+              unread={unread[p.id] ?? 0}
               onOpen={onOpenDetails ? () => onOpenDetails(p) : undefined}
+              onChat={() => openDialog({ kind: 'chat', partner: p })}
               onVerify={() => verify(p)}
               onEdit={() => openDialog({ kind: 'edit', partner: p })}
               onBlock={() => openDialog({ kind: 'block', partner: p })}
@@ -576,6 +627,17 @@ export function PartnerList({
             kann dort wiederhergestellt werden.
           </p>
           <ModalButtons onCancel={() => setDialog(null)} confirmLabel="Verschieben" danger busy={busy} onConfirm={() => trash(dialog.partner)} />
+        </Modal>
+      )}
+      {dialog?.kind === 'chat' && (
+        <Modal
+          title={`Chat mit ${dialog.partner.company_name}`}
+          onClose={() => {
+            setDialog(null)
+            loadUnread()
+          }}
+        >
+          <ChatBox me="admin" endpoint={`/api/admin/partners/${dialog.partner.id}/messages`} labels={ADMIN_CHAT_LABELS} />
         </Modal>
       )}
       {dialog?.kind === 'hardDelete' && (

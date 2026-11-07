@@ -206,6 +206,7 @@ export default function AdminDashboardPage() {
   const [partners, setPartners] = useState<PartnerOption[]>([])
   const [trashCount, setTrashCount] = useState(0)
   const [newApplications, setNewApplications] = useState(0)
+  const [unreadMessages, setUnreadMessages] = useState(0)
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('')
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -221,6 +222,7 @@ export default function AdminDashboardPage() {
       partners: PartnerOption[]
       trashCount: number
       newApplications: number
+      unreadMessages: number
     }>('admin', '/api/admin/dashboard')
     if (!res.ok || !res.data) {
       setMessage(res.data?.error ?? 'Daten konnten nicht geladen werden.')
@@ -230,6 +232,7 @@ export default function AdminDashboardPage() {
     setPartners(res.data.partners ?? [])
     setTrashCount(res.data.trashCount ?? 0)
     setNewApplications(res.data.newApplications ?? 0)
+    setUnreadMessages(res.data.unreadMessages ?? 0)
   }, [])
 
   useEffect(() => {
@@ -318,7 +321,13 @@ export default function AdminDashboardPage() {
             href="/admin/partner-applications"
             badge={newApplications > 0 ? `${newApplications} neu` : null}
           />
-          <QuickAction icon={Users} label="Partner verwalten" active={tab === 'partners'} onClick={() => setTab('partners')} />
+          <QuickAction
+            icon={Users}
+            label="Partner verwalten"
+            active={tab === 'partners'}
+            onClick={() => setTab('partners')}
+            badge={unreadMessages > 0 ? `${unreadMessages} Nachr.` : null}
+          />
           <QuickAction icon={Trash2} label={`Papierkorb (${trashCount})`} href="/admin/trash" />
           <QuickAction icon={LogOut} label="Abmelden" onClick={logout} />
         </nav>
