@@ -40,6 +40,8 @@ type Request = {
   message: string | null
   status: string
   partner_id: string | null
+  partner_price: number | null
+  partner_message: string | null
   created_at: string
 }
 
@@ -56,7 +58,14 @@ const TABS: { key: Tab; label: string; icon: LucideIcon }[] = [
 const STATUS: Record<string, { label: string; className: string }> = {
   new: { label: 'Neu', className: 'bg-[#FEF3C7] text-[#92400E]' },
   assigned: { label: 'Zugewiesen', className: 'bg-[#DBEAFE] text-[#1E40AF]' },
+  offer_sent: { label: 'Angebot gesendet', className: 'bg-[#EDE9FE] text-[#5B21B6]' },
+  offer_accepted: { label: 'Bestätigt', className: 'bg-[#DCFCE7] text-[#166534]' },
+  offer_rejected: { label: 'Angebot abgelehnt', className: 'bg-[#FEE2E2] text-[#991B1B]' },
+  done: { label: 'Erledigt', className: 'bg-[#F5F5F0] text-[#4B5563]' },
 }
+
+const formatEuro = (v: number | null) =>
+  v === null || v === undefined ? null : new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(Number(v))
 
 const card = 'rounded-[20px] bg-[#FFFFFF] shadow-[0_2px_10px_rgba(0,0,0,0.05)]'
 const yesNo = (v: boolean | null) => (v === null || v === undefined ? null : v ? 'Ja' : 'Nein')
@@ -299,8 +308,8 @@ export default function AdminDashboardPage() {
 
   const stats = {
     total: requests.length,
-    new: requests.filter((r) => r.status === 'new').length,
-    assigned: requests.filter((r) => r.status === 'assigned').length,
+    new: requests.filter((r) => r.status === 'new' || r.status === 'offer_rejected').length,
+    assigned: requests.filter((r) => ['assigned', 'offer_sent', 'offer_accepted'].includes(r.status)).length,
   }
   const partnerName = (id: string | null) => partners.find((p) => p.id === id)?.company_name ?? null
 
@@ -452,8 +461,8 @@ export default function AdminDashboardPage() {
           {tab === 'stats' && (
             <div className="grid gap-3 sm:grid-cols-3">
               <StatCard icon={TrendingUp} label="Anfragen gesamt" value={stats.total} iconClass="bg-[#A8D5A2]/50 text-[#1A4D2E]" />
-              <StatCard icon={Bell} label="Neue Anfragen" value={stats.new} iconClass="bg-[#FEF3C7] text-[#B45309]" />
-              <StatCard icon={CheckCircle} label="Zugewiesene Anfragen" value={stats.assigned} iconClass="bg-[#DBEAFE] text-[#1D4ED8]" />
+              <StatCard icon={Bell} label="Offene Anfragen" value={stats.new} iconClass="bg-[#FEF3C7] text-[#B45309]" />
+              <StatCard icon={CheckCircle} label="In Bearbeitung" value={stats.assigned} iconClass="bg-[#DBEAFE] text-[#1D4ED8]" />
             </div>
           )}
         </section>
@@ -486,6 +495,8 @@ export default function AdminDashboardPage() {
                 <DetailField label="Fläche" value={detailRequest.area_sqm ? `${detailRequest.area_sqm} m²` : null} />
                 <DetailField label="Status" value={STATUS[detailRequest.status]?.label ?? detailRequest.status} />
                 <DetailField label="Zugewiesener Partner" value={partnerName(detailRequest.partner_id)} />
+                <DetailField label="Angebot" value={formatEuro(detailRequest.partner_price)} />
+                <DetailField label="Angebot – Details" value={detailRequest.partner_message} />
                 <DetailField label="Anfrage-ID" value={detailRequest.id} />
               </DetailSection>
               <DetailSection title="Nachricht">

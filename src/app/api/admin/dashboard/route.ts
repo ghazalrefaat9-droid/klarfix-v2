@@ -11,7 +11,7 @@ export async function GET() {
   const [reqRes, partnerRes, trashRes, appRes] = await Promise.all([
     supabase
       .from('requests')
-      .select('id, customer_name, customer_email, customer_phone, postcode, service_type, area_sqm, message, status, partner_id, created_at')
+      .select('id, customer_name, customer_email, customer_phone, postcode, service_type, area_sqm, message, status, partner_id, partner_price, partner_message, created_at')
       .is('deleted_at', null)
       .order('created_at', { ascending: false }),
     supabase

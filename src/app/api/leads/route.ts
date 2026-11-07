@@ -6,6 +6,7 @@ import { sendMail } from '@/lib/mailer'
 import { sendWhatsApp } from '@/lib/whatsapp'
 import { REINIGUNGSARTEN } from '@/lib/services'
 import { ANREDEN, buildFullName } from '@/lib/leads'
+import { cityFromAddress } from '@/lib/requests'
 
 const str = (v: unknown, max = 200) => (typeof v === 'string' ? v.trim().slice(0, max) : '')
 
@@ -161,6 +162,32 @@ export async function POST(request: Request) {
   }
 
   // Leads table for lead tracking; requests table keeps the admin/partner dashboards working.
+  const requestData: Record<string, unknown> = {
+    customer_name: lead.fullName,
+    customer_email: lead.email,
+    customer_phone: lead.phone,
+    postcode: lead.postcode,
+    service_type: lead.serviceLabel,
+    area_sqm: lead.areaSqm,
+    message: [`Adresse: ${lead.address}`, lead.message].filter(Boolean).join('\n'),
+    status: 'new',
+    // Structured copies so partners can see date/time/city without the private address (see lib/requests.ts).
+    customer_address: lead.address,
+    city: cityFromAddress(lead.address),
+    preferred_date: lead.date,
+    preferred_time: lead.time,
+    is_flexible: lead.isFlexible,
+  }
+  const insertRequest = async () => {
+    let result = await supabase.from('requests').insert(requestData)
+    // Before the request_offers.sql migration these columns don't exist yet.
+    if (result.error?.code === 'PGRST204') {
+      for (const key of ['customer_address', 'city', 'preferred_date', 'preferred_time', 'is_flexible']) delete requestData[key]
+      result = await supabase.from('requests').insert(requestData)
+    }
+    return result
+  }
+
   const [leadResult, requestResult] = await Promise.all([
     supabase.from(LEADS_TABLE).insert({
       name: lead.fullName,
@@ -180,16 +207,7 @@ export async function POST(request: Request) {
       is_flexible: lead.isFlexible,
       message: lead.message || null,
     }),
-    supabase.from('requests').insert({
-      customer_name: lead.fullName,
-      customer_email: lead.email,
-      customer_phone: lead.phone,
-      postcode: lead.postcode,
-      service_type: lead.serviceLabel,
-      area_sqm: lead.areaSqm,
-      message: [`Adresse: ${lead.address}`, lead.message].filter(Boolean).join('\n'),
-      status: 'new',
-    }),
+    insertRequest(),
   ])
 
   if (leadResult.error) console.error('Lead insert failed:', leadResult.error.message)

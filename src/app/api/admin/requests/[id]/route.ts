@@ -23,7 +23,14 @@ export async function PATCH(request: Request, ctx: RouteContext<'/api/admin/requ
   } else if (body.action === 'assign') {
     const partnerId = body.partnerId === '' || body.partnerId == null ? null : body.partnerId
     if (partnerId !== null && !isUuid(partnerId)) return jsonError('Ungültiger Partner.', 400)
-    values = { partner_id: partnerId, status: partnerId ? 'assigned' : 'new' }
+    values = {
+      partner_id: partnerId,
+      status: partnerId ? 'assigned' : 'new',
+      // A manual assignment replaces any pending partner offer (the customer's offer link stops working).
+      partner_price: null,
+      partner_message: null,
+      offer_token_hash: null,
+    }
   } else {
     return jsonError('Ungültige Aktion.', 400)
   }
