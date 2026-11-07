@@ -311,7 +311,7 @@ function PartnerCard({
   const initial = (p.company_name.trim()[0] ?? '?').toUpperCase()
 
   return (
-    <li className="rounded-[20px] bg-[#FFFFFF] p-4 shadow-[0_2px_10px_rgba(0,0,0,0.05)]">
+    <li className="min-w-0 rounded-[20px] bg-[#FFFFFF] p-4 shadow-[0_2px_10px_rgba(0,0,0,0.05)]">
       <div
         className={`flex gap-3 ${onOpen ? 'cursor-pointer' : ''}`}
         onClick={onOpen}
@@ -324,7 +324,7 @@ function PartnerCard({
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h3 className="truncate font-bold text-[#1A4D2E]">{p.company_name}</h3>
+            <h3 className="max-w-full truncate font-bold text-[#1A4D2E]">{p.company_name}</h3>
             {p.verified ? (
               <span className="inline-flex items-center gap-1 rounded-full bg-[#DCFCE7] px-2 py-0.5 text-[11px] font-semibold text-[#166534]">
                 <ShieldCheck className="h-3.5 w-3.5" /> Verifiziert

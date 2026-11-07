@@ -372,7 +372,7 @@ export default function AdminDashboardPage() {
                 {requests.map((r) => {
                   const status = STATUS[r.status] ?? { label: r.status, className: 'bg-[#F5F5F0] text-[#4B5563]' }
                   return (
-                    <li key={r.id} className={`${card} p-4`}>
+                    <li key={r.id} className={`${card} min-w-0 p-4`}>
                       <div
                         role="button"
                         tabIndex={0}
