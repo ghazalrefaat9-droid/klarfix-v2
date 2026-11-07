@@ -2,7 +2,6 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Globe, Check, Menu, X } from 'lucide-react'
 import { LANGUAGES, useLang } from './LanguageProvider'
@@ -12,18 +11,14 @@ const VIEWPORT_GAP = 8
 
 export default function Navbar() {
   const { lang, setLang, t } = useLang()
-  const pathname = usePathname()
   const [open, setOpen] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [menuLeft, setMenuLeft] = useState(0)
   const menuRef = useRef<HTMLDivElement>(null)
 
-  // Close the mobile menu after navigating to another page.
-  const [lastPath, setLastPath] = useState(pathname)
-  if (lastPath !== pathname) {
-    setLastPath(pathname)
-    setMobileOpen(false)
-  }
+  // No usePathname here: it would force a Suspense boundary on dynamic routes (Cache Components).
+  // Every link in the header closes the mobile menu itself instead.
+  const closeMobile = () => setMobileOpen(false)
 
   useEffect(() => {
     if (!mobileOpen) return
@@ -75,7 +70,12 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-50 border-b border-primary/10 bg-background/90 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
-        <Link href="/" aria-label={t('KlarFix – Startseite', 'KlarFix – الصفحة الرئيسية', 'KlarFix – Home')} className="shrink-0">
+        <Link
+          href="/"
+          onClick={closeMobile}
+          aria-label={t('KlarFix – Startseite', 'KlarFix – الصفحة الرئيسية', 'KlarFix – Home')}
+          className="shrink-0"
+        >
           <Image
             src="/logo.svg"
             alt="KlarFix - Reinigung in Stuttgart"
