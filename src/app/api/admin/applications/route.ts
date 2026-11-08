@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabaseServer'
 import { requireAdmin } from '@/lib/session'
 
 const COLUMNS =
-  'id, full_name, email, phone_fixed, phone_whatsapp, city, company_address, services, team_size, languages, work_radius, has_gewerbe, has_haftpflicht, status, created_at, setup_completed_at'
+  'id, full_name, email, phone_fixed, phone_whatsapp, city, company_address, plz, services, team_size, languages, work_radius, has_gewerbe, has_haftpflicht, status, created_at, setup_completed_at'
 
 // Partner applications for /admin/partner-applications, newest first.
 export async function GET() {

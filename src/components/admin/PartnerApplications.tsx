@@ -1,9 +1,11 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
-import { Trash2 } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Search, Trash2 } from 'lucide-react'
 import { callApi } from '@/lib/apiClient'
 import { serviceLabel, type ApplicationRow } from '@/lib/applications'
+import { ALL_GROUP, extractPostcode, groupByRegion } from '@/lib/regions'
+import RegionTabs from '@/components/admin/RegionTabs'
 
 const STATUS_LABEL: Record<string, string> = {
   pending_review: 'Offen',
@@ -17,7 +19,7 @@ const STATUS_STYLE: Record<string, string> = {
   rejected: 'bg-card text-primary/60 ring-1 ring-primary/15',
 }
 
-type Row = ApplicationRow & { setup_completed_at: string | null }
+type Row = ApplicationRow & { setup_completed_at: string | null; plz?: string | null }
 type SetupResult = { id: string; emailSent: boolean; sentTo?: string; url?: string; emailError?: string }
 
 const whatsappLink = (phone: string, text: string) =>
@@ -28,6 +30,23 @@ export default function PartnerApplications() {
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('')
   const [setupLink, setSetupLink] = useState<SetupResult | null>(null)
+  const [region, setRegion] = useState(ALL_GROUP)
+  const [search, setSearch] = useState('')
+
+  const { groups, keyOf } = useMemo(
+    () => groupByRegion(rows, (a) => ({ postcode: a.plz ?? extractPostcode(a.company_address), city: a.city })),
+    [rows],
+  )
+  // A deleted/last entry can make the selected tab disappear; fall back to "Alle".
+  const activeRegion = region === ALL_GROUP || groups.some((g) => g.key === region) ? region : ALL_GROUP
+  const visible = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    return rows.filter(
+      (a) =>
+        (activeRegion === ALL_GROUP || keyOf(a) === activeRegion) &&
+        (!q || [a.full_name, a.email, a.city, a.company_address].some((v) => v?.toLowerCase().includes(q))),
+    )
+  }, [rows, activeRegion, keyOf, search])
   const [busyId, setBusyId] = useState<string | null>(null)
 
   const load = useCallback(async () => {
@@ -102,12 +121,38 @@ export default function PartnerApplications() {
 
   if (loading) return <p className="text-primary/70">Lade…</p>
 
+  const activeLabel = groups.find((g) => g.key === activeRegion)?.label
+
   return (
     <div className="space-y-4">
       {message && <p className="rounded-lg bg-primary/5 p-3 text-sm text-primary">{message}</p>}
       {rows.length === 0 && !message && <p className="text-primary/70">Keine Anträge vorhanden.</p>}
 
-      {rows.map((a) => (
+      {rows.length > 0 && (
+        <div className="space-y-3">
+          <RegionTabs groups={groups} total={rows.length} active={activeRegion} onChange={setRegion} />
+          <label className="flex min-h-[44px] items-center gap-2 rounded-xl bg-card px-3 shadow-sm ring-1 ring-primary/10">
+            <Search className="h-4 w-4 shrink-0 text-primary/60" />
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={activeLabel ? `In ${activeLabel} suchen (Name, Firma, E-Mail)…` : 'Suchen (Name, Firma, E-Mail)…'}
+              aria-label="Anträge durchsuchen"
+              className="min-w-0 flex-1 bg-transparent py-2 text-sm text-primary outline-none"
+            />
+          </label>
+          {visible.length === 0 && (
+            <p className="rounded-xl bg-card p-6 text-center text-sm text-primary/70 shadow-sm">
+              {search.trim()
+                ? `Keine Treffer für „${search.trim()}“${activeLabel ? ` in ${activeLabel}` : ''}.`
+                : `Keine Partner in ${activeLabel ?? 'dieser Gruppe'} gefunden.`}
+            </p>
+          )}
+        </div>
+      )}
+
+      {visible.map((a) => (
         <article key={a.id} className="rounded-2xl bg-card p-5 shadow-sm ring-1 ring-primary/10">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>

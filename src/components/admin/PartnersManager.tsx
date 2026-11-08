@@ -8,6 +8,7 @@ import {
   Ban,
   CheckCircle,
   Mail,
+  MapPin,
   MessageCircle,
   Pencil,
   Phone,
@@ -21,6 +22,8 @@ import {
 import { callApi as requestApi } from '@/lib/apiClient'
 import { CLEANING_TYPES } from '@/lib/applications'
 import ChatBox, { type ChatLabels } from '@/components/ChatBox'
+import RegionTabs from '@/components/admin/RegionTabs'
+import { ALL_GROUP, groupByRegion } from '@/lib/regions'
 
 export type PartnerView = 'active' | 'blocked' | 'trash'
 
@@ -347,6 +350,10 @@ function PartnerCard({
                 <span className="truncate">{p.phone}</span>
               </p>
             )}
+            <p className="flex min-w-0 items-center gap-2">
+              <MapPin className="h-3.5 w-3.5 shrink-0" size={14} />
+              <span className="truncate">{[p.postcode, p.city].filter(Boolean).join(' ') || 'Ohne PLZ'}</span>
+            </p>
           </div>
         </div>
       </div>
@@ -440,6 +447,7 @@ export function PartnerList({
   const [partners, setPartners] = useState<AdminPartner[]>([])
   const [counts, setCounts] = useState<Record<PartnerView, number>>({ active: 0, blocked: 0, trash: 0 })
   const [search, setSearch] = useState('')
+  const [region, setRegion] = useState(ALL_GROUP)
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('')
   const [dialog, setDialog] = useState<Dialog | null>(null)
@@ -482,13 +490,19 @@ export function PartnerList({
     init()
   }, [load, reloadKey])
 
+  const { groups, keyOf } = useMemo(() => groupByRegion(partners, (p) => ({ postcode: p.postcode, city: p.city })), [partners])
+  // Switching Aktiv/Blockiert/Papierkorb can make the selected region disappear; fall back to "Alle".
+  const activeRegion = region === ALL_GROUP || groups.some((g) => g.key === region) ? region : ALL_GROUP
+  const activeLabel = groups.find((g) => g.key === activeRegion)?.label
+
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase()
-    if (!q) return partners
-    return partners.filter((p) =>
-      [p.company_name, p.email, p.phone, p.city, p.first_name, p.last_name].some((v) => v?.toLowerCase().includes(q)),
+    return partners.filter(
+      (p) =>
+        (activeRegion === ALL_GROUP || keyOf(p) === activeRegion) &&
+        (!q || [p.company_name, p.email, p.phone, p.city, p.postcode, p.first_name, p.last_name].some((v) => v?.toLowerCase().includes(q))),
     )
-  }, [partners, search])
+  }, [partners, search, activeRegion, keyOf])
 
   const openDialog = (d: Dialog) => {
     setDialogError('')
@@ -569,6 +583,12 @@ export function PartnerList({
         })}
       </div>
 
+      {!loading && partners.length > 0 && (
+        <div className="mt-3">
+          <RegionTabs groups={groups} total={partners.length} active={activeRegion} onChange={setRegion} />
+        </div>
+      )}
+
       {message && <p className="mt-3 rounded-xl bg-[#FFFFFF] p-3 text-sm text-[#1A4D2E] shadow-[0_2px_10px_rgba(0,0,0,0.05)]">{message}</p>}
 
       {loading ? (
@@ -581,14 +601,18 @@ export function PartnerList({
           <p className="mt-3 font-semibold text-[#1A4D2E]">
             {search
               ? 'Keine Treffer'
-              : view === 'trash'
-                ? 'Der Papierkorb ist leer'
-                : view === 'blocked'
-                  ? 'Keine blockierten Partner'
-                  : 'Keine aktiven Partner'}
+              : activeLabel
+                ? `Keine Partner in ${activeLabel} gefunden.`
+                : view === 'trash'
+                  ? 'Der Papierkorb ist leer'
+                  : view === 'blocked'
+                    ? 'Keine blockierten Partner'
+                    : 'Keine aktiven Partner'}
           </p>
           <p className="mt-1 text-[13px] text-[#4B5563]">
-            {search ? 'Versuchen Sie einen anderen Suchbegriff.' : 'Hier erscheinen Partner, sobald es welche gibt.'}
+            {search
+              ? `Versuchen Sie einen anderen Suchbegriff${activeLabel ? ` oder wählen Sie „Alle“ statt ${activeLabel}` : ''}.`
+              : 'Hier erscheinen Partner, sobald es welche gibt.'}
           </p>
         </div>
       ) : (
