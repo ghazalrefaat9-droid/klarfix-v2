@@ -18,7 +18,7 @@ const STATUS_STYLE: Record<string, string> = {
 }
 
 type Row = ApplicationRow & { setup_completed_at: string | null }
-type SetupLink = { id: string; url: string; emailSent: boolean }
+type SetupResult = { id: string; emailSent: boolean; sentTo?: string; url?: string; emailError?: string }
 
 const whatsappLink = (phone: string, text: string) =>
   `https://wa.me/${phone.replace(/\D/g, '').replace(/^0/, '49')}?text=${encodeURIComponent(text)}`
@@ -27,7 +27,7 @@ export default function PartnerApplications() {
   const [rows, setRows] = useState<Row[]>([])
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('')
-  const [setupLink, setSetupLink] = useState<SetupLink | null>(null)
+  const [setupLink, setSetupLink] = useState<SetupResult | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
 
   const load = useCallback(async () => {
@@ -62,15 +62,18 @@ export default function PartnerApplications() {
   async function accept(id: string) {
     setMessage('')
     setBusyId(id)
-    const { ok, data } = await callApi<{ setupUrl?: string; emailSent?: boolean }>('admin', '/api/admin/accept-application', 'POST', {
-      applicationId: id,
-    })
+    const { ok, data } = await callApi<{ setupUrl?: string; emailSent?: boolean; sentTo?: string; emailError?: string }>(
+      'admin',
+      '/api/admin/accept-application',
+      'POST',
+      { applicationId: id },
+    )
     setBusyId(null)
-    if (!ok || !data?.setupUrl) {
+    if (!ok || !data) {
       setMessage(data?.error ?? 'Antrag konnte nicht angenommen werden.')
       return
     }
-    setSetupLink({ id, url: data.setupUrl, emailSent: !!data.emailSent })
+    setSetupLink({ id, emailSent: !!data.emailSent, sentTo: data.sentTo, url: data.setupUrl, emailError: data.emailError })
     await load()
   }
 
@@ -190,37 +193,45 @@ export default function PartnerApplications() {
             </div>
           )}
 
-          {setupLink?.id === a.id && (
-            <div className="mt-4 space-y-3 rounded-xl border border-primary/20 bg-primary/10 p-3 text-sm text-primary">
-              <p>
-                {setupLink.emailSent
-                  ? `Setup-Link wurde per E-Mail an ${a.email} gesendet.`
-                  : 'E-Mail konnte nicht gesendet werden – bitte den Link manuell schicken.'}{' '}
-                Der Partner lädt dort Passwort, Gewerbenachweis und Haftpflicht hoch.
-              </p>
-              <p className="break-all rounded-lg bg-card px-3 py-2 font-mono text-xs">{setupLink.url}</p>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => copyLink(setupLink.url)}
-                  className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-card hover:bg-primary-hover"
-                >
-                  Link kopieren
-                </button>
-                {a.phone_whatsapp && (
-                  <a
-                    href={whatsappLink(
-                      a.phone_whatsapp,
-                      `Hallo ${a.full_name}, Ihr Partnerantrag wurde angenommen! Bitte richten Sie Ihr Konto hier ein: ${setupLink.url}`,
+          {setupLink?.id === a.id && setupLink.emailSent && (
+            <p className="mt-4 rounded-xl border border-[#166534]/20 bg-[#DCFCE7] p-3 text-sm font-medium text-[#166534]">
+              ✅ E-Mail wurde automatisch an {setupLink.sentTo ?? a.email} gesendet. Der Partner lädt dort Passwort, Gewerbenachweis
+              und Haftpflicht hoch.
+            </p>
+          )}
+
+          {setupLink?.id === a.id && !setupLink.emailSent && (
+            <div className="mt-4 space-y-3 rounded-xl border border-danger/30 bg-danger/5 p-3 text-sm text-primary">
+              <p className="font-semibold text-danger">E-Mail konnte nicht gesendet werden:</p>
+              <p className="rounded-lg bg-card px-3 py-2 text-danger">{setupLink.emailError ?? 'Unbekannter Fehler.'}</p>
+              {setupLink.url && (
+                <>
+                  <p className="text-xs text-primary/70">Notlösung, bis der E-Mail-Versand eingerichtet ist – Link manuell senden:</p>
+                  <p className="break-all rounded-lg bg-card px-3 py-2 font-mono text-xs">{setupLink.url}</p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => copyLink(setupLink.url as string)}
+                      className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-card hover:bg-primary-hover"
+                    >
+                      Link kopieren
+                    </button>
+                    {a.phone_whatsapp && (
+                      <a
+                        href={whatsappLink(
+                          a.phone_whatsapp,
+                          `Hallo ${a.full_name}, Ihr Partnerantrag wurde angenommen! Bitte richten Sie Ihr Konto hier ein: ${setupLink.url}`,
+                        )}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="rounded-lg border border-primary px-3 py-1.5 text-xs font-semibold text-primary hover:bg-card"
+                      >
+                        Per WhatsApp senden
+                      </a>
                     )}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="rounded-lg border border-primary px-3 py-1.5 text-xs font-semibold text-primary hover:bg-card"
-                  >
-                    Per WhatsApp senden
-                  </a>
-                )}
-              </div>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </article>

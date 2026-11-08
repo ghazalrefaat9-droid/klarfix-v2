@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabaseServer'
-import { CAMPAIGN_TEXT, SITE_NAME, sendMail } from '@/lib/mailer'
+import { CAMPAIGN_TEXT, SITE_NAME, mailErrorMessage, sendMail } from '@/lib/mailer'
 import { requireAdmin } from '@/lib/session'
 
 function escapeHtml(value: string) {
@@ -68,7 +68,11 @@ export async function POST(request: Request) {
     await sendMail(partner.email, msg.subject, msg.text, msg.html)
     return NextResponse.json({ ok: true, emailSent: true })
   } catch (err) {
-    console.error('Approval email failed', err)
-    return NextResponse.json({ ok: true, emailSent: false, warning: 'Partner verifiziert, aber die E-Mail konnte nicht gesendet werden.' })
+    console.error('Email Fehler:', err)
+    return NextResponse.json({
+      ok: true,
+      emailSent: false,
+      warning: `Partner verifiziert, aber die E-Mail konnte nicht gesendet werden: ${mailErrorMessage(err)}`,
+    })
   }
 }

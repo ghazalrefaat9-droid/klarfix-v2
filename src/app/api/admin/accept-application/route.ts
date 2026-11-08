@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabaseServer'
-import { CAMPAIGN_TEXT, SITE_NAME, sendMail } from '@/lib/mailer'
+import { CAMPAIGN_TEXT, SITE_NAME, mailErrorMessage, sendMail } from '@/lib/mailer'
 import { createSetupToken } from '@/lib/partnerSetup'
 import { requireAdmin } from '@/lib/session'
 
@@ -69,9 +69,11 @@ export async function POST(request: Request) {
   try {
     const msg = setupMessage(app.full_name, setupUrl)
     await sendMail(app.email, msg.subject, msg.text, msg.html)
-    return NextResponse.json({ ok: true, setupUrl, emailSent: true })
+    // Email went out: the admin doesn't need the link, so it is not returned.
+    return NextResponse.json({ ok: true, emailSent: true, sentTo: app.email })
   } catch (err) {
-    console.error('Setup email failed', err)
-    return NextResponse.json({ ok: true, setupUrl, emailSent: false })
+    console.error('Email Fehler:', err)
+    // Fallback only when the email failed: the admin gets the real reason plus the link to send manually.
+    return NextResponse.json({ ok: true, setupUrl, emailSent: false, emailError: mailErrorMessage(err) })
   }
 }
