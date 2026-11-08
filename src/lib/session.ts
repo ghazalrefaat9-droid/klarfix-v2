@@ -71,7 +71,15 @@ export async function requireAdmin(): Promise<NextResponse | null> {
   }
 }
 
-export type SessionPartner = { id: string; company_name: string; email: string; verified: boolean; is_blocked: boolean }
+export type SessionPartner = {
+  id: string
+  company_name: string
+  email: string
+  verified: boolean
+  is_blocked: boolean
+  postcode: string | null
+  city: string | null
+}
 
 export async function requirePartner(): Promise<{ partner: SessionPartner } | { response: NextResponse }> {
   try {
@@ -87,7 +95,7 @@ async function loadSessionPartner(): Promise<{ partner: SessionPartner } | { res
   if (!payload || !/^[0-9a-f-]{36}$/i.test(payload.sub)) return { response: unauthorized() }
   const { data, error } = await supabase
     .from('partners')
-    .select('id, company_name, email, password_hash, verified, is_blocked, deleted_at')
+    .select('id, company_name, email, password_hash, verified, is_blocked, deleted_at, postcode, city')
     .eq('id', payload.sub)
     .maybeSingle()
   if (error) return { response: NextResponse.json({ error: 'Server-Fehler.' }, { status: 500 }) }
@@ -101,6 +109,8 @@ async function loadSessionPartner(): Promise<{ partner: SessionPartner } | { res
       email: data.email,
       verified: data.verified === true,
       is_blocked: data.is_blocked === true,
+      postcode: (data.postcode as string | null) ?? null,
+      city: (data.city as string | null) ?? null,
     },
   }
 }

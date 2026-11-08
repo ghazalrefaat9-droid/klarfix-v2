@@ -86,6 +86,42 @@ export function cityFromAddress(address: string | null | undefined) {
   return m ? m[1].trim().slice(0, 100) : null
 }
 
+// --- Region matching: a partner only sees open requests from his own region (enforced in the API). ---
+
+export type Location = { postcode: string | null; city: string | null }
+
+const normalizeCity = (city: string | null | undefined) =>
+  (city ?? '')
+    .replace(/\b\d{5}\b/g, '')
+    .toLocaleLowerCase('de-DE')
+    .replace(/ß/g, 'ss')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/ae/g, 'a')
+    .replace(/oe/g, 'o')
+    .replace(/ue/g, 'u')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+
+const postcodeArea = (postcode: string | null | undefined) => /\b(\d{5})\b/.exec(postcode ?? '')?.[1].slice(0, 2) ?? null
+
+// Postcode and city of a request; older rows only have the city inside the address/message.
+export function requestLocation(row: Pick<RequestRow, 'postcode' | 'city' | 'customer_address' | 'message'>): Location {
+  return {
+    postcode: row.postcode ?? null,
+    city: row.city ?? cityFromAddress(row.customer_address ?? parseMessage(row.message).address),
+  }
+}
+
+// Match = same city (umlauts / case ignored) OR same first two postcode digits (70xxx = 70xxx).
+// A partner without postcode and city matches nothing.
+export function inPartnerRegion(partner: Location, request: Location) {
+  const partnerCity = normalizeCity(partner.city)
+  if (partnerCity && partnerCity === normalizeCity(request.city)) return true
+  const partnerArea = postcodeArea(partner.postcode)
+  return !!partnerArea && partnerArea === postcodeArea(request.postcode)
+}
+
 export function toPartnerView(row: RequestRow, partnerId: string): PartnerRequestView {
   const parsed = parseMessage(row.message)
   const isMine = row.partner_id === partnerId

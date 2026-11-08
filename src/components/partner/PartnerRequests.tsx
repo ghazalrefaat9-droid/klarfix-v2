@@ -33,6 +33,7 @@ export default function PartnerRequests({ locale }: { locale: string }) {
   const { t } = useLang()
   const [open, setOpen] = useState<PartnerRequest[]>([])
   const [mine, setMine] = useState<PartnerRequest[]>([])
+  const [region, setRegion] = useState<{ postcode: string | null; city: string | null } | null>(null)
   const [loading, setLoading] = useState(true)
   const [notice, setNotice] = useState('')
   const [selected, setSelected] = useState<PartnerRequest | null>(null)
@@ -42,10 +43,15 @@ export default function PartnerRequests({ locale }: { locale: string }) {
   const [formError, setFormError] = useState('')
 
   const load = useCallback(async () => {
-    const res = await callApi<{ open: PartnerRequest[]; mine: PartnerRequest[] }>('partner', '/api/partner/requests')
+    const res = await callApi<{
+      open: PartnerRequest[]
+      mine: PartnerRequest[]
+      region?: { postcode: string | null; city: string | null }
+    }>('partner', '/api/partner/requests')
     if (res.ok && res.data) {
       setOpen(res.data.open ?? [])
       setMine(res.data.mine ?? [])
+      setRegion(res.data.region ?? null)
     } else if (res.status !== 401) {
       setNotice(t('Anfragen konnten nicht geladen werden.', 'تعذّر تحميل الطلبات.', 'Requests could not be loaded.'))
     }
@@ -168,6 +174,7 @@ export default function PartnerRequests({ locale }: { locale: string }) {
   )
 
   const revealed = selected?.customer ?? null
+  const regionText = region ? [region.postcode, region.city].filter(Boolean).join(' ') : ''
 
   return (
     <div className="space-y-8">
@@ -181,10 +188,23 @@ export default function PartnerRequests({ locale }: { locale: string }) {
       )}
 
       <section>
-        <h2 className="mb-3 text-lg font-bold">{t('Neue Anfragen', 'طلبات جديدة', 'New requests')}</h2>
+        <h2 className="mb-3 text-lg font-bold">
+          {t('Neue Anfragen', 'طلبات جديدة', 'New requests')}
+          {regionText && <span className="ms-2 text-sm font-normal text-primary/60">· {regionText}</span>}
+        </h2>
         {open.length === 0 ? (
           <p className="rounded-xl bg-card p-8 text-center text-primary/70 shadow-sm">
-            {t('Keine neuen Anfragen.', 'لا توجد طلبات جديدة.', 'No new requests.')}
+            {regionText
+              ? t(
+                  `Keine neuen Anfragen in deiner Region (${regionText}).`,
+                  `لا توجد طلبات جديدة في منطقتك (${regionText}).`,
+                  `No new requests in your region (${regionText}).`,
+                )
+              : t(
+                  'Keine neuen Anfragen. Bitte hinterlegen Sie PLZ und Ort in Ihrem Profil, damit wir Ihnen Anfragen aus Ihrer Region zeigen können.',
+                  'لا توجد طلبات جديدة. يرجى إضافة الرمز البريدي والمدينة إلى ملفك لنعرض لك طلبات منطقتك.',
+                  'No new requests. Please add your postcode and city to your profile so we can show requests from your region.',
+                )}
           </p>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">{open.map((r) => card(r, false))}</div>

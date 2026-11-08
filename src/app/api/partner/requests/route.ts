@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabaseServer'
 import { requirePartner } from '@/lib/session'
-import { OPEN_STATUSES, PARTNER_OWN_STATUSES, REQUEST_COLUMNS, toPartnerView, type RequestRow } from '@/lib/requests'
+import { OPEN_STATUSES, PARTNER_OWN_STATUSES, REQUEST_COLUMNS, inPartnerRegion, requestLocation, toPartnerView, type RequestRow } from '@/lib/requests'
 
 // Partner dashboard data. Only filtered views are returned (see toPartnerView): no customer name,
 // email, phone or street address unless the customer accepted this partner's offer.
@@ -35,8 +35,13 @@ export async function GET() {
     return NextResponse.json({ error: 'Server-Fehler.' }, { status: 500 })
   }
 
+  // Region filter on the server: only open requests from the partner's city / postcode area are returned.
+  const region = { postcode: partner.postcode, city: partner.city }
+  const open = ((openRes.data as RequestRow[]) ?? []).filter((r) => inPartnerRegion(region, requestLocation(r)))
+
   return NextResponse.json({
-    open: ((openRes.data as RequestRow[]) ?? []).map((r) => toPartnerView(r, partner.id)),
+    open: open.map((r) => toPartnerView(r, partner.id)),
     mine: ((mineRes.data as RequestRow[]) ?? []).map((r) => toPartnerView(r, partner.id)),
+    region,
   })
 }

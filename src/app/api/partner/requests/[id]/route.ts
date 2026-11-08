@@ -4,7 +4,7 @@ import { requirePartner } from '@/lib/session'
 import { readJson } from '@/lib/partnerAdmin'
 import { createSetupToken } from '@/lib/partnerSetup'
 import { sendOfferEmail } from '@/lib/offerMail'
-import { OPEN_STATUSES, parseOffer } from '@/lib/requests'
+import { OPEN_STATUSES, REQUEST_COLUMNS, inPartnerRegion, parseOffer, requestLocation, toPartnerView, type RequestRow } from '@/lib/requests'
 import { siteUrl } from '@/lib/siteUrl'
 
 const isUuid = (v: string) => /^[0-9a-f-]{36}$/i.test(v)
@@ -16,6 +16,31 @@ async function verifiedPartner() {
     return { response: NextResponse.json({ error: 'Kein Zugriff.' }, { status: 403 }) }
   }
   return session
+}
+
+// Single request (filtered view). Own jobs are always allowed; open requests only inside the partner's region,
+// everything else is 403 – so a partner can't open a foreign request by guessing its id.
+export async function GET(_request: Request, ctx: RouteContext<'/api/partner/requests/[id]'>) {
+  const session = await verifiedPartner()
+  if ('response' in session) return session.response
+  const { partner } = session
+
+  const { id } = await ctx.params
+  if (!isUuid(id)) return NextResponse.json({ error: 'Anfrage nicht gefunden.' }, { status: 404 })
+
+  const { data } = await supabase.from('requests').select(REQUEST_COLUMNS).eq('id', id).is('deleted_at', null).maybeSingle()
+  const row = data as RequestRow | null
+  if (!row) return NextResponse.json({ error: 'Anfrage nicht gefunden.' }, { status: 404 })
+
+  const isMine = row.partner_id === partner.id
+  const openForPartner =
+    !row.partner_id &&
+    OPEN_STATUSES.includes(row.status) &&
+    !(row.rejected_partner_ids ?? []).includes(partner.id) &&
+    inPartnerRegion(partner, requestLocation(row))
+  if (!isMine && !openForPartner) return NextResponse.json({ error: 'Kein Zugriff auf diese Anfrage.' }, { status: 403 })
+
+  return NextResponse.json({ request: toPartnerView(row, partner.id) })
 }
 
 // Send an offer (price + description) for an open request. The customer gets an email with a one-time link.
@@ -32,9 +57,12 @@ export async function POST(request: Request, ctx: RouteContext<'/api/partner/req
 
   const { data: row } = await supabase
     .from('requests')
-    .select('id, status, partner_id, rejected_partner_ids, customer_email, customer_name, service_type, deleted_at')
+    .select('id, status, partner_id, rejected_partner_ids, customer_email, customer_name, service_type, deleted_at, postcode, city, customer_address, message')
     .eq('id', id)
     .maybeSingle()
+  if (row && !inPartnerRegion(partner, requestLocation(row))) {
+    return NextResponse.json({ error: 'Diese Anfrage liegt nicht in Ihrer Region.' }, { status: 403 })
+  }
   const rejected = (row?.rejected_partner_ids as string[] | null) ?? []
   if (!row || row.deleted_at || row.partner_id || !OPEN_STATUSES.includes(row.status) || rejected.includes(partner.id)) {
     return NextResponse.json({ error: 'Diese Anfrage ist nicht mehr verfügbar.' }, { status: 409 })
