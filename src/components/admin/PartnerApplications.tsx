@@ -1,11 +1,13 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Search, Trash2 } from 'lucide-react'
+import { Trash2 } from 'lucide-react'
 import { callApi } from '@/lib/apiClient'
 import { serviceLabel, type ApplicationRow } from '@/lib/applications'
-import { ALL_GROUP, extractPostcode, groupByRegion } from '@/lib/regions'
+import { ALL_GROUP, extractPostcode, groupByRegion, regionOf } from '@/lib/regions'
+import { firstPostcodeToken, matchesSearch, suggestRegions, tokenize, type SearchFields } from '@/lib/partnerSearch'
 import RegionTabs from '@/components/admin/RegionTabs'
+import { LocationTag, SearchFeedback, SearchInput, useDebounced } from '@/components/admin/PartnerSearch'
 
 const STATUS_LABEL: Record<string, string> = {
   pending_review: 'Offen',
@@ -20,6 +22,13 @@ const STATUS_STYLE: Record<string, string> = {
 }
 
 type Row = ApplicationRow & { setup_completed_at: string | null; plz?: string | null }
+
+// Applications store the postcode inside the address ("Straße 1, 74523 Ort"); the plz column is usually empty.
+const applicationFields = (a: Row): SearchFields => ({
+  names: [a.full_name],
+  city: a.city,
+  postcode: a.plz ?? extractPostcode(a.company_address),
+})
 type SetupResult = { id: string; emailSent: boolean; sentTo?: string; url?: string; emailError?: string }
 
 const whatsappLink = (phone: string, text: string) =>
@@ -34,19 +43,35 @@ export default function PartnerApplications() {
   const [search, setSearch] = useState('')
 
   const { groups, keyOf } = useMemo(
-    () => groupByRegion(rows, (a) => ({ postcode: a.plz ?? extractPostcode(a.company_address), city: a.city })),
+    () => groupByRegion(rows, (a) => ({ postcode: applicationFields(a).postcode ?? null, city: a.city })),
     [rows],
   )
   // A deleted/last entry can make the selected tab disappear; fall back to "Alle".
   const activeRegion = region === ALL_GROUP || groups.some((g) => g.key === region) ? region : ALL_GROUP
-  const visible = useMemo(() => {
-    const q = search.trim().toLowerCase()
-    return rows.filter(
-      (a) =>
-        (activeRegion === ALL_GROUP || keyOf(a) === activeRegion) &&
-        (!q || [a.full_name, a.email, a.city, a.company_address].some((v) => v?.toLowerCase().includes(q))),
-    )
-  }, [rows, activeRegion, keyOf, search])
+  const query = useDebounced(search, 200)
+  const tokens = useMemo(() => tokenize(query), [query])
+  const visible = useMemo(
+    () => rows.filter((a) => (activeRegion === ALL_GROUP || keyOf(a) === activeRegion) && matchesSearch(applicationFields(a), tokens)),
+    [rows, activeRegion, keyOf, tokens],
+  )
+  const suggestions = useMemo(
+    () =>
+      tokens.length && visible.length === 0
+        ? suggestRegions(
+            rows,
+            tokens,
+            applicationFields,
+            (a) => regionOf(applicationFields(a).postcode, a.city),
+            activeRegion === ALL_GROUP ? undefined : activeRegion,
+          )
+        : [],
+    [rows, tokens, visible.length, activeRegion],
+  )
+  // "Meintest du": switch to the region; if the query still finds nothing there (typo), clear the search too.
+  const pickSuggestion = (key: string) => {
+    setRegion(key)
+    if (!rows.some((a) => keyOf(a) === key && matchesSearch(applicationFields(a), tokens))) setSearch('')
+  }
   const [busyId, setBusyId] = useState<string | null>(null)
 
   const load = useCallback(async () => {
@@ -131,23 +156,22 @@ export default function PartnerApplications() {
       {rows.length > 0 && (
         <div className="space-y-3">
           <RegionTabs groups={groups} total={rows.length} active={activeRegion} onChange={setRegion} />
-          <label className="flex min-h-[44px] items-center gap-2 rounded-xl bg-card px-3 shadow-sm ring-1 ring-primary/10">
-            <Search className="h-4 w-4 shrink-0 text-primary/60" />
-            <input
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={activeLabel ? `In ${activeLabel} suchen (Name, Firma, E-Mail)…` : 'Suchen (Name, Firma, E-Mail)…'}
-              aria-label="Anträge durchsuchen"
-              className="min-w-0 flex-1 bg-transparent py-2 text-sm text-primary outline-none"
+          <SearchInput value={search} onChange={setSearch} label="Anträge suchen nach Firma, Stadt oder PLZ" />
+          {query.trim() ? (
+            <SearchFeedback
+              query={query}
+              count={visible.length}
+              regionLabel={activeLabel}
+              suggestions={suggestions}
+              onPick={pickSuggestion}
+              postcode={firstPostcodeToken(tokens)}
             />
-          </label>
-          {visible.length === 0 && (
-            <p className="rounded-xl bg-card p-6 text-center text-sm text-primary/70 shadow-sm">
-              {search.trim()
-                ? `Keine Treffer für „${search.trim()}“${activeLabel ? ` in ${activeLabel}` : ''}.`
-                : `Keine Partner in ${activeLabel ?? 'dieser Gruppe'} gefunden.`}
-            </p>
+          ) : (
+            visible.length === 0 && (
+              <p className="rounded-xl bg-card p-6 text-center text-sm text-primary/70 shadow-sm">
+                Keine Partner in {activeLabel ?? 'dieser Gruppe'} gefunden.
+              </p>
+            )
           )}
         </div>
       )}
@@ -155,9 +179,12 @@ export default function PartnerApplications() {
       {visible.map((a) => (
         <article key={a.id} className="rounded-2xl bg-card p-5 shadow-sm ring-1 ring-primary/10">
           <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
+            <div className="min-w-0">
               <h2 className="text-lg font-bold text-primary">{a.full_name}</h2>
               <p className="text-sm text-primary/70">{new Date(a.created_at).toLocaleString('de-DE')}</p>
+              <div className="mt-1.5">
+                <LocationTag city={a.city} postcode={applicationFields(a).postcode} />
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <span className={`rounded-full px-3 py-1 text-xs font-semibold ${STATUS_STYLE[a.status] ?? 'bg-primary/5 text-primary'}`}>

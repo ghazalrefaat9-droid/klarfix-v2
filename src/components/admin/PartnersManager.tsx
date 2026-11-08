@@ -13,7 +13,6 @@ import {
   Pencil,
   Phone,
   RotateCcw,
-  Search,
   ShieldCheck,
   Trash2,
   Users,
@@ -23,7 +22,9 @@ import { callApi as requestApi } from '@/lib/apiClient'
 import { CLEANING_TYPES } from '@/lib/applications'
 import ChatBox, { type ChatLabels } from '@/components/ChatBox'
 import RegionTabs from '@/components/admin/RegionTabs'
-import { ALL_GROUP, groupByRegion } from '@/lib/regions'
+import { LocationTag, SearchFeedback, SearchInput, useDebounced } from '@/components/admin/PartnerSearch'
+import { ALL_GROUP, groupByRegion, regionOf } from '@/lib/regions'
+import { firstPostcodeToken, matchesSearch, suggestRegions, tokenize, type SearchFields } from '@/lib/partnerSearch'
 
 export type PartnerView = 'active' | 'blocked' | 'trash'
 
@@ -77,6 +78,12 @@ const actionButton =
   'flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl bg-[#F5F5F0] py-2.5 text-[12px] font-medium text-[#1A4D2E] transition hover:bg-[#ECECE4] disabled:opacity-50'
 
 const formatDate = (iso: string | null) => (iso ? new Date(iso).toLocaleString('de-DE') : '–')
+
+const partnerFields = (p: AdminPartner): SearchFields => ({
+  names: [p.company_name, p.first_name, p.last_name],
+  city: p.city,
+  postcode: p.postcode,
+})
 
 async function callApi(path: string, method: 'PUT' | 'DELETE' | 'POST', body?: unknown) {
   const { ok, data } = await requestApi<{ warning?: string; emailSent?: boolean }>('admin', path, method, body)
@@ -352,7 +359,7 @@ function PartnerCard({
             )}
             <p className="flex min-w-0 items-center gap-2">
               <MapPin className="h-3.5 w-3.5 shrink-0" size={14} />
-              <span className="truncate">{[p.postcode, p.city].filter(Boolean).join(' ') || 'Ohne PLZ'}</span>
+              <LocationTag city={p.city} postcode={p.postcode} />
             </p>
           </div>
         </div>
@@ -495,14 +502,25 @@ export function PartnerList({
   const activeRegion = region === ALL_GROUP || groups.some((g) => g.key === region) ? region : ALL_GROUP
   const activeLabel = groups.find((g) => g.key === activeRegion)?.label
 
-  const visible = useMemo(() => {
-    const q = search.trim().toLowerCase()
-    return partners.filter(
-      (p) =>
-        (activeRegion === ALL_GROUP || keyOf(p) === activeRegion) &&
-        (!q || [p.company_name, p.email, p.phone, p.city, p.postcode, p.first_name, p.last_name].some((v) => v?.toLowerCase().includes(q))),
-    )
-  }, [partners, search, activeRegion, keyOf])
+  const query = useDebounced(search, 200)
+  const tokens = useMemo(() => tokenize(query), [query])
+
+  const visible = useMemo(
+    () => partners.filter((p) => (activeRegion === ALL_GROUP || keyOf(p) === activeRegion) && matchesSearch(partnerFields(p), tokens)),
+    [partners, tokens, activeRegion, keyOf],
+  )
+  const suggestions = useMemo(
+    () =>
+      tokens.length && visible.length === 0
+        ? suggestRegions(partners, tokens, partnerFields, (p) => regionOf(p.postcode, p.city), activeRegion === ALL_GROUP ? undefined : activeRegion)
+        : [],
+    [tokens, visible.length, partners, activeRegion],
+  )
+  // "Meintest du": switch to the region; if the query still finds nothing there (typo), clear the search too.
+  const pickSuggestion = (key: string) => {
+    setRegion(key)
+    if (!partners.some((p) => keyOf(p) === key && matchesSearch(partnerFields(p), tokens))) setSearch('')
+  }
 
   const openDialog = (d: Dialog) => {
     setDialogError('')
@@ -550,17 +568,7 @@ export function PartnerList({
 
   return (
     <div>
-      <label className="flex min-h-[48px] items-center gap-3 rounded-full bg-[#FFFFFF] px-5 shadow-[0_2px_10px_rgba(0,0,0,0.05)] focus-within:ring-2 focus-within:ring-[#1A4D2E]/20">
-        <Search className="h-4 w-4 shrink-0 text-[#4B5563]" />
-        <input
-          type="search"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Partner suchen..."
-          aria-label="Partner suchen"
-          className="min-w-0 flex-1 bg-transparent text-sm text-[#1A4D2E] placeholder:text-[#9CA3AF] focus:outline-none"
-        />
-      </label>
+      <SearchInput value={search} onChange={setSearch} label="Partner suchen nach Firma, Stadt oder PLZ" />
 
       <div className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1">
         {VIEWS.map((v) => {
@@ -593,29 +601,40 @@ export function PartnerList({
 
       {loading ? (
         <p className="mt-6 text-center text-sm text-[#4B5563]">Lade…</p>
+      ) : visible.length === 0 && query.trim() ? (
+        <div className="mt-4">
+          <SearchFeedback
+            query={query}
+            count={0}
+            regionLabel={activeLabel}
+            suggestions={suggestions}
+            onPick={pickSuggestion}
+            postcode={firstPostcodeToken(tokens)}
+          />
+        </div>
       ) : visible.length === 0 ? (
         <div className="mt-4 flex flex-col items-center rounded-[20px] bg-[#FFFAF5] px-6 py-10 text-center shadow-[0_2px_10px_rgba(0,0,0,0.05)]">
           <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#A8D5A2]/50 text-[#1A4D2E]">
-            {search ? <Search className="h-6 w-6" /> : <Users className="h-6 w-6" />}
+            <Users className="h-6 w-6" />
           </div>
           <p className="mt-3 font-semibold text-[#1A4D2E]">
-            {search
-              ? 'Keine Treffer'
-              : activeLabel
-                ? `Keine Partner in ${activeLabel} gefunden.`
-                : view === 'trash'
-                  ? 'Der Papierkorb ist leer'
-                  : view === 'blocked'
-                    ? 'Keine blockierten Partner'
-                    : 'Keine aktiven Partner'}
+            {activeLabel
+              ? `Keine Partner in ${activeLabel} gefunden.`
+              : view === 'trash'
+                ? 'Der Papierkorb ist leer'
+                : view === 'blocked'
+                  ? 'Keine blockierten Partner'
+                  : 'Keine aktiven Partner'}
           </p>
-          <p className="mt-1 text-[13px] text-[#4B5563]">
-            {search
-              ? `Versuchen Sie einen anderen Suchbegriff${activeLabel ? ` oder wählen Sie „Alle“ statt ${activeLabel}` : ''}.`
-              : 'Hier erscheinen Partner, sobald es welche gibt.'}
-          </p>
+          <p className="mt-1 text-[13px] text-[#4B5563]">Hier erscheinen Partner, sobald es welche gibt.</p>
         </div>
       ) : (
+        <>
+        {query.trim() && (
+          <div className="mt-3">
+            <SearchFeedback query={query} count={visible.length} regionLabel={activeLabel} suggestions={[]} onPick={setRegion} postcode={null} />
+          </div>
+        )}
         <ul className="mt-4 grid gap-3 lg:grid-cols-2">
           {visible.map((p) => (
             <PartnerCard
@@ -636,6 +655,7 @@ export function PartnerList({
             />
           ))}
         </ul>
+        </>
       )}
 
       {dialog?.kind === 'edit' && (
