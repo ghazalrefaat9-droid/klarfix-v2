@@ -5,9 +5,9 @@ import { loadAdmin } from '@/lib/adminAuth'
 import { sendMail } from '@/lib/mailer'
 import { sendWhatsApp } from '@/lib/whatsapp'
 import { REINIGUNGSARTEN } from '@/lib/services'
-import { ANREDEN, buildFullName } from '@/lib/leads'
+import { ANREDEN, ROOM_OPTIONS, buildFullName } from '@/lib/leads'
 import { cityFromAddress } from '@/lib/requests'
-import { deleteExpiredLeadPhotos, pickPhotoFiles, uploadLeadPhotos } from '@/lib/leadPhotosServer'
+import { cleanPhotoPaths, deleteExpiredLeadPhotos, signLeadPhotos } from '@/lib/leadPhotosServer'
 
 const str = (v: unknown, max = 200) => (typeof v === 'string' ? v.trim().slice(0, max) : '')
 
@@ -28,6 +28,9 @@ function rateLimited(ip: string) {
   return recent.length > RATE_LIMIT
 }
 
+const AREA_MIN = 20
+const AREA_MAX = 5000
+
 type Lead = {
   fullName: string
   anrede: string | null
@@ -36,32 +39,20 @@ type Lead = {
   firma: string | null
   email: string
   phone: string | null
+  strasseHausnummer: string
+  floor: string | null
   address: string
   postcode: string
   city: string | null
   serviceLabel: string
   areaSqm: number | null
+  rooms: string | null
   date: string | null
   time: string | null
   isFlexible: boolean
   message: string
-  photoUrls: string[]
-}
-
-// Street + house number, optional floor, then "PLZ Ort" last so cityFromAddress() keeps working.
-function buildAddress(body: Record<string, unknown>) {
-  const street = str(body.street, 200)
-  const houseNumber = str(body.houseNumber, 10)
-  const postcode = str(body.postcode, 10)
-  const city = str(body.city, 100)
-  const floor = str(body.floor, 100)
-  // Older clients still send one combined address field.
-  if (!street) return { address: str(body.address, 300), city }
-  if (!houseNumber) return { address: '', city }
-  const address = [`${street} ${houseNumber}`, floor, [postcode, city].filter(Boolean).join(' ')]
-    .filter(Boolean)
-    .join(', ')
-  return { address, city }
+  photoPaths: string[]
+  photos: { path: string; url: string }[]
 }
 
 function parse(body: Record<string, unknown>): Lead | null {
@@ -71,9 +62,12 @@ function parse(body: Record<string, unknown>): Lead | null {
   const nachname = str(body.nachname, 100)
   const firma = anrede === 'Firma' ? str(body.firma, 200) : ''
   const email = str(body.email, 254).toLowerCase()
-  const { address, city } = buildAddress(body)
+  const strasseHausnummer = str(body.strasseHausnummer, 200)
   const postcode = str(body.postcode, 10)
-  if (!vorname || !nachname || !address || !postcode) return null
+  const city = str(body.city, 100)
+  const floor = str(body.floor, 100)
+  if (!vorname || !nachname || !strasseHausnummer || !postcode) return null
+  if (!/\d/.test(strasseHausnummer)) return null
   if (anrede === 'Firma' && !firma) return null
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return null
 
@@ -83,7 +77,10 @@ function parse(body: Record<string, unknown>): Lead | null {
   if (service.id === 'sonstiges' && !otherService) return null
 
   const areaNum = Number(str(body.area, 10))
-  const areaSqm = Number.isFinite(areaNum) && areaNum > 0 ? Math.min(Math.round(areaNum), 1_000_000) : null
+  const areaSqm =
+    Number.isInteger(areaNum) && areaNum >= AREA_MIN && areaNum <= AREA_MAX ? areaNum : null
+  const roomsRaw = str(body.rooms, 5)
+  const rooms = (ROOM_OPTIONS as readonly string[]).includes(roomsRaw) ? roomsRaw : null
   const dateRaw = str(body.date, 10)
   const date = /^\d{4}-\d{2}-\d{2}$/.test(dateRaw) ? dateRaw : null
   const isFlexible = body.isFlexible === true
@@ -100,6 +97,9 @@ function parse(body: Record<string, unknown>): Lead | null {
     .filter(Boolean)
     .join('\n')
 
+  // Floor before "PLZ Ort", which has to stay last so cityFromAddress() keeps working.
+  const address = [strasseHausnummer, floor, [postcode, city].filter(Boolean).join(' ')].filter(Boolean).join(', ')
+
   return {
     fullName: buildFullName(anrede, vorname, nachname, firma),
     anrede: anrede === 'Keine Angabe' ? null : anrede,
@@ -108,16 +108,20 @@ function parse(body: Record<string, unknown>): Lead | null {
     firma: firma || null,
     email,
     phone: str(body.phone, 40) || null,
+    strasseHausnummer,
+    floor: floor || null,
     address,
     postcode,
     city: city || cityFromAddress(address),
     serviceLabel: service.label,
     areaSqm,
+    rooms,
     date,
     time,
     isFlexible,
     message,
-    photoUrls: [],
+    photoPaths: cleanPhotoPaths(body.photoPaths),
+    photos: [],
   }
 }
 
@@ -130,25 +134,31 @@ async function adminRecipient() {
   }
 }
 
-const photoLines = (l: Lead) => l.photoUrls.map((url, i) => `Foto ${i + 1}: ${url}`)
-
-// Free-text message plus the photo links, as stored for the admin.
-const storedMessage = (l: Lead) => [l.message, ...photoLines(l)].filter(Boolean).join('\n')
+// "Zimmer:" and "Foto N:" lines are parsed again by parseMessage() (lib/requests.ts) for the partner view,
+// so partners also see them when the booking columns don't exist yet.
+const storedMessage = (l: Lead) =>
+  [l.rooms ? `Zimmer: ${l.rooms}` : '', l.message, ...l.photos.map((p, i) => `Foto ${i + 1}: ${p.url}`)]
+    .filter(Boolean)
+    .join('\n')
 
 function notificationText(l: Lead, withPhotoLinks = true) {
   const when = [l.date ?? 'kein Datum', l.isFlexible ? 'flexibel' : l.time].filter(Boolean).join(' ')
-  const photos = withPhotoLinks ? photoLines(l) : l.photoUrls.length ? [`Fotos: ${l.photoUrls.length} (siehe E-Mail)`] : []
-  const message = [l.message, ...photos].filter(Boolean).join('\n')
+  const photos = withPhotoLinks ? l.photos.map((p, i) => `Foto ${i + 1}: ${p.url}`) : []
   return [
     `Neue Anfrage: ${l.serviceLabel}`,
     '',
     `Name: ${l.fullName}`,
     `Telefon: ${l.phone ?? '-'}`,
     `E-Mail: ${l.email}`,
-    `Adresse: ${l.address.includes(l.postcode) ? l.address : `${l.address}, ${l.postcode}`}`,
+    `Straße und Hausnummer: ${l.strasseHausnummer}`,
+    `PLZ / Ort: ${[l.postcode, l.city].filter(Boolean).join(' ')}`,
+    ...(l.floor ? [`Stockwerk / Wohnung: ${l.floor}`] : []),
     `Fläche: ${l.areaSqm ? `${l.areaSqm} m²` : '-'}`,
+    `Zimmer: ${l.rooms ?? '-'}`,
     `Termin: ${when}`,
-    ...(message ? ['', message] : []),
+    `Fotos: ${l.photos.length || 'keine'}${!withPhotoLinks && l.photos.length ? ' (Links in der E-Mail)' : ''}`,
+    ...photos,
+    ...(l.message ? ['', l.message] : []),
   ].join('\n')
 }
 
@@ -187,20 +197,19 @@ async function cleanupPhotos() {
   await deleteExpiredLeadPhotos().catch((err) => console.error('Lead photo cleanup failed', err))
 }
 
-async function readBody(request: Request) {
-  if (!(request.headers.get('content-type') ?? '').includes('multipart/form-data')) {
-    const body = (await request.json().catch(() => null)) as Record<string, unknown> | null
-    return { body, photos: [] as File[] }
+// Columns from add_booking_details.sql; dropped again if that migration hasn't run yet.
+const BOOKING_COLUMNS = ['strasse_hausnummer', 'flaeche_m2', 'zimmer_anzahl', 'fotos']
+// Columns from request_offers.sql (older migration).
+const OFFER_COLUMNS = ['customer_address', 'city', 'preferred_date', 'preferred_time', 'is_flexible']
+
+async function insertWithFallback(table: string, row: Record<string, unknown>, optional: string[][]) {
+  let result = await supabase.from(table).insert(row)
+  for (const columns of optional) {
+    if (result.error?.code !== 'PGRST204') break
+    for (const key of columns) delete row[key]
+    result = await supabase.from(table).insert(row)
   }
-  const form = await request.formData().catch(() => null)
-  if (!form) return { body: null, photos: [] as File[] }
-  let body: Record<string, unknown> | null = null
-  try {
-    body = JSON.parse(String(form.get('data') ?? '')) as Record<string, unknown>
-  } catch {
-    body = null
-  }
-  return { body, photos: pickPhotoFiles(form.getAll('photos')) }
+  return result
 }
 
 export async function POST(request: Request) {
@@ -209,17 +218,23 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Zu viele Anfragen. Bitte später erneut versuchen.' }, { status: 429 })
   }
 
-  const { body, photos } = await readBody(request)
+  const body = (await request.json().catch(() => null)) as Record<string, unknown> | null
   const lead = body && typeof body === 'object' ? parse(body) : null
   if (!lead) {
     return NextResponse.json({ error: 'Bitte alle Pflichtfelder korrekt ausfüllen.' }, { status: 400 })
   }
 
-  lead.photoUrls = await uploadLeadPhotos(photos).catch((err) => {
-    console.error('Lead photo upload failed', err)
+  lead.photos = await signLeadPhotos(lead.photoPaths).catch((err) => {
+    console.error('Lead photo signing failed', err)
     return []
   })
   const message = storedMessage(lead)
+  const booking = {
+    strasse_hausnummer: lead.strasseHausnummer,
+    flaeche_m2: lead.areaSqm,
+    zimmer_anzahl: lead.rooms,
+    fotos: lead.photos.map((p) => p.path),
+  }
 
   // Leads table for lead tracking; requests table keeps the admin/partner dashboards working.
   const requestData: Record<string, unknown> = {
@@ -237,37 +252,32 @@ export async function POST(request: Request) {
     preferred_date: lead.date,
     preferred_time: lead.time,
     is_flexible: lead.isFlexible,
+    ...booking,
   }
-  const insertRequest = async () => {
-    let result = await supabase.from('requests').insert(requestData)
-    // Before the request_offers.sql migration these columns don't exist yet.
-    if (result.error?.code === 'PGRST204') {
-      for (const key of ['customer_address', 'city', 'preferred_date', 'preferred_time', 'is_flexible']) delete requestData[key]
-      result = await supabase.from('requests').insert(requestData)
-    }
-    return result
+
+  const leadData: Record<string, unknown> = {
+    name: lead.fullName,
+    anrede: lead.anrede,
+    vorname: lead.vorname,
+    nachname: lead.nachname,
+    firma: lead.firma,
+    email: lead.email,
+    phone: lead.phone,
+    address: lead.address,
+    postcode: lead.postcode,
+    service: lead.serviceLabel,
+    service_label: lead.serviceLabel,
+    area_sqm: lead.areaSqm,
+    preferred_date: lead.date,
+    preferred_time: lead.time,
+    is_flexible: lead.isFlexible,
+    message: message || null,
+    ...booking,
   }
 
   const [leadResult, requestResult] = await Promise.all([
-    supabase.from(LEADS_TABLE).insert({
-      name: lead.fullName,
-      anrede: lead.anrede,
-      vorname: lead.vorname,
-      nachname: lead.nachname,
-      firma: lead.firma,
-      email: lead.email,
-      phone: lead.phone,
-      address: lead.address,
-      postcode: lead.postcode,
-      service: lead.serviceLabel,
-      service_label: lead.serviceLabel,
-      area_sqm: lead.areaSqm,
-      preferred_date: lead.date,
-      preferred_time: lead.time,
-      is_flexible: lead.isFlexible,
-      message: message || null,
-    }),
-    insertRequest(),
+    insertWithFallback(LEADS_TABLE, leadData, [BOOKING_COLUMNS]),
+    insertWithFallback('requests', requestData, [BOOKING_COLUMNS, OFFER_COLUMNS]),
   ])
 
   if (leadResult.error) console.error('Lead insert failed:', leadResult.error.message)

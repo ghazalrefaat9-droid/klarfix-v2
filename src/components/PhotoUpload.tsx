@@ -1,17 +1,28 @@
 'use client'
 
 import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react'
-import { Camera, Loader2, X } from 'lucide-react'
+import { AlertCircle, Camera, Loader2, Plus, X } from 'lucide-react'
 import { useLang } from '@/components/LanguageProvider'
-import { LEAD_PHOTO_MAX_DIMENSION, MAX_LEAD_PHOTOS, MAX_LEAD_PHOTO_BYTES } from '@/lib/leadPhotos'
+import {
+  LEAD_PHOTO_MAX_DIMENSION,
+  LEAD_PHOTO_TARGET_BYTES,
+  MAX_LEAD_PHOTOS,
+  MAX_LEAD_PHOTO_BYTES,
+} from '@/lib/leadPhotos'
 
-export type LeadPhoto = { id: string; blob: Blob; preview: string }
+export type LeadPhoto = {
+  id: string
+  preview: string | null
+  status: 'uploading' | 'done' | 'error'
+  path: string | null
+}
 
 type Props = {
   photos: LeadPhoto[]
   setPhotos: Dispatch<SetStateAction<LeadPhoto[]>>
-  onBusyChange?: (busy: boolean) => void
 }
+
+const isImage = (f: File) => f.type.startsWith('image/') || /\.(heic|heif|avif)$/i.test(f.name)
 
 async function decode(file: File): Promise<CanvasImageSource & { width: number; height: number }> {
   try {
@@ -29,7 +40,7 @@ async function decode(file: File): Promise<CanvasImageSource & { width: number; 
   }
 }
 
-// Downscales to max 1600px and re-encodes as JPEG, lowering quality until it fits the size limit.
+// Downscales and re-encodes as JPEG, lowering quality until it fits the target size.
 async function compressImage(file: File): Promise<Blob> {
   const image = await decode(file)
   const scale = Math.min(1, LEAD_PHOTO_MAX_DIMENSION / Math.max(image.width, image.height))
@@ -44,16 +55,46 @@ async function compressImage(file: File): Promise<Blob> {
   if ('close' in image && typeof image.close === 'function') image.close()
 
   let blob: Blob | null = null
-  for (const quality of [0.8, 0.7, 0.6, 0.5, 0.4]) {
+  for (const quality of [0.82, 0.72, 0.62, 0.5]) {
     blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality))
-    if (blob && blob.size <= MAX_LEAD_PHOTO_BYTES) return blob
+    if (blob && blob.size <= LEAD_PHOTO_TARGET_BYTES) return blob
   }
-  throw new Error('Image too large')
+  if (!blob) throw new Error('Encoding failed')
+  return blob
 }
 
-export default function PhotoUpload({ photos, setPhotos, onBusyChange }: Props) {
+// Falls back to the original file (e.g. HEIC in browsers that can't decode it), as long as it is within the limit.
+async function prepare(file: File): Promise<Blob> {
+  const blob = await compressImage(file).catch(() => file)
+  if (blob.size > MAX_LEAD_PHOTO_BYTES) throw new Error('too-large')
+  return blob
+}
+
+type UploadSlot = { path: string; url: string }
+
+async function requestSlots(count: number) {
+  const res = await fetch('/api/leads/photos', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ count }),
+  })
+  if (!res.ok) throw new Error(`slots ${res.status}`)
+  const data = (await res.json()) as { slots: UploadSlot[] }
+  return data.slots
+}
+
+// Plain PUT to the one-time signed URL; no Supabase client (and no auth session) needed in the browser.
+async function uploadToSlot(slot: UploadSlot, blob: Blob) {
+  const res = await fetch(slot.url, {
+    method: 'PUT',
+    headers: { 'Content-Type': blob.type || 'image/jpeg', 'x-upsert': 'false' },
+    body: blob,
+  })
+  if (!res.ok) throw new Error(`upload ${res.status}`)
+}
+
+export default function PhotoUpload({ photos, setPhotos }: Props) {
   const { t } = useLang()
-  const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
   const photosRef = useRef(photos)
@@ -62,56 +103,77 @@ export default function PhotoUpload({ photos, setPhotos, onBusyChange }: Props) 
     photosRef.current = photos
   }, [photos])
 
-  useEffect(() => () => photosRef.current.forEach((p) => URL.revokeObjectURL(p.preview)), [])
+  useEffect(
+    () => () => photosRef.current.forEach((p) => p.preview && URL.revokeObjectURL(p.preview)),
+    [],
+  )
 
-  const remaining = MAX_LEAD_PHOTOS - photos.length
+  const limitReached = photos.length >= MAX_LEAD_PHOTOS
+  const limitText = t('Max. 20 Fotos erreicht', 'تم الوصول إلى الحد الأقصى: 20 صورة', 'Max. 20 photos reached')
+
+  const patch = (id: string, changes: Partial<LeadPhoto>) =>
+    setPhotos((prev) => prev.map((p) => (p.id === id ? { ...p, ...changes } : p)))
 
   async function handleFiles(list: FileList | null) {
-    const files = Array.from(list ?? []).filter((f) => f.type.startsWith('image/') || f.type === '')
+    const picked = Array.from(list ?? []).filter(isImage)
     if (inputRef.current) inputRef.current.value = ''
+    if (picked.length === 0) return
+
+    const room = MAX_LEAD_PHOTOS - photosRef.current.length
+    const files = picked.slice(0, Math.max(room, 0))
+    setError(picked.length > files.length ? limitText : '')
     if (files.length === 0) return
 
-    setError('')
-    if (files.length > remaining) {
-      setError(t(`Maximal ${MAX_LEAD_PHOTOS} Fotos möglich.`, `الحد الأقصى ${MAX_LEAD_PHOTOS} صور.`, `Maximum ${MAX_LEAD_PHOTOS} photos.`))
+    const added: LeadPhoto[] = files.map(() => ({ id: crypto.randomUUID(), preview: null, status: 'uploading', path: null }))
+    setPhotos((prev) => [...prev, ...added])
+
+    let slots: UploadSlot[]
+    try {
+      slots = await requestSlots(files.length)
+    } catch {
+      added.forEach((p) => patch(p.id, { status: 'error' }))
+      setError(t('Upload gerade nicht möglich. Bitte später erneut versuchen.', 'الرفع غير ممكن حالياً. حاول لاحقاً.', 'Upload not possible right now. Please try again later.'))
+      return
     }
 
-    setBusy(true)
-    onBusyChange?.(true)
+    let tooLarge = false
     let failed = false
-    for (const file of files.slice(0, Math.max(remaining, 0))) {
+    for (let i = 0; i < files.length; i++) {
+      const photo = added[i]
+      const slot = slots[i]
       try {
-        const blob = await compressImage(file)
-        const photo = { id: crypto.randomUUID(), blob, preview: URL.createObjectURL(blob) }
+        if (!slot) throw new Error('no-slot')
+        const blob = await prepare(files[i])
+        const preview = URL.createObjectURL(blob)
+        try {
+          await uploadToSlot(slot, blob)
+        } catch (uploadError) {
+          URL.revokeObjectURL(preview)
+          throw uploadError
+        }
         setPhotos((prev) => {
-          if (prev.length >= MAX_LEAD_PHOTOS) {
-            URL.revokeObjectURL(photo.preview)
-            return prev
-          }
-          return [...prev, photo]
+          if (!prev.some((p) => p.id === photo.id)) URL.revokeObjectURL(preview)
+          return prev.map((p) => (p.id === photo.id ? { ...p, preview, status: 'done', path: slot.path } : p))
         })
-      } catch {
-        failed = true
+      } catch (err) {
+        if (err instanceof Error && err.message === 'too-large') tooLarge = true
+        else failed = true
+        patch(photo.id, { status: 'error' })
       }
     }
-    if (failed) {
-      setError(
-        t(
-          'Ein Foto konnte nicht verarbeitet werden. Bitte JPG oder PNG verwenden.',
-          'تعذرت معالجة صورة. يرجى استخدام JPG أو PNG.',
-          'A photo could not be processed. Please use JPG or PNG.',
-        ),
-      )
+
+    if (tooLarge) {
+      setError(t('Ein Foto ist größer als 10 MB und wurde nicht hochgeladen.', 'صورة أكبر من 10 ميغابايت ولم يتم رفعها.', 'A photo is larger than 10 MB and was not uploaded.'))
+    } else if (failed) {
+      setError(t('Ein Foto konnte nicht hochgeladen werden. Bitte erneut versuchen.', 'تعذر رفع صورة. حاول مرة أخرى.', 'A photo could not be uploaded. Please try again.'))
     }
-    setBusy(false)
-    onBusyChange?.(false)
   }
 
   function remove(id: string) {
     setError('')
     setPhotos((prev) => {
       const photo = prev.find((p) => p.id === id)
-      if (photo) URL.revokeObjectURL(photo.preview)
+      if (photo?.preview) URL.revokeObjectURL(photo.preview)
       return prev.filter((p) => p.id !== id)
     })
   }
@@ -122,24 +184,57 @@ export default function PhotoUpload({ photos, setPhotos, onBusyChange }: Props) 
         <Camera aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-primary/70" />
         <div className="min-w-0">
           <p className="text-sm font-semibold text-primary">
-            {t('Fotos hinzufügen - optional', 'إضافة صور - اختياري', 'Add photos - optional')}
+            {t(
+              'Fotos hinzufügen - optional, so viele wie du möchtest',
+              'إضافة صور - اختياري، بالعدد الذي تريده',
+              'Add photos - optional, as many as you like',
+            )}
           </p>
           <p className="mt-1 text-xs text-primary/60">
             {t(
-              '1-3 Fotos für genaueren Festpreis. Ihre Fotos sind privat, werden nicht veröffentlicht und nach 30 Tagen automatisch gelöscht.',
-              '1-3 صور لسعر ثابت أدق. صورك خاصة، لن تُنشر وتُحذف تلقائياً بعد 30 يوماً.',
-              '1-3 photos for a more accurate fixed price. Your photos are private, never published and automatically deleted after 30 days.',
+              'Du entscheidest, wie viele Fotos du hochladen willst. 1 Foto reicht, mehr Fotos helfen für einen genaueren Festpreis.',
+              'أنت تقرر عدد الصور التي تريد رفعها. صورة واحدة تكفي، والمزيد من الصور يساعد على سعر ثابت أدق.',
+              'You decide how many photos to upload. 1 photo is enough, more photos help with a more accurate fixed price.',
+            )}
+          </p>
+          <p className="mt-1 text-xs text-primary/50">
+            {t(
+              'Privat, nicht veröffentlicht, nach 30 Tagen automatisch gelöscht.',
+              'خاصة، لا تُنشر، وتُحذف تلقائياً بعد 30 يوماً.',
+              'Private, never published, automatically deleted after 30 days.',
             )}
           </p>
         </div>
       </div>
 
-      {(photos.length > 0 || busy) && (
-        <ul className="mt-4 grid grid-cols-3 gap-3">
+      {photos.length > 0 && (
+        <ul className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-4">
           {photos.map((p, i) => (
-            <li key={p.id} className="relative aspect-square overflow-hidden rounded-lg bg-card ring-1 ring-primary/10">
-              {/* eslint-disable-next-line @next/next/no-img-element -- local blob preview */}
-              <img src={p.preview} alt={t(`Foto ${i + 1}`, `صورة ${i + 1}`, `Photo ${i + 1}`)} className="h-full w-full object-cover" />
+            <li
+              key={p.id}
+              className={`relative aspect-square overflow-hidden rounded-lg bg-card ring-1 ${
+                p.status === 'error' ? 'ring-danger' : 'ring-primary/10'
+              }`}
+            >
+              {p.preview && (
+                // eslint-disable-next-line @next/next/no-img-element -- local blob preview
+                <img
+                  src={p.preview}
+                  alt={t(`Foto ${i + 1}`, `صورة ${i + 1}`, `Photo ${i + 1}`)}
+                  className={`h-full w-full object-cover ${p.status === 'uploading' ? 'opacity-50' : ''}`}
+                />
+              )}
+              {p.status === 'uploading' && (
+                <span className="absolute inset-0 flex items-center justify-center">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" aria-label={t('Wird hochgeladen', 'جارٍ الرفع', 'Uploading')} />
+                </span>
+              )}
+              {p.status === 'error' && (
+                <span className="absolute inset-0 flex flex-col items-center justify-center gap-1 p-1 text-center text-[11px] font-medium text-danger">
+                  <AlertCircle className="h-5 w-5" aria-hidden="true" />
+                  {t('Fehler', 'خطأ', 'Error')}
+                </span>
+              )}
               <button
                 type="button"
                 onClick={() => remove(p.id)}
@@ -150,37 +245,29 @@ export default function PhotoUpload({ photos, setPhotos, onBusyChange }: Props) 
               </button>
             </li>
           ))}
-          {busy && (
-            <li className="flex aspect-square items-center justify-center rounded-lg bg-card ring-1 ring-primary/10">
-              <Loader2 className="h-5 w-5 animate-spin text-primary" aria-label={t('Wird verarbeitet', 'جارٍ المعالجة', 'Processing')} />
-            </li>
-          )}
         </ul>
       )}
 
-      {remaining > 0 && (
-        <label
-          className={`mt-4 flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-primary/20 bg-card px-4 py-2.5 text-sm font-semibold text-primary hover:bg-primary/5 focus-within:ring-2 focus-within:ring-primary/20 ${
-            busy ? 'pointer-events-none opacity-60' : ''
-          }`}
-        >
-          <Camera className="h-4 w-4" aria-hidden="true" />
+      {limitReached ? (
+        <p className="mt-4 text-center text-sm font-medium text-primary/70">{limitText}</p>
+      ) : (
+        <label className="mt-4 flex w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-primary/20 bg-card px-4 py-2.5 text-sm font-semibold text-primary hover:bg-primary/5 focus-within:ring-2 focus-within:ring-primary/20">
+          <Plus className="h-4 w-4" aria-hidden="true" />
           {photos.length === 0
-            ? t('Foto aufnehmen oder auswählen', 'التقاط صورة أو اختيارها', 'Take or choose a photo')
-            : t(`Weiteres Foto hinzufügen (${photos.length}/${MAX_LEAD_PHOTOS})`, `إضافة صورة أخرى (${photos.length}/${MAX_LEAD_PHOTOS})`, `Add another photo (${photos.length}/${MAX_LEAD_PHOTOS})`)}
+            ? t('Fotos hinzufügen', 'إضافة صور', 'Add photos')
+            : t('Weitere Fotos hinzufügen', 'إضافة المزيد من الصور', 'Add more photos')}
           <input
             ref={inputRef}
             type="file"
-            accept="image/*"
+            accept="image/*,.heic,.heif"
             multiple
-            disabled={busy}
             onChange={(e) => handleFiles(e.target.files)}
             className="sr-only"
           />
         </label>
       )}
 
-      {error && (
+      {error && !(limitReached && error === limitText) && (
         <p role="alert" className="mt-2 text-xs text-danger">
           {error}
         </p>

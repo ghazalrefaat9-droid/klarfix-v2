@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import { CalendarDays, Clock, Lock, Mail, MapPin, Phone, Ruler } from 'lucide-react'
+import { CalendarDays, Camera, Clock, DoorOpen, Lock, Mail, MapPin, Phone, Ruler } from 'lucide-react'
 import { callApi } from '@/lib/apiClient'
 import { useLang } from '@/components/LanguageProvider'
 
@@ -10,6 +10,8 @@ type PartnerRequest = {
   id: string
   service_type: string
   area_sqm: number | null
+  rooms: string | null
+  photos: string[]
   postcode: string
   city: string | null
   preferred_date: string | null
@@ -158,6 +160,16 @@ export default function PartnerRequests({ locale }: { locale: string }) {
             <Ruler className="h-4 w-4 shrink-0" /> {r.area_sqm} m²
           </span>
         ) : null}
+        {r.rooms ? (
+          <span className="flex items-center gap-1.5">
+            <DoorOpen className="h-4 w-4 shrink-0" /> {r.rooms} {t('Zimmer', 'غرف', 'rooms')}
+          </span>
+        ) : null}
+        {r.photos.length > 0 ? (
+          <span className="flex items-center gap-1.5">
+            <Camera className="h-4 w-4 shrink-0" /> {r.photos.length}
+          </span>
+        ) : null}
         {when(r) && (
           <span className="flex items-center gap-1.5">
             <CalendarDays className="h-4 w-4 shrink-0" /> {when(r)}
@@ -237,6 +249,7 @@ export default function PartnerRequests({ locale }: { locale: string }) {
             <dl className="grid gap-3 text-sm sm:grid-cols-2">
               <Field label={t('PLZ / Ort', 'الرمز البريدي / المدينة', 'Postcode / city')} value={place(selected)} />
               <Field label={t('Fläche', 'المساحة', 'Area')} value={selected.area_sqm ? `${selected.area_sqm} m²` : '–'} />
+              <Field label={t('Zimmer', 'الغرف', 'Rooms')} value={selected.rooms ?? '–'} />
               <Field label={t('Wunschtermin', 'الموعد المطلوب', 'Preferred date')} value={formatDate(selected.preferred_date) ?? '–'} />
               <Field
                 label={t('Uhrzeit', 'الوقت', 'Time')}
@@ -252,6 +265,24 @@ export default function PartnerRequests({ locale }: { locale: string }) {
               )}
               <Field label={t('Nachricht', 'رسالة', 'Message')} value={selected.note ?? '–'} wide />
             </dl>
+
+            {selected.photos.length > 0 && (
+              <div className="mt-4">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-primary/60">
+                  {t('Fotos', 'الصور', 'Photos')} ({selected.photos.length})
+                </p>
+                <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                  {selected.photos.map((url, i) => (
+                    <li key={url}>
+                      <a href={url} target="_blank" rel="noopener noreferrer" className="block aspect-square overflow-hidden rounded-lg ring-1 ring-primary/10 hover:ring-primary">
+                        {/* eslint-disable-next-line @next/next/no-img-element -- signed private storage URL */}
+                        <img src={url} alt={t(`Foto ${i + 1}`, `صورة ${i + 1}`, `Photo ${i + 1}`)} loading="lazy" className="h-full w-full object-cover" />
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             {selected.offer && (
               <div className="mt-5 rounded-xl bg-primary/5 p-4 text-sm">

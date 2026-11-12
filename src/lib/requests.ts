@@ -42,6 +42,8 @@ export type PartnerRequestView = {
   id: string
   service_type: string
   area_sqm: number | null
+  rooms: string | null
+  photos: string[]
   postcode: string
   city: string | null
   preferred_date: string | null
@@ -54,16 +56,27 @@ export type PartnerRequestView = {
   customer: { name: string | null; email: string; phone: string | null; address: string | null } | null
 }
 
-const LINE_PREFIX = /^(Adresse|Wunschtermin|Uhrzeit):\s*(.*)$/i
-// Private photo links (see /api/leads) are only for the admin, never shown to partners or in the offer view.
-const PHOTO_LINE = /^Foto \d+:\s*https?:\/\//i
+const LINE_PREFIX = /^(Adresse|Wunschtermin|Uhrzeit|Zimmer):\s*(.*)$/i
+// Signed links to the customer's private photos (see /api/leads); shown to partners as images, never in the note.
+const PHOTO_LINE = /^Foto \d+:\s*(https?:\/\/\S+)$/i
 
 // Older rows only have the address/date/time inside the free-text message ("Adresse: …\nWunschtermin: …").
+// Rooms and photo links are always stored there (see /api/leads).
 export function parseMessage(message: string | null) {
-  const fields: { address: string | null; date: string | null; time: string | null } = { address: null, date: null, time: null }
+  const fields: { address: string | null; date: string | null; time: string | null; rooms: string | null } = {
+    address: null,
+    date: null,
+    time: null,
+    rooms: null,
+  }
+  const photos: string[] = []
   const rest: string[] = []
   for (const line of (message ?? '').split('\n')) {
-    if (PHOTO_LINE.test(line.trim())) continue
+    const photo = PHOTO_LINE.exec(line.trim())
+    if (photo) {
+      photos.push(photo[1])
+      continue
+    }
     const m = LINE_PREFIX.exec(line.trim())
     if (!m) {
       rest.push(line)
@@ -72,9 +85,10 @@ export function parseMessage(message: string | null) {
     const key = m[1].toLowerCase()
     if (key === 'adresse') fields.address = m[2] || null
     else if (key === 'wunschtermin') fields.date = m[2] || null
+    else if (key === 'zimmer') fields.rooms = m[2] || null
     else fields.time = m[2] || null
   }
-  return { ...fields, note: rest.join('\n').trim() || null }
+  return { ...fields, photos, note: rest.join('\n').trim() || null }
 }
 
 // Removes contact data a customer may have typed into the free-text message.
@@ -135,6 +149,8 @@ export function toPartnerView(row: RequestRow, partnerId: string): PartnerReques
     id: row.id,
     service_type: row.service_type,
     area_sqm: row.area_sqm,
+    rooms: parsed.rooms,
+    photos: parsed.photos,
     postcode: row.postcode,
     city: row.city ?? cityFromAddress(address),
     preferred_date: row.preferred_date ?? parsed.date,

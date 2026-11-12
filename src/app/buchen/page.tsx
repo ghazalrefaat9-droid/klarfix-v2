@@ -3,10 +3,11 @@
 import { Suspense, useEffect, useRef, useState, type FormEvent } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { REINIGUNGSARTEN, reinigungsartText } from '@/lib/services'
-import { ANREDEN, ANREDE_LABELS, type LeadPayload } from '@/lib/leads'
+import { ANREDEN, ANREDE_LABELS, ROOM_OPTIONS, type LeadPayload } from '@/lib/leads'
 import { useLang } from '@/components/LanguageProvider'
 import AddressAutocomplete from '@/components/AddressAutocomplete'
 import PhotoUpload, { type LeadPhoto } from '@/components/PhotoUpload'
+import AreaPicker, { AREA_DEFAULT, isValidManualArea } from '@/components/AreaPicker'
 
 const inputClass =
   'mt-1 w-full rounded-lg border border-primary/20 bg-card px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-50'
@@ -23,8 +24,7 @@ const MESSAGE_CHIPS = [
   { de: 'Haustier', ar: 'حيوان أليف', en: 'Pet' },
 ] as const
 
-// "Musterstraße 12a" typed into the street field -> street "Musterstraße", house number "12a".
-const HOUSE_NUMBER_AT_END = /^(.*[^\d\s,].*?)[\s,]+(\d+\s?[a-zA-Z]?(?:\s?[-/]\s?\d+\s?[a-zA-Z]?)?)$/
+const hasHouseNumber = (street: string) => /\d/.test(street)
 
 async function lookupCity(postcode: string, signal: AbortSignal) {
   const res = await fetch(`https://openplzapi.org/de/Localities?postalCode=${postcode}`, { signal })
@@ -52,12 +52,10 @@ function BookingForm() {
     firma: '',
     email: '',
     phone: '',
-    street: '',
-    houseNumber: '',
+    strasseHausnummer: '',
     postcode: '',
     city: '',
     floor: '',
-    area: '',
     date: '',
     time: '',
     message: '',
@@ -76,22 +74,19 @@ function BookingForm() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [photos, setPhotos] = useState<LeadPhoto[]>([])
-  const [photosBusy, setPhotosBusy] = useState(false)
   const [streetTouched, setStreetTouched] = useState(false)
-  const [houseNumberTouched, setHouseNumberTouched] = useState(false)
+  const [areaSlider, setAreaSlider] = useState(AREA_DEFAULT)
+  const [areaManual, setAreaManual] = useState<string | null>(null)
+  const [areaManualTouched, setAreaManualTouched] = useState(false)
+  const [rooms, setRooms] = useState('')
   const dropdownRef = useRef<HTMLDivElement>(null)
-  const houseNumberRef = useRef<HTMLInputElement>(null)
   // Last city filled in automatically; a city typed by the user is never overwritten.
   const autoCityRef = useRef('')
 
+  const photosBusy = photos.some((p) => p.status === 'uploading')
   const houseNumberMessage = t('Bitte Hausnummer eingeben', 'يرجى إدخال رقم المنزل', 'Please enter a house number')
-  const houseNumberMissing = !form.houseNumber.trim()
   const showHouseNumberHint =
-    houseNumberMissing && (houseNumberTouched || (streetTouched && !!form.street.trim()))
-
-  useEffect(() => {
-    houseNumberRef.current?.setCustomValidity(houseNumberMissing ? houseNumberMessage : '')
-  }, [houseNumberMissing, houseNumberMessage])
+    streetTouched && !!form.strasseHausnummer.trim() && !hasHouseNumber(form.strasseHausnummer)
 
   useEffect(() => {
     const postcode = form.postcode.trim()
@@ -134,15 +129,6 @@ function BookingForm() {
   const isOther = serviceId === 'sonstiges'
   const isFirma = form.anrede === 'Firma'
 
-  function handleStreetBlur() {
-    setStreetTouched(true)
-    setForm((prev) => {
-      if (prev.houseNumber.trim()) return prev
-      const m = HOUSE_NUMBER_AT_END.exec(prev.street.trim())
-      return m ? { ...prev, street: m[1].trim(), houseNumber: m[2].replace(/\s+/g, '') } : prev
-    })
-  }
-
   function addChip(text: string) {
     setForm((prev) => {
       if (prev.message.includes(text)) return prev
@@ -155,9 +141,15 @@ function BookingForm() {
     e.preventDefault()
     setError('')
 
-    if (houseNumberMissing) {
-      setHouseNumberTouched(true)
-      houseNumberRef.current?.focus()
+    if (!hasHouseNumber(form.strasseHausnummer)) {
+      setStreetTouched(true)
+      document.getElementById('buchen-street')?.focus()
+      return
+    }
+
+    if (areaManual !== null && !isValidManualArea(areaManual)) {
+      setAreaManualTouched(true)
+      document.getElementById('buchen-area-manual')?.focus()
       return
     }
 
@@ -184,20 +176,17 @@ function BookingForm() {
       ...form,
       firma: isFirma ? form.firma : '',
       serviceId: selected.id,
+      area: areaManual ?? String(areaSlider),
+      rooms,
       isFlexible,
+      photoPaths: photos.flatMap((p) => (p.status === 'done' && p.path ? [p.path] : [])),
     }
 
-    let request: RequestInit
-    if (photos.length > 0) {
-      const data = new FormData()
-      data.append('data', JSON.stringify(payload))
-      photos.forEach((p, i) => data.append('photos', p.blob, `foto-${i + 1}.jpg`))
-      request = { method: 'POST', body: data }
-    } else {
-      request = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }
-    }
-
-    const res = await fetch('/api/leads', request).catch(() => null)
+    const res = await fetch('/api/leads', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }).catch(() => null)
 
     setLoading(false)
 
@@ -270,53 +259,31 @@ function BookingForm() {
       </div>
 
       <div className="space-y-5">
-        {/* Side by side only when there is enough room, stacked on narrow phones. */}
-        <div className="grid items-start gap-5 min-[420px]:grid-cols-[minmax(0,7fr)_minmax(0,3fr)] min-[420px]:gap-4">
-          <div className="block text-sm font-medium">
-            <label htmlFor="buchen-street">{t('Straße *', 'الشارع *', 'Street *')}</label>
-            <AddressAutocomplete
-              id="buchen-street"
-              required
-              placeholder={t('z.B. Musterstraße', 'مثال: Musterstraße', 'e.g. Musterstraße')}
-              value={form.street}
-              onChange={(street) => setForm((prev) => ({ ...prev, street }))}
-              onBlur={handleStreetBlur}
-              onSelect={(pick) => {
-                if (pick.city) autoCityRef.current = pick.city
-                setForm((prev) => ({
-                  ...prev,
-                  street: pick.road || pick.street || prev.street,
-                  houseNumber: pick.houseNumber || prev.houseNumber,
-                  postcode: pick.postcode || prev.postcode,
-                  city: pick.city || prev.city,
-                }))
-              }}
-              className={inputClass}
-            />
-          </div>
-          <div className="block text-sm font-medium">
-            <label htmlFor="buchen-house-number">{t('Hausnummer *', 'رقم المنزل *', 'House no. *')}</label>
-            <input
-              id="buchen-house-number"
-              ref={houseNumberRef}
-              required
-              autoComplete="off"
-              placeholder="12"
-              maxLength={10}
-              value={form.houseNumber}
-              onChange={update('houseNumber')}
-              onBlur={() => form.street.trim() && setHouseNumberTouched(true)}
-              onInvalid={() => setHouseNumberTouched(true)}
-              aria-invalid={showHouseNumberHint}
-              aria-describedby={showHouseNumberHint ? 'buchen-house-number-hint' : undefined}
-              className={`${inputClass} ${showHouseNumberHint ? 'border-danger focus:border-danger' : ''}`}
-            />
-            {showHouseNumberHint && (
-              <p id="buchen-house-number-hint" role="alert" className="mt-1 text-xs font-normal text-danger">
-                {houseNumberMessage}
-              </p>
-            )}
-          </div>
+        <div className="block text-sm font-medium">
+          <label htmlFor="buchen-street">{t('Straße und Hausnummer *', 'الشارع ورقم المنزل *', 'Street and house number *')}</label>
+          <AddressAutocomplete
+            id="buchen-street"
+            required
+            placeholder={t('z.B. Hauptstraße 12', 'مثال: Hauptstraße 12', 'e.g. Hauptstraße 12')}
+            value={form.strasseHausnummer}
+            onChange={(strasseHausnummer) => setForm((prev) => ({ ...prev, strasseHausnummer }))}
+            onBlur={() => setStreetTouched(true)}
+            onSelect={(pick) => {
+              if (pick.city) autoCityRef.current = pick.city
+              setForm((prev) => ({
+                ...prev,
+                strasseHausnummer: pick.street || prev.strasseHausnummer,
+                postcode: pick.postcode || prev.postcode,
+                city: pick.city || prev.city,
+              }))
+            }}
+            className={`${inputClass} ${showHouseNumberHint ? 'border-danger focus:border-danger' : ''}`}
+          />
+          {showHouseNumberHint && (
+            <p role="alert" className="mt-1 text-xs font-normal text-danger">
+              {houseNumberMessage}
+            </p>
+          )}
         </div>
 
         <div className="grid items-start gap-5 min-[360px]:grid-cols-2 min-[360px]:gap-4">
@@ -435,10 +402,41 @@ function BookingForm() {
         )}
       </section>
 
-      <label className="block text-sm font-medium">
-        {t('Fläche in m²', 'المساحة بالمتر المربع', 'Area in m²')}
-        <input type="number" min="1" value={form.area} onChange={update('area')} className={inputClass} />
-      </label>
+      <AreaPicker
+        slider={areaSlider}
+        manual={areaManual}
+        onSliderChange={setAreaSlider}
+        onManualChange={(value) => {
+          setAreaManual(value)
+          if (value === null) setAreaManualTouched(false)
+        }}
+        showManualError={areaManualTouched}
+      />
+
+      <section className="space-y-2">
+        <p id="buchen-rooms-label" className="text-sm font-medium">
+          {t('Anzahl Zimmer', 'عدد الغرف', 'Number of rooms')}
+        </p>
+        <div role="radiogroup" aria-labelledby="buchen-rooms-label" className="grid grid-cols-5 gap-2">
+          {ROOM_OPTIONS.map((r) => {
+            const active = rooms === r
+            return (
+              <button
+                key={r}
+                type="button"
+                role="radio"
+                aria-checked={active}
+                onClick={() => setRooms(active ? '' : r)}
+                className={`rounded-lg border py-2.5 text-sm font-semibold transition ${
+                  active ? 'border-primary bg-primary text-card' : 'border-primary/20 bg-card text-primary hover:bg-primary/5'
+                }`}
+              >
+                {r}
+              </button>
+            )
+          })}
+        </div>
+      </section>
 
       <section className="space-y-3">
         <div className="grid gap-5 sm:grid-cols-2">
@@ -538,7 +536,7 @@ function BookingForm() {
         </p>
       </section>
 
-      <PhotoUpload photos={photos} setPhotos={setPhotos} onBusyChange={setPhotosBusy} />
+      <PhotoUpload photos={photos} setPhotos={setPhotos} />
 
       {error && <p className="rounded-lg bg-background p-3 text-sm text-primary">{error}</p>}
 
@@ -549,7 +547,9 @@ function BookingForm() {
       >
         {loading
           ? t('Wird gesendet…', 'جارٍ الإرسال…', 'Sending…')
-          : t('Preis anfragen', 'اطلب السعر', 'Request a quote')}
+          : photosBusy
+            ? t('Fotos werden hochgeladen…', 'جارٍ رفع الصور…', 'Uploading photos…')
+            : t('Preis anfragen', 'اطلب السعر', 'Request a quote')}
       </button>
     </form>
   )

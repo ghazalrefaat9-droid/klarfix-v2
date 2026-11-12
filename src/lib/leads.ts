@@ -17,7 +17,7 @@ export function buildFullName(anrede: string, vorname: string, nachname: string,
   return person
 }
 
-// Payload sent from /buchen to POST /api/leads (as JSON, or as the "data" field of multipart form data with photos)
+// Payload sent from /buchen to POST /api/leads (JSON)
 export type LeadPayload = {
   anrede: string
   vorname: string
@@ -25,16 +25,20 @@ export type LeadPayload = {
   firma: string
   email: string
   phone: string
-  street: string
-  houseNumber: string
+  strasseHausnummer: string
   postcode: string
   city: string
   floor: string
   serviceId: string
   otherService: string
   area: string
+  rooms: string
   date: string
   time: string
   isFlexible: boolean
   message: string
+  // Storage paths of photos the browser already uploaded to the private bucket
+  photoPaths: string[]
 }
+
+export const ROOM_OPTIONS = ['1', '2', '3', '4', '5+'] as const
