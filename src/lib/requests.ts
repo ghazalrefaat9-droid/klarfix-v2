@@ -55,12 +55,15 @@ export type PartnerRequestView = {
 }
 
 const LINE_PREFIX = /^(Adresse|Wunschtermin|Uhrzeit):\s*(.*)$/i
+// Private photo links (see /api/leads) are only for the admin, never shown to partners or in the offer view.
+const PHOTO_LINE = /^Foto \d+:\s*https?:\/\//i
 
 // Older rows only have the address/date/time inside the free-text message ("Adresse: …\nWunschtermin: …").
 export function parseMessage(message: string | null) {
   const fields: { address: string | null; date: string | null; time: string | null } = { address: null, date: null, time: null }
   const rest: string[] = []
   for (const line of (message ?? '').split('\n')) {
+    if (PHOTO_LINE.test(line.trim())) continue
     const m = LINE_PREFIX.exec(line.trim())
     if (!m) {
       rest.push(line)

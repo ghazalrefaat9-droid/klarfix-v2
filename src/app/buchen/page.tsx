@@ -6,12 +6,32 @@ import { REINIGUNGSARTEN, reinigungsartText } from '@/lib/services'
 import { ANREDEN, ANREDE_LABELS, type LeadPayload } from '@/lib/leads'
 import { useLang } from '@/components/LanguageProvider'
 import AddressAutocomplete from '@/components/AddressAutocomplete'
+import PhotoUpload, { type LeadPhoto } from '@/components/PhotoUpload'
 
 const inputClass =
   'mt-1 w-full rounded-lg border border-primary/20 bg-card px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-50'
 
 const TIME_MIN = '08:00'
 const TIME_MAX = '20:00'
+
+// Inserted into the message field when the chip is clicked.
+const MESSAGE_CHIPS = [
+  { de: 'Grundreinigung', ar: 'تنظيف أساسي', en: 'Deep cleaning' },
+  { de: 'Endreinigung / Umzug', ar: 'تنظيف نهائي / انتقال', en: 'Move-out cleaning' },
+  { de: 'Fenster', ar: 'نوافذ', en: 'Windows' },
+  { de: 'Küche / Ofen', ar: 'مطبخ / فرن', en: 'Kitchen / oven' },
+  { de: 'Haustier', ar: 'حيوان أليف', en: 'Pet' },
+] as const
+
+// "Musterstraße 12a" typed into the street field -> street "Musterstraße", house number "12a".
+const HOUSE_NUMBER_AT_END = /^(.*[^\d\s,].*?)[\s,]+(\d+\s?[a-zA-Z]?(?:\s?[-/]\s?\d+\s?[a-zA-Z]?)?)$/
+
+async function lookupCity(postcode: string, signal: AbortSignal) {
+  const res = await fetch(`https://openplzapi.org/de/Localities?postalCode=${postcode}`, { signal })
+  if (!res.ok) return ''
+  const rows = (await res.json()) as { name?: string }[]
+  return rows[0]?.name ?? ''
+}
 
 // Accepts both ids ("wohnungsreinigung") and labels ("Wohnungsreinigung") from ?service=
 function findInitialService(param: string | null) {
@@ -32,8 +52,11 @@ function BookingForm() {
     firma: '',
     email: '',
     phone: '',
-    address: '',
+    street: '',
+    houseNumber: '',
     postcode: '',
+    city: '',
+    floor: '',
     area: '',
     date: '',
     time: '',
@@ -52,7 +75,41 @@ function BookingForm() {
   const [isFlexible, setIsFlexible] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [photos, setPhotos] = useState<LeadPhoto[]>([])
+  const [photosBusy, setPhotosBusy] = useState(false)
+  const [streetTouched, setStreetTouched] = useState(false)
+  const [houseNumberTouched, setHouseNumberTouched] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const houseNumberRef = useRef<HTMLInputElement>(null)
+  // Last city filled in automatically; a city typed by the user is never overwritten.
+  const autoCityRef = useRef('')
+
+  const houseNumberMessage = t('Bitte Hausnummer eingeben', 'يرجى إدخال رقم المنزل', 'Please enter a house number')
+  const houseNumberMissing = !form.houseNumber.trim()
+  const showHouseNumberHint =
+    houseNumberMissing && (houseNumberTouched || (streetTouched && !!form.street.trim()))
+
+  useEffect(() => {
+    houseNumberRef.current?.setCustomValidity(houseNumberMissing ? houseNumberMessage : '')
+  }, [houseNumberMissing, houseNumberMessage])
+
+  useEffect(() => {
+    const postcode = form.postcode.trim()
+    if (!/^\d{5}$/.test(postcode)) return
+    const ac = new AbortController()
+    lookupCity(postcode, ac.signal)
+      .then((city) => {
+        if (!city) return
+        setForm((prev) => {
+          if (prev.postcode.trim() !== postcode) return prev
+          if (prev.city.trim() && prev.city !== autoCityRef.current) return prev
+          autoCityRef.current = city
+          return { ...prev, city }
+        })
+      })
+      .catch(() => {})
+    return () => ac.abort()
+  }, [form.postcode])
 
   useEffect(() => {
     if (!isOpen) return
@@ -77,9 +134,32 @@ function BookingForm() {
   const isOther = serviceId === 'sonstiges'
   const isFirma = form.anrede === 'Firma'
 
+  function handleStreetBlur() {
+    setStreetTouched(true)
+    setForm((prev) => {
+      if (prev.houseNumber.trim()) return prev
+      const m = HOUSE_NUMBER_AT_END.exec(prev.street.trim())
+      return m ? { ...prev, street: m[1].trim(), houseNumber: m[2].replace(/\s+/g, '') } : prev
+    })
+  }
+
+  function addChip(text: string) {
+    setForm((prev) => {
+      if (prev.message.includes(text)) return prev
+      const current = prev.message.trimEnd()
+      return { ...prev, message: current ? `${current}, ${text}` : text }
+    })
+  }
+
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError('')
+
+    if (houseNumberMissing) {
+      setHouseNumberTouched(true)
+      houseNumberRef.current?.focus()
+      return
+    }
 
     if (!selected) {
       setError(t('Bitte wählen Sie eine Reinigungsart aus.', 'يرجى اختيار نوع التنظيف.', 'Please select a cleaning type.'))
@@ -107,11 +187,17 @@ function BookingForm() {
       isFlexible,
     }
 
-    const res = await fetch('/api/leads', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    }).catch(() => null)
+    let request: RequestInit
+    if (photos.length > 0) {
+      const data = new FormData()
+      data.append('data', JSON.stringify(payload))
+      photos.forEach((p, i) => data.append('photos', p.blob, `foto-${i + 1}.jpg`))
+      request = { method: 'POST', body: data }
+    } else {
+      request = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }
+    }
+
+    const res = await fetch('/api/leads', request).catch(() => null)
 
     setLoading(false)
 
@@ -181,27 +267,94 @@ function BookingForm() {
           {t('Telefon', 'الهاتف', 'Phone')}
           <input type="tel" value={form.phone} onChange={update('phone')} className={inputClass} />
         </label>
-        <div className="block text-sm font-medium">
-          <label htmlFor="buchen-address">{t('Adresse / Straße *', 'العنوان / الشارع *', 'Address / Street *')}</label>
-          <AddressAutocomplete
-            id="buchen-address"
-            required
-            placeholder={t(
-              'z.B. Musterstraße 12, 70173 Stuttgart',
-              'مثال: Musterstraße 12, 70173 Stuttgart',
-              'e.g. Musterstraße 12, 70173 Stuttgart',
+      </div>
+
+      <div className="space-y-5">
+        {/* Side by side only when there is enough room, stacked on narrow phones. */}
+        <div className="grid items-start gap-5 min-[420px]:grid-cols-[minmax(0,7fr)_minmax(0,3fr)] min-[420px]:gap-4">
+          <div className="block text-sm font-medium">
+            <label htmlFor="buchen-street">{t('Straße *', 'الشارع *', 'Street *')}</label>
+            <AddressAutocomplete
+              id="buchen-street"
+              required
+              placeholder={t('z.B. Musterstraße', 'مثال: Musterstraße', 'e.g. Musterstraße')}
+              value={form.street}
+              onChange={(street) => setForm((prev) => ({ ...prev, street }))}
+              onBlur={handleStreetBlur}
+              onSelect={(pick) => {
+                if (pick.city) autoCityRef.current = pick.city
+                setForm((prev) => ({
+                  ...prev,
+                  street: pick.road || pick.street || prev.street,
+                  houseNumber: pick.houseNumber || prev.houseNumber,
+                  postcode: pick.postcode || prev.postcode,
+                  city: pick.city || prev.city,
+                }))
+              }}
+              className={inputClass}
+            />
+          </div>
+          <div className="block text-sm font-medium">
+            <label htmlFor="buchen-house-number">{t('Hausnummer *', 'رقم المنزل *', 'House no. *')}</label>
+            <input
+              id="buchen-house-number"
+              ref={houseNumberRef}
+              required
+              autoComplete="off"
+              placeholder="12"
+              maxLength={10}
+              value={form.houseNumber}
+              onChange={update('houseNumber')}
+              onBlur={() => form.street.trim() && setHouseNumberTouched(true)}
+              onInvalid={() => setHouseNumberTouched(true)}
+              aria-invalid={showHouseNumberHint}
+              aria-describedby={showHouseNumberHint ? 'buchen-house-number-hint' : undefined}
+              className={`${inputClass} ${showHouseNumberHint ? 'border-danger focus:border-danger' : ''}`}
+            />
+            {showHouseNumberHint && (
+              <p id="buchen-house-number-hint" role="alert" className="mt-1 text-xs font-normal text-danger">
+                {houseNumberMessage}
+              </p>
             )}
-            value={form.address}
-            onChange={(address) => setForm((prev) => ({ ...prev, address }))}
-            onSelect={(pick) => {
-              if (pick.postcode) setForm((prev) => ({ ...prev, postcode: pick.postcode }))
-            }}
+          </div>
+        </div>
+
+        <div className="grid items-start gap-5 min-[360px]:grid-cols-2 min-[360px]:gap-4">
+          <label className="block text-sm font-medium">
+            {t('PLZ *', 'الرمز البريدي *', 'Postcode *')}
+            <input
+              required
+              inputMode="numeric"
+              autoComplete="postal-code"
+              maxLength={5}
+              placeholder="70173"
+              value={form.postcode}
+              onChange={update('postcode')}
+              className={inputClass}
+            />
+          </label>
+          <label className="block text-sm font-medium">
+            {t('Ort', 'المدينة', 'City')}
+            <input
+              autoComplete="address-level2"
+              placeholder="Stuttgart"
+              value={form.city}
+              onChange={update('city')}
+              className={inputClass}
+            />
+          </label>
+        </div>
+
+        <label className="block text-sm font-medium">
+          {t('Stockwerk / Wohnung', 'الطابق / الشقة', 'Floor / apartment')}{' '}
+          <span className="font-normal text-primary/60">- {t('optional', 'اختياري', 'optional')}</span>
+          <input
+            placeholder={t('z.B. 2. OG, Wohnung 5', 'مثال: الطابق 2، شقة 5', 'e.g. 2nd floor, apartment 5')}
+            maxLength={100}
+            value={form.floor}
+            onChange={update('floor')}
             className={inputClass}
           />
-        </div>
-        <label className="block text-sm font-medium">
-          {t('PLZ *', 'الرمز البريدي *', 'Postcode *')}
-          <input required value={form.postcode} onChange={update('postcode')} className={inputClass} />
         </label>
       </div>
 
@@ -330,16 +483,68 @@ function BookingForm() {
         </button>
       </section>
 
-      <label className="block text-sm font-medium">
-        {t('Nachricht', 'رسالة', 'Message')}
-        <textarea rows={4} value={form.message} onChange={update('message')} className={inputClass} />
-      </label>
+      <section className="space-y-2">
+        <label htmlFor="buchen-message" className="block text-sm font-medium">
+          {t('Nachricht', 'رسالة', 'Message')}
+        </label>
+        <p id="buchen-message-help" className="text-xs text-primary/60">
+          {t(
+            'Beschreiben Sie kurz Art der Reinigung + Details. Je genauer, desto besser und günstiger Ihr Festpreis.',
+            'صف باختصار نوع التنظيف والتفاصيل. كلما كان الوصف أدق، كان سعرك الثابت أفضل وأرخص.',
+            'Briefly describe the type of cleaning + details. The more precise, the better and cheaper your fixed price.',
+          )}
+        </p>
+        <div className="flex flex-wrap gap-2 pt-1">
+          {MESSAGE_CHIPS.map((chip) => {
+            const text = chip[lang]
+            const active = form.message.includes(text)
+            return (
+              <button
+                key={chip.de}
+                type="button"
+                onClick={() => addChip(text)}
+                aria-pressed={active}
+                className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+                  active
+                    ? 'border-primary bg-primary text-card'
+                    : 'border-primary/20 bg-card text-primary hover:bg-primary/5'
+                }`}
+              >
+                {active ? '✓ ' : '+ '}
+                {text}
+              </button>
+            )
+          })}
+        </div>
+        <textarea
+          id="buchen-message"
+          rows={4}
+          value={form.message}
+          onChange={update('message')}
+          aria-describedby="buchen-message-help buchen-message-note"
+          placeholder={t(
+            'z.B. Endreinigung nach Umzug, 2 Zimmer + Küche + Bad, Fenster innen, Ofen stark verschmutzt, Hund im Haushalt...',
+            'مثال: تنظيف نهائي بعد الانتقال، غرفتان + مطبخ + حمام، نوافذ من الداخل، فرن متسخ جداً، كلب في المنزل...',
+            'e.g. move-out cleaning, 2 rooms + kitchen + bathroom, windows inside, very dirty oven, dog in the household...',
+          )}
+          className={inputClass}
+        />
+        <p id="buchen-message-note" className="text-xs text-primary/60">
+          {t(
+            'Optional - aber hilft uns, Ihnen den besten Preis zu geben. Keine Überraschungen vor Ort.',
+            'اختياري - لكنه يساعدنا على تقديم أفضل سعر لك. بدون مفاجآت في الموقع.',
+            'Optional - but helps us give you the best price. No surprises on site.',
+          )}
+        </p>
+      </section>
+
+      <PhotoUpload photos={photos} setPhotos={setPhotos} onBusyChange={setPhotosBusy} />
 
       {error && <p className="rounded-lg bg-background p-3 text-sm text-primary">{error}</p>}
 
       <button
         type="submit"
-        disabled={loading}
+        disabled={loading || photosBusy}
         className="w-full rounded-lg bg-primary px-4 py-3 font-semibold text-card hover:bg-primary-hover disabled:opacity-60"
       >
         {loading

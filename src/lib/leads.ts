@@ -17,7 +17,7 @@ export function buildFullName(anrede: string, vorname: string, nachname: string,
   return person
 }
 
-// Payload sent from /buchen to POST /api/leads
+// Payload sent from /buchen to POST /api/leads (as JSON, or as the "data" field of multipart form data with photos)
 export type LeadPayload = {
   anrede: string
   vorname: string
@@ -25,8 +25,11 @@ export type LeadPayload = {
   firma: string
   email: string
   phone: string
-  address: string
+  street: string
+  houseNumber: string
   postcode: string
+  city: string
+  floor: string
   serviceId: string
   otherService: string
   area: string

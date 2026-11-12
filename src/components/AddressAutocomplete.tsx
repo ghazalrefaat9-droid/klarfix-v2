@@ -3,7 +3,15 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react'
 import { Loader2, MapPin } from 'lucide-react'
 
-export type AddressPick = { street: string; postcode: string; city: string; label: string }
+// street = road + house number; road/houseNumber are the separate parts.
+export type AddressPick = {
+  street: string
+  road: string
+  houseNumber: string
+  postcode: string
+  city: string
+  label: string
+}
 
 type Suggestion = AddressPick & { googlePlaceId?: string }
 
@@ -32,6 +40,7 @@ type Props = {
   value: string
   onChange: (text: string) => void
   onSelect: (pick: AddressPick) => void
+  onBlur?: () => void
   className?: string
   placeholder?: string
   required?: boolean
@@ -50,11 +59,12 @@ function parsePhoton(f: PhotonFeature): Suggestion | null {
   const p = f.properties
   if (p.countrycode && p.countrycode !== 'DE') return null
   const road = p.street ?? (p.type === 'street' ? p.name : undefined)
-  const street = road ? [road, p.housenumber].filter(Boolean).join(' ') : p.name ?? ''
+  const houseNumber = road ? p.housenumber ?? '' : ''
+  const street = road ? [road, houseNumber].filter(Boolean).join(' ') : p.name ?? ''
   const city = p.city ?? p.town ?? p.village ?? p.district ?? ''
   const postcode = p.postcode ?? ''
   const label = formatAddress(street, postcode, city)
-  return label ? { street, postcode, city, label } : null
+  return label ? { street, road: road ?? p.name ?? '', houseNumber, postcode, city, label } : null
 }
 
 async function searchPhoton(query: string, signal: AbortSignal): Promise<Suggestion[]> {
@@ -86,7 +96,15 @@ async function searchGoogle(query: string, signal: AbortSignal): Promise<Suggest
   return (data.suggestions ?? [])
     .flatMap((s) => (s.placePrediction ? [s.placePrediction] : []))
     .slice(0, 5)
-    .map((p) => ({ street: '', postcode: '', city: '', label: p.text?.text ?? '', googlePlaceId: p.placeId }))
+    .map((p) => ({
+      street: '',
+      road: '',
+      houseNumber: '',
+      postcode: '',
+      city: '',
+      label: p.text?.text ?? '',
+      googlePlaceId: p.placeId,
+    }))
 }
 
 // Google predictions don't include the postcode, so it is resolved on selection.
@@ -98,17 +116,20 @@ async function resolveGoogle(s: Suggestion): Promise<AddressPick> {
   if (!res.ok) return s
   const { addressComponents = [] } = (await res.json()) as { addressComponents?: GoogleAddressComponent[] }
   const get = (type: string) => addressComponents.find((c) => c.types.includes(type))?.longText ?? ''
-  const street = [get('route'), get('street_number')].filter(Boolean).join(' ')
+  const road = get('route')
+  const houseNumber = get('street_number')
+  const street = [road, houseNumber].filter(Boolean).join(' ')
   const postcode = get('postal_code')
   const city = get('locality') || get('postal_town')
   const label = street ? formatAddress(street, postcode, city) : s.label
-  return { street, postcode, city, label }
+  return { street, road, houseNumber, postcode, city, label }
 }
 
 export default function AddressAutocomplete({
   value,
   onChange,
   onSelect,
+  onBlur,
   className = '',
   placeholder,
   required,
@@ -120,6 +141,7 @@ export default function AddressAutocomplete({
   const [activeIndex, setActiveIndex] = useState(-1)
   const [query, setQuery] = useState('')
   const useGoogle = useRef(!!GOOGLE_KEY)
+  const inputRef = useRef<HTMLInputElement>(null)
   const listId = useId()
 
   useEffect(() => {
@@ -140,7 +162,8 @@ export default function AddressAutocomplete({
         }
         setAddressSuggestions(results)
         setActiveIndex(-1)
-        setShowSuggestions(true)
+        // Results can arrive after the user already left the field.
+        setShowSuggestions(document.activeElement === inputRef.current)
       } catch {
         if (!ac.signal.aborted) setAddressSuggestions([])
       } finally {
@@ -201,13 +224,17 @@ export default function AddressAutocomplete({
           className="pointer-events-none absolute left-3 top-1/2 mt-0.5 -translate-y-1/2 text-primary/60"
         />
         <input
+          ref={inputRef}
           id={id}
           value={value}
           required={required}
           onChange={(e) => handleChange(e.target.value)}
           onKeyDown={handleKeyDown}
           onFocus={() => addressSuggestions.length > 0 && setShowSuggestions(true)}
-          onBlur={() => setShowSuggestions(false)}
+          onBlur={() => {
+            setShowSuggestions(false)
+            onBlur?.()
+          }}
           autoComplete="off"
           placeholder={placeholder}
           role="combobox"
