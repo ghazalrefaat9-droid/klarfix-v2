@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { CalendarDays, Camera, Clock, DoorOpen, Lock, Mail, MapPin, Phone, Ruler } from 'lucide-react'
 import { callApi } from '@/lib/apiClient'
 import { useLang } from '@/components/LanguageProvider'
+import OrderSteps from '@/components/OrderSteps'
 
 // Mirrors PartnerRequestView in src/lib/requests.ts. `customer` is only sent by the API after the customer accepted.
 type PartnerRequest = {
@@ -143,6 +144,7 @@ export default function PartnerRequests({ locale }: { locale: string }) {
       onClick={() => openDetails(r)}
       className="block w-full min-w-0 rounded-xl bg-card p-5 text-start shadow-sm ring-1 ring-transparent transition hover:ring-primary"
     >
+      {isMine && <OrderSteps status={r.status} className="mb-4 border-b border-primary/10 pb-4" />}
       <div className="flex flex-wrap items-start justify-between gap-2">
         <h3 className="min-w-0 text-lg font-semibold">{r.service_type}</h3>
         {isMine && (

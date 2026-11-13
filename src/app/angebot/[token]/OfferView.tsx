@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { CheckCircle2, ShieldCheck, Star, XCircle } from 'lucide-react'
 import { useLang } from '@/components/LanguageProvider'
+import OrderSteps from '@/components/OrderSteps'
 
 type Offer = {
   status: string
@@ -113,6 +114,10 @@ export default function OfferView() {
     <main className="mx-auto max-w-lg px-4 py-10">
       <p className="text-sm font-medium uppercase tracking-wide text-primary/60">{t('Ihr Angebot', 'عرضك', 'Your offer')}</p>
       <h1 className="mt-1 text-2xl font-bold sm:text-3xl">{offer.service_type}</h1>
+
+      {offer.status !== 'offer_rejected' && (
+        <OrderSteps status={offer.status} className="mt-6 rounded-2xl bg-card p-4 shadow-sm" />
+      )}
 
       <section className="mt-6 rounded-2xl bg-card p-6 shadow-sm">
         <p className="text-sm text-primary/70">{t('Preis', 'السعر', 'Price')}</p>
