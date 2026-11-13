@@ -28,6 +28,7 @@ import {
 import { callApi, logout as logoutSession } from '@/lib/apiClient'
 import SettingsPanel from '@/components/admin/SettingsPanel'
 import { Modal, ModalButtons, PartnerList, type AdminPartner } from '@/components/admin/PartnersManager'
+import RequestPhotos, { splitPhotos } from '@/components/admin/RequestPhotos'
 
 type Request = {
   id: string
@@ -500,8 +501,14 @@ export default function AdminDashboardPage() {
                 <DetailField label="Anfrage-ID" value={detailRequest.id} />
               </DetailSection>
               <DetailSection title="Nachricht">
-                <DetailField label="Nachricht" value={detailRequest.message} wide />
+                <DetailField label="Nachricht" value={splitPhotos(detailRequest.message).text} wide />
               </DetailSection>
+              <section>
+                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#4B5563]">Fotos</h3>
+                <div className="rounded-[16px] bg-[#FFFFFF] p-4">
+                  <RequestPhotos photos={splitPhotos(detailRequest.message).photos} />
+                </div>
+              </section>
             </div>
           </DetailModal>
         )}
