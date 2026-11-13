@@ -19,13 +19,14 @@ type PartnerRequest = {
   preferred_time: string | null
   is_flexible: boolean
   note: string | null
-  status: 'new' | 'assigned' | 'offer_sent' | 'offer_accepted' | 'offer_rejected' | 'done'
+  status: 'new' | 'offer_pending' | 'assigned' | 'offer_sent' | 'offer_accepted' | 'offer_rejected' | 'done'
   created_at: string
   offer: { price: number; message: string | null; sent_at: string | null } | null
   customer: { name: string | null; email: string; phone: string | null; address: string | null } | null
 }
 
 const STATUS_STYLE: Record<string, string> = {
+  offer_pending: 'bg-[#FEF3C7] text-[#92400E]',
   offer_sent: 'bg-[#EDE9FE] text-[#5B21B6]',
   offer_accepted: 'bg-[#DCFCE7] text-[#166534]',
   assigned: 'bg-[#DCFCE7] text-[#166534]',
@@ -70,7 +71,8 @@ export default function PartnerRequests({ locale }: { locale: string }) {
 
   const statusLabel = (s: PartnerRequest['status']) =>
     ({
-      offer_sent: t('Angebot gesendet', 'تم إرسال العرض', 'Offer sent'),
+      offer_pending: t('Angebot gesendet', 'تم إرسال العرض', 'Offer sent'),
+      offer_sent: t('Beim Kunden', 'لدى العميل', 'With customer'),
       offer_accepted: t('Bestätigt', 'مؤكَّد', 'Confirmed'),
       assigned: t('Bestätigt', 'مؤكَّد', 'Confirmed'),
       done: t('Erledigt', 'منجز', 'Done'),
@@ -118,7 +120,7 @@ export default function PartnerRequests({ locale }: { locale: string }) {
       return
     }
     setSelected(null)
-    setNotice(t('Angebot gesendet! Der Kunde wurde per E-Mail informiert.', 'تم إرسال العرض! أُبلغ العميل بالبريد الإلكتروني.', 'Offer sent! The customer was notified by email.'))
+    setNotice(t('Angebot an KlarFix gesendet. Wir prüfen es und leiten es an den Kunden weiter.', 'تم إرسال العرض إلى KlarFix. سنراجعه ونرسله إلى العميل.', 'Offer sent to KlarFix. We review it and forward it to the customer.'))
     await load()
   }
 
@@ -183,6 +185,10 @@ export default function PartnerRequests({ locale }: { locale: string }) {
       {!isMine ? (
         <span className="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-card">
           <Send className="h-4 w-4" /> {t('Angebot senden', 'إرسال العرض', 'Send offer')}
+        </span>
+      ) : r.status === 'offer_pending' ? (
+        <span className="mt-4 inline-flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-4 py-2 text-sm font-semibold text-primary/70">
+          <Clock className="h-4 w-4" /> {t('Warten auf Admin', 'بانتظار الإدارة', 'Waiting for admin')}
         </span>
       ) : r.status === 'offer_sent' ? (
         <span className="mt-4 inline-flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-4 py-2 text-sm font-semibold text-primary/70">
@@ -299,6 +305,12 @@ export default function PartnerRequests({ locale }: { locale: string }) {
                   {t('Ihr Angebot', 'عرضك', 'Your offer')}: {formatPrice(selected.offer.price)}
                 </p>
                 {selected.offer.message && <p className="mt-1 whitespace-pre-line text-primary/80">{selected.offer.message}</p>}
+                {selected.status === 'offer_pending' && (
+                  <p className="mt-2 flex items-center gap-1.5 text-primary/70">
+                    <Clock className="h-4 w-4" />
+                    {t('Warten auf Admin. KlarFix prüft Ihr Angebot und leitet es an den Kunden weiter.', 'بانتظار الإدارة. تراجع KlarFix عرضك وترسله إلى العميل.', 'Waiting for admin. KlarFix reviews your offer and forwards it to the customer.')}
+                  </p>
+                )}
                 {selected.status === 'offer_sent' && (
                   <p className="mt-2 flex items-center gap-1.5 text-primary/70">
                     <Clock className="h-4 w-4" />

@@ -6,11 +6,13 @@ import { useLang } from '@/components/LanguageProvider'
 type StepState = 'done' | 'active' | 'todo'
 
 // Progress derived only from the existing request status:
-// offer_sent -> 1 done, 2 waiting | offer_accepted / assigned -> 1+2 done | done -> all done.
+// offer_pending (partner view: waiting for admin) -> 1 done | offer_sent -> 1 done, 2 waiting
+// offer_accepted / assigned -> 1+2 done | done -> all done.
 function stepStates(status: string): [StepState, StepState, StepState] {
   if (status === 'done') return ['done', 'done', 'done']
   if (status === 'offer_accepted' || status === 'assigned') return ['done', 'done', 'todo']
   if (status === 'offer_sent') return ['done', 'active', 'todo']
+  if (status === 'offer_pending') return ['done', 'todo', 'todo']
   return ['todo', 'todo', 'todo']
 }
 

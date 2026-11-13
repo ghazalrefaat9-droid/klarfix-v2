@@ -122,6 +122,16 @@ export async function POST(request: Request, ctx: RouteContext<'/api/offers/[tok
     return NextResponse.json({ error: 'Über dieses Angebot wurde bereits entschieden.' }, { status: 409 })
   }
 
+  if (action === 'reject') {
+    // The admin can then send another partner's pending offer for this request.
+    const { error: offerError } = await supabase
+      .from('partner_offers')
+      .update({ status: 'rejected' })
+      .eq('request_id', row.id)
+      .eq('partner_id', partnerId)
+    if (offerError) console.error('Partner offer reject update failed:', offerError.message)
+  }
+
   const partner = await loadPartner(partnerId)
   if (partner) {
     const dashboardUrl = `${siteUrl()}/partner/dashboard`

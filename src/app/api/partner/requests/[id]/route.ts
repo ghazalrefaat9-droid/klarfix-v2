@@ -2,9 +2,9 @@ import { after, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabaseServer'
 import { requirePartner } from '@/lib/session'
 import { readJson } from '@/lib/partnerAdmin'
-import { createSetupToken } from '@/lib/partnerSetup'
-import { sendOfferEmail } from '@/lib/offerMail'
+import { sendPartnerOfferToAdmin } from '@/lib/offerMail'
 import { OPEN_STATUSES, REQUEST_COLUMNS, inPartnerRegion, parseOffer, requestLocation, toPartnerView, type RequestRow } from '@/lib/requests'
+import { loadPendingOffer } from '@/lib/partnerOffers'
 import { siteUrl } from '@/lib/siteUrl'
 
 const isUuid = (v: string) => /^[0-9a-f-]{36}$/i.test(v)
@@ -40,10 +40,12 @@ export async function GET(_request: Request, ctx: RouteContext<'/api/partner/req
     inPartnerRegion(partner, requestLocation(row))
   if (!isMine && !openForPartner) return NextResponse.json({ error: 'Kein Zugriff auf diese Anfrage.' }, { status: 403 })
 
-  return NextResponse.json({ request: toPartnerView(row, partner.id) })
+  const pending = isMine ? null : await loadPendingOffer(id, partner.id)
+  return NextResponse.json({ request: toPartnerView(row, partner.id, pending) })
 }
 
-// Send an offer (price + description) for an open request. The customer gets an email with a one-time link.
+// Send an offer (price + message for the customer). It only goes to the admin: the request itself is not changed
+// and the customer is NOT contacted. The admin later forwards exactly one offer to the customer.
 export async function POST(request: Request, ctx: RouteContext<'/api/partner/requests/[id]'>) {
   const session = await verifiedPartner()
   if ('response' in session) return session.response
@@ -57,7 +59,7 @@ export async function POST(request: Request, ctx: RouteContext<'/api/partner/req
 
   const { data: row } = await supabase
     .from('requests')
-    .select('id, status, partner_id, rejected_partner_ids, customer_email, customer_name, service_type, deleted_at, postcode, city, customer_address, message')
+    .select('id, status, partner_id, rejected_partner_ids, service_type, deleted_at, postcode, city, customer_address, message')
     .eq('id', id)
     .maybeSingle()
   if (row && !inPartnerRegion(partner, requestLocation(row))) {
@@ -68,40 +70,32 @@ export async function POST(request: Request, ctx: RouteContext<'/api/partner/req
     return NextResponse.json({ error: 'Diese Anfrage ist nicht mehr verfügbar.' }, { status: 409 })
   }
 
-  const { token, hash } = createSetupToken()
-  // Conditional update: only succeeds if no other partner sent an offer in the meantime.
-  const { data: updated, error } = await supabase
-    .from('requests')
-    .update({
-      status: 'offer_sent',
-      partner_id: partner.id,
-      partner_price: offer.price,
-      partner_message: offer.message,
-      offer_token_hash: hash,
-      offer_sent_at: new Date().toISOString(),
-      offer_responded_at: null,
-    })
-    .eq('id', id)
-    .eq('status', row.status)
-    .is('partner_id', null)
-    .select('id')
-  if (error || !updated?.length) {
-    if (error) console.error('Offer update failed:', error.message)
-    return NextResponse.json({ error: 'Diese Anfrage ist nicht mehr verfügbar.' }, { status: 409 })
+  const { error } = await supabase.from('partner_offers').insert({
+    request_id: id,
+    partner_id: partner.id,
+    price: offer.price,
+    message: offer.message,
+    status: 'pending',
+  })
+  if (error) {
+    // 23505 = unique (request_id, partner_id): this partner already sent an offer.
+    if (error.code === '23505') {
+      return NextResponse.json({ error: 'Sie haben für diese Anfrage bereits ein Angebot gesendet.' }, { status: 409 })
+    }
+    console.error('Partner offer insert failed:', error.message)
+    return NextResponse.json({ error: 'Angebot konnte nicht gespeichert werden.' }, { status: 500 })
   }
 
-  // Fixed base URL: the partner sends this request, so its Host header must not decide where the customer's token goes.
-  const offerUrl = `${siteUrl()}/angebot/${token}`
+  const adminUrl = `${siteUrl()}/admin/dashboard`
   after(() =>
-    sendOfferEmail({
-      to: row.customer_email,
-      customerName: row.customer_name,
-      companyName: partner.company_name || null,
+    sendPartnerOfferToAdmin({
+      companyName: partner.company_name,
       service: row.service_type,
+      postcode: row.postcode,
       price: offer.price,
       message: offer.message,
-      offerUrl,
-    }).catch((err) => console.error('Offer email failed', err)),
+      adminUrl,
+    }).catch((err) => console.error('Partner offer admin email failed', err)),
   )
   return NextResponse.json({ ok: true })
 }

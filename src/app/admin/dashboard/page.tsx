@@ -9,6 +9,7 @@ import {
   Bell,
   Calendar,
   CheckCircle,
+  Clock,
   FileText,
   Inbox,
   LogOut,
@@ -29,6 +30,7 @@ import { callApi, logout as logoutSession } from '@/lib/apiClient'
 import SettingsPanel from '@/components/admin/SettingsPanel'
 import { Modal, ModalButtons, PartnerList, type AdminPartner } from '@/components/admin/PartnersManager'
 import RequestPhotos, { splitPhotos } from '@/components/admin/RequestPhotos'
+import PartnerOffersModal, { PartnerOffersButton } from '@/components/admin/PartnerOffers'
 
 type Request = {
   id: string
@@ -44,6 +46,7 @@ type Request = {
   partner_price: number | null
   partner_message: string | null
   created_at: string
+  pending_offers?: number
 }
 
 type PartnerOption = { id: string; company_name: string }
@@ -225,6 +228,7 @@ export default function AdminDashboardPage() {
   const [deleteTarget, setDeleteTarget] = useState<Request | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [partnerReloadKey, setPartnerReloadKey] = useState(0)
+  const [offersRequest, setOffersRequest] = useState<Request | null>(null)
 
   const loadData = useCallback(async () => {
     const res = await callApi<{
@@ -425,6 +429,17 @@ export default function AdminDashboardPage() {
                           </p>
                         </div>
                       </div>
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <PartnerOffersButton
+                          count={r.status === 'new' || r.status === 'offer_rejected' ? (r.pending_offers ?? 0) : 0}
+                          onClick={() => setOffersRequest(r)}
+                        />
+                        {r.status === 'offer_sent' && (
+                          <span className="flex min-h-[44px] items-center gap-1.5 rounded-xl bg-[#EDE9FE] px-3 text-[13px] font-semibold text-[#5B21B6]">
+                            <Clock className="h-4 w-4" /> Warten auf Kunde
+                          </span>
+                        )}
+                      </div>
                       <div className="mt-3 flex gap-2">
                         <select
                           value={r.partner_id ?? ''}
@@ -477,6 +492,20 @@ export default function AdminDashboardPage() {
         >
           <Settings className="h-5 w-5" />
         </button>
+
+        {offersRequest && (
+          <PartnerOffersModal
+            requestId={offersRequest.id}
+            title={`${offersRequest.service_type} · ${offersRequest.postcode} · ${new Date(offersRequest.created_at).toLocaleDateString('de-DE')}`}
+            requestStatus={offersRequest.status}
+            onClose={() => setOffersRequest(null)}
+            onSent={async () => {
+              setOffersRequest(null)
+              setMessage('Angebot an den Kunden gesendet. Warten auf Kunde.')
+              await loadData()
+            }}
+          />
+        )}
 
         {detailRequest && (
           <DetailModal

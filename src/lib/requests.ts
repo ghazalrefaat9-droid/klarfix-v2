@@ -50,7 +50,8 @@ export type PartnerRequestView = {
   preferred_time: string | null
   is_flexible: boolean
   note: string | null
-  status: RequestStatus
+  // offer_pending = this partner sent an offer that waits for the admin (only in the partner view)
+  status: RequestStatus | 'offer_pending'
   created_at: string
   offer: { price: number; message: string | null; sent_at: string | null } | null
   customer: { name: string | null; email: string; phone: string | null; address: string | null } | null
@@ -139,11 +140,16 @@ export function inPartnerRegion(partner: Location, request: Location) {
   return !!partnerArea && partnerArea === postcodeArea(request.postcode)
 }
 
-export function toPartnerView(row: RequestRow, partnerId: string): PartnerRequestView {
+export function toPartnerView(
+  row: RequestRow,
+  partnerId: string,
+  pendingOffer: { price: number; message: string | null; created_at: string } | null = null,
+): PartnerRequestView {
   const parsed = parseMessage(row.message)
   const isMine = row.partner_id === partnerId
   const reveal = isMine && REVEAL_STATUSES.includes(row.status)
   const address = row.customer_address ?? parsed.address
+  const pending = !isMine && pendingOffer !== null
 
   return {
     id: row.id,
@@ -159,10 +165,11 @@ export function toPartnerView(row: RequestRow, partnerId: string): PartnerReques
     // Before the customer accepted, contact data typed into the message is masked too.
     note: parsed.note ? (reveal ? parsed.note : redactContact(parsed.note)) : null,
     // Other partners' offer history (e.g. "offer_rejected") is not shown; for them the request is simply open.
-    status: isMine ? row.status : 'new',
+    status: isMine ? row.status : pending ? 'offer_pending' : 'new',
     created_at: row.created_at,
-    offer:
-      isMine && row.partner_price !== null
+    offer: pending
+      ? { price: pendingOffer.price, message: pendingOffer.message, sent_at: pendingOffer.created_at }
+      : isMine && row.partner_price !== null
         ? { price: Number(row.partner_price), message: row.partner_message, sent_at: row.offer_sent_at }
         : null,
     customer: reveal
