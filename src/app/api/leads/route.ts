@@ -5,7 +5,7 @@ import { loadAdmin } from '@/lib/adminAuth'
 import { sendMail } from '@/lib/mailer'
 import { sendWhatsApp } from '@/lib/whatsapp'
 import { REINIGUNGSARTEN } from '@/lib/services'
-import { ANREDEN, ROOM_OPTIONS, buildFullName } from '@/lib/leads'
+import { ANREDEN, buildFullName } from '@/lib/leads'
 import { cityFromAddress } from '@/lib/requests'
 import { cleanPhotoPaths, deleteExpiredLeadPhotos, signLeadPhotos } from '@/lib/leadPhotosServer'
 
@@ -79,8 +79,8 @@ function parse(body: Record<string, unknown>): Lead | null {
   const areaNum = Number(str(body.area, 10))
   const areaSqm =
     Number.isInteger(areaNum) && areaNum >= AREA_MIN && areaNum <= AREA_MAX ? areaNum : null
-  const roomsRaw = str(body.rooms, 5)
-  const rooms = (ROOM_OPTIONS as readonly string[]).includes(roomsRaw) ? roomsRaw : null
+  const roomsNum = Number(str(body.rooms, 3))
+  const rooms = Number.isInteger(roomsNum) && roomsNum >= 1 && roomsNum <= 50 ? String(roomsNum) : null
   const dateRaw = str(body.date, 10)
   const date = /^\d{4}-\d{2}-\d{2}$/.test(dateRaw) ? dateRaw : null
   const isFlexible = body.isFlexible === true

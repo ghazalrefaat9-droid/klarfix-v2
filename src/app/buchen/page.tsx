@@ -3,11 +3,17 @@
 import { Suspense, useEffect, useRef, useState, type FormEvent } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { REINIGUNGSARTEN, reinigungsartText } from '@/lib/services'
-import { ANREDEN, ANREDE_LABELS, ROOM_OPTIONS, type LeadPayload } from '@/lib/leads'
+import { ANREDEN, ANREDE_LABELS, type LeadPayload } from '@/lib/leads'
 import { useLang } from '@/components/LanguageProvider'
 import AddressAutocomplete from '@/components/AddressAutocomplete'
 import PhotoUpload, { type LeadPhoto } from '@/components/PhotoUpload'
-import AreaPicker, { AREA_DEFAULT, isValidManualArea } from '@/components/AreaPicker'
+import SliderPicker, {
+  AREA_CONFIG,
+  AREA_DEFAULT,
+  ROOMS_CONFIG,
+  ROOMS_DEFAULT,
+  isValidManual,
+} from '@/components/SliderPicker'
 
 const inputClass =
   'mt-1 w-full rounded-lg border border-primary/20 bg-card px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-50'
@@ -78,7 +84,9 @@ function BookingForm() {
   const [areaSlider, setAreaSlider] = useState(AREA_DEFAULT)
   const [areaManual, setAreaManual] = useState<string | null>(null)
   const [areaManualTouched, setAreaManualTouched] = useState(false)
-  const [rooms, setRooms] = useState('')
+  const [roomsSlider, setRoomsSlider] = useState(ROOMS_DEFAULT)
+  const [roomsManual, setRoomsManual] = useState<string | null>(null)
+  const [roomsManualTouched, setRoomsManualTouched] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   // Last city filled in automatically; a city typed by the user is never overwritten.
   const autoCityRef = useRef('')
@@ -147,9 +155,15 @@ function BookingForm() {
       return
     }
 
-    if (areaManual !== null && !isValidManualArea(areaManual)) {
+    if (areaManual !== null && !isValidManual(areaManual, AREA_CONFIG)) {
       setAreaManualTouched(true)
       document.getElementById('buchen-area-manual')?.focus()
+      return
+    }
+
+    if (roomsManual !== null && !isValidManual(roomsManual, ROOMS_CONFIG)) {
+      setRoomsManualTouched(true)
+      document.getElementById('buchen-rooms-manual')?.focus()
       return
     }
 
@@ -177,7 +191,7 @@ function BookingForm() {
       firma: isFirma ? form.firma : '',
       serviceId: selected.id,
       area: areaManual ?? String(areaSlider),
-      rooms,
+      rooms: roomsManual ?? String(roomsSlider),
       isFlexible,
       photoPaths: photos.flatMap((p) => (p.status === 'done' && p.path ? [p.path] : [])),
     }
@@ -402,7 +416,11 @@ function BookingForm() {
         )}
       </section>
 
-      <AreaPicker
+      <SliderPicker
+        id="buchen-area"
+        label={t('Fläche', 'المساحة', 'Area')}
+        unit="m²"
+        config={AREA_CONFIG}
         slider={areaSlider}
         manual={areaManual}
         onSliderChange={setAreaSlider}
@@ -410,33 +428,29 @@ function BookingForm() {
           setAreaManual(value)
           if (value === null) setAreaManualTouched(false)
         }}
+        manualPlaceholder={t('z.B. 450', 'مثال: 450', 'e.g. 450')}
+        manualHelp={t('Größer als 300 m²? Bitte genaue Fläche eingeben.', 'أكبر من 300 م²؟ يرجى إدخال المساحة الدقيقة.', 'Larger than 300 m²? Please enter the exact area.')}
+        manualError={t('Bitte eine Fläche zwischen 301 und 5000 m² eingeben.', 'يرجى إدخال مساحة بين 301 و 5000 م².', 'Please enter an area between 301 and 5000 m².')}
         showManualError={areaManualTouched}
       />
 
-      <section className="space-y-2">
-        <p id="buchen-rooms-label" className="text-sm font-medium">
-          {t('Anzahl Zimmer', 'عدد الغرف', 'Number of rooms')}
-        </p>
-        <div role="radiogroup" aria-labelledby="buchen-rooms-label" className="grid grid-cols-5 gap-2">
-          {ROOM_OPTIONS.map((r) => {
-            const active = rooms === r
-            return (
-              <button
-                key={r}
-                type="button"
-                role="radio"
-                aria-checked={active}
-                onClick={() => setRooms(active ? '' : r)}
-                className={`rounded-lg border py-2.5 text-sm font-semibold transition ${
-                  active ? 'border-primary bg-primary text-card' : 'border-primary/20 bg-card text-primary hover:bg-primary/5'
-                }`}
-              >
-                {r}
-              </button>
-            )
-          })}
-        </div>
-      </section>
+      <SliderPicker
+        id="buchen-rooms"
+        label={t('Anzahl Zimmer', 'عدد الغرف', 'Number of rooms')}
+        unit={t('Zimmer', 'غرف', 'rooms')}
+        config={ROOMS_CONFIG}
+        slider={roomsSlider}
+        manual={roomsManual}
+        onSliderChange={setRoomsSlider}
+        onManualChange={(value) => {
+          setRoomsManual(value)
+          if (value === null) setRoomsManualTouched(false)
+        }}
+        manualPlaceholder={t('z.B. 7', 'مثال: 7', 'e.g. 7')}
+        manualHelp={t('Mehr als 5 Zimmer? Bitte genaue Anzahl eingeben.', 'أكثر من 5 غرف؟ يرجى إدخال العدد الدقيق.', 'More than 5 rooms? Please enter the exact number.')}
+        manualError={t('Bitte eine Anzahl zwischen 6 und 50 Zimmern eingeben.', 'يرجى إدخال عدد بين 6 و 50 غرفة.', 'Please enter a number between 6 and 50 rooms.')}
+        showManualError={roomsManualTouched}
+      />
 
       <section className="space-y-3">
         <div className="grid gap-5 sm:grid-cols-2">

@@ -40,5 +40,3 @@ export type LeadPayload = {
   // Storage paths of photos the browser already uploaded to the private bucket
   photoPaths: string[]
 }
-
-export const ROOM_OPTIONS = ['1', '2', '3', '4', '5+'] as const
