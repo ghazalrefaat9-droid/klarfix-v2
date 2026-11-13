@@ -96,6 +96,7 @@ export async function POST(request: Request, ctx: RouteContext<'/api/partner/req
     sendOfferEmail({
       to: row.customer_email,
       customerName: row.customer_name,
+      companyName: partner.company_name || null,
       service: row.service_type,
       price: offer.price,
       message: offer.message,

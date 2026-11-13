@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import { CalendarDays, Camera, Clock, DoorOpen, Lock, Mail, MapPin, Phone, Ruler } from 'lucide-react'
+import { CalendarDays, Camera, Clock, DoorOpen, Lock, Mail, MapPin, Phone, Ruler, Send } from 'lucide-react'
 import { callApi } from '@/lib/apiClient'
 import { useLang } from '@/components/LanguageProvider'
 import OrderSteps from '@/components/OrderSteps'
@@ -179,11 +179,18 @@ export default function PartnerRequests({ locale }: { locale: string }) {
         )}
       </div>
       {isMine && r.offer && <p className="mt-2 text-sm font-semibold text-primary">{formatPrice(r.offer.price)}</p>}
-      <p className="mt-3 text-sm font-medium text-primary">
-        {isMine
-          ? t('Details anzeigen →', 'عرض التفاصيل ←', 'View details →')
-          : t('Angebot abgeben →', 'تقديم عرض ←', 'Make an offer →')}
-      </p>
+      {/* The whole card is the button (opens the offer form / details), so these are styled spans, not nested buttons. */}
+      {!isMine ? (
+        <span className="mt-4 inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-card">
+          <Send className="h-4 w-4" /> {t('Angebot senden', 'إرسال العرض', 'Send offer')}
+        </span>
+      ) : r.status === 'offer_sent' ? (
+        <span className="mt-4 inline-flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-4 py-2 text-sm font-semibold text-primary/70">
+          <Clock className="h-4 w-4" /> {t('Warten auf Kunde', 'بانتظار العميل', 'Waiting for customer')}
+        </span>
+      ) : (
+        <p className="mt-3 text-sm font-medium text-primary">{t('Details anzeigen →', 'عرض التفاصيل ←', 'View details →')}</p>
+      )}
     </button>
   )
 
@@ -324,7 +331,7 @@ export default function PartnerRequests({ locale }: { locale: string }) {
                   />
                 </label>
                 <label className="block text-sm font-medium">
-                  {t('Dauer / Beschreibung', 'المدة / الوصف', 'Duration / description')}
+                  {t('Nachricht an Kunde (optional)', 'رسالة إلى العميل (اختياري)', 'Message to customer (optional)')}
                   <textarea
                     value={offerText}
                     onChange={(e) => setOfferText(e.target.value)}

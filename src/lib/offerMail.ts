@@ -6,23 +6,27 @@ const escapeHtml = (v: string) => v.replace(/&/g, '&amp;').replace(/</g, '&lt;')
 const button = (href: string, label: string) =>
   `<a href="${escapeHtml(href)}" style="display:inline-block;padding:12px 20px;background:#1B4332;color:#FAF3EB;text-decoration:none;border-radius:8px;font-weight:bold">${escapeHtml(label)}</a>`
 
-// Offer email to the customer. Contains no partner contact data; the customer decides on the /angebot page.
+// Offer email to the customer: partner company name, price and message. Phone/email of the partner stay hidden;
+// the customer accepts or rejects on the /angebot page.
 export async function sendOfferEmail(opts: {
   to: string
   customerName: string | null
+  companyName: string | null
   service: string
   price: number
   message: string | null
   offerUrl: string
 }) {
   const greeting = opts.customerName ? `Guten Tag ${opts.customerName},` : 'Guten Tag,'
+  const from = opts.companyName ? ` von ${opts.companyName}` : ''
   const text = [
     greeting,
     ``,
-    `Sie haben ein Angebot für Ihre Anfrage „${opts.service}“ erhalten:`,
+    `Sie haben ein Angebot${from} für Ihre Anfrage „${opts.service}“ erhalten:`,
     ``,
+    ...(opts.companyName ? [`Partner: ${opts.companyName}`] : []),
     `Preis: ${formatEuro(opts.price)}`,
-    ...(opts.message ? [`Details: ${opts.message}`] : []),
+    ...(opts.message ? [`Nachricht: ${opts.message}`] : []),
     ``,
     `Angebot ansehen, annehmen oder ablehnen:`,
     opts.offerUrl,
@@ -31,13 +35,14 @@ export async function sendOfferEmail(opts: {
   ].join('\n')
   const html = `
     <p>${escapeHtml(greeting)}</p>
-    <p>Sie haben ein Angebot für Ihre Anfrage <strong>„${escapeHtml(opts.service)}“</strong> erhalten:</p>
+    <p>Sie haben ein Angebot${escapeHtml(from)} für Ihre Anfrage <strong>„${escapeHtml(opts.service)}“</strong> erhalten:</p>
+    ${opts.companyName ? `<p style="margin:12px 0 0;color:#1B4332">Partner: <strong>${escapeHtml(opts.companyName)}</strong></p>` : ''}
     <p style="font-size:22px;font-weight:bold;color:#1B4332;margin:12px 0">${escapeHtml(formatEuro(opts.price))}</p>
     ${opts.message ? `<p style="white-space:pre-wrap">${escapeHtml(opts.message)}</p>` : ''}
-    <p>${button(opts.offerUrl, 'Angebot ansehen & annehmen')}</p>
-    <p style="font-size:13px;opacity:.75">Sie können das Angebot über den Link auch ablehnen.</p>
+    <p>${button(opts.offerUrl, 'Angebot ansehen')}</p>
+    <p style="font-size:13px;opacity:.75">Über den Link können Sie das Angebot annehmen oder ablehnen.</p>
     <p>${escapeHtml(CAMPAIGN_TEXT)}</p>`
-  await sendMail(opts.to, `${SITE_NAME}: Neues Angebot für Ihre Anfrage`, text, html)
+  await sendMail(opts.to, `Neues Angebot für Ihre Reinigung - ${SITE_NAME}`, text, html)
 }
 
 export async function sendDecisionToPartner(opts: {
