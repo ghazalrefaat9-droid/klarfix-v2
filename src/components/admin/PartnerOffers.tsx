@@ -21,7 +21,7 @@ const dateTime = (iso: string) =>
   new Date(iso).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 
 const BADGE: Record<Offer['status'], { label: string; className: string }> = {
-  pending: { label: 'Wartet auf Admin', className: 'bg-[#FEF3C7] text-[#92400E]' },
+  pending: { label: 'Wartet auf Admin', className: 'bg-[#F2E7E0] text-[#A65F33]' },
   sent: { label: 'An Kunde gesendet', className: 'bg-[#DCFCE7] text-[#166534]' },
   rejected: { label: 'Vom Kunden abgelehnt', className: 'bg-[#FEE2E2] text-[#991B1B]' },
 }

@@ -26,7 +26,7 @@ type PartnerRequest = {
 }
 
 const STATUS_STYLE: Record<string, string> = {
-  offer_pending: 'bg-[#FEF3C7] text-[#92400E]',
+  offer_pending: 'bg-[#F2E7E0] text-[#A65F33]',
   offer_sent: 'bg-[#EDE9FE] text-[#5B21B6]',
   offer_accepted: 'bg-[#DCFCE7] text-[#166534]',
   assigned: 'bg-[#DCFCE7] text-[#166534]',

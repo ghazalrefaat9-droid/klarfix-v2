@@ -61,7 +61,7 @@ const TABS: { key: Tab; label: string; icon: LucideIcon }[] = [
 ]
 
 const STATUS: Record<string, { label: string; className: string }> = {
-  new: { label: 'Neu', className: 'bg-[#FEF3C7] text-[#92400E]' },
+  new: { label: 'Neu', className: 'bg-[#F2E7E0] text-[#A65F33]' },
   assigned: { label: 'Zugewiesen', className: 'bg-[#DBEAFE] text-[#1E40AF]' },
   offer_sent: { label: 'Angebot gesendet', className: 'bg-[#EDE9FE] text-[#5B21B6]' },
   offer_accepted: { label: 'Bestätigt', className: 'bg-[#DCFCE7] text-[#166534]' },
@@ -486,7 +486,7 @@ export default function AdminDashboardPage() {
           {tab === 'stats' && (
             <div className="grid gap-3 sm:grid-cols-3">
               <StatCard icon={TrendingUp} label="Anfragen gesamt" value={stats.total} iconClass="bg-[#A8D5A2]/50 text-[#1A4D2E]" />
-              <StatCard icon={Bell} label="Offene Anfragen" value={stats.new} iconClass="bg-[#FEF3C7] text-[#B45309]" />
+              <StatCard icon={Bell} label="Offene Anfragen" value={stats.new} iconClass="bg-[#F2E7E0] text-[#A65F33]" />
               <StatCard icon={CheckCircle} label="In Bearbeitung" value={stats.assigned} iconClass="bg-[#DBEAFE] text-[#1D4ED8]" />
             </div>
           )}

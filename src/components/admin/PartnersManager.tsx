@@ -339,7 +339,7 @@ function PartnerCard({
                 <ShieldCheck className="h-3.5 w-3.5" /> Verifiziert
               </span>
             ) : (
-              <span className="rounded-full bg-[#FEF3C7] px-2 py-0.5 text-[11px] font-semibold text-[#92400E]">Ausstehend</span>
+              <span className="rounded-full bg-[#F2E7E0] px-2 py-0.5 text-[11px] font-semibold text-[#A65F33]">Ausstehend</span>
             )}
             {p.hourly_rate !== null && (
               <span className="rounded-full bg-[#F5F5F0] px-2 py-0.5 text-[11px] font-medium text-[#4B5563]">{p.hourly_rate} €/Std.</span>
