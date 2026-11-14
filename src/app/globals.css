@@ -56,3 +56,17 @@ select,
 textarea {
   accent-color: var(--primary);
 }
+
+/* Admin bell: shakes 3x when new notifications arrive (see AdminNotifications.tsx) */
+@keyframes klarfix-bell-shake {
+  0%, 100% { transform: rotate(0); }
+  8%, 38%, 68% { transform: rotate(16deg); }
+  23%, 53%, 83% { transform: rotate(-16deg); }
+}
+.klarfix-bell-shake {
+  transform-origin: 50% 10%;
+  animation: klarfix-bell-shake 0.9s ease-in-out 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .klarfix-bell-shake { animation: none; }
+}

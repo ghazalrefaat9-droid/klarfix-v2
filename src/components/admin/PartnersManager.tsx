@@ -19,8 +19,10 @@ import {
   X,
 } from 'lucide-react'
 import { callApi as requestApi } from '@/lib/apiClient'
+import { refreshAdminNotifications } from '@/lib/notificationsClient'
 import { CLEANING_TYPES } from '@/lib/applications'
 import ChatBox, { type ChatLabels } from '@/components/ChatBox'
+import AdminNotifications from '@/components/admin/AdminNotifications'
 import { LocationTag, SearchFeedback, SearchInput, useDebounced } from '@/components/admin/PartnerSearch'
 import { regionOf } from '@/lib/regions'
 import { firstPostcodeToken, matchesSearch, suggestRegions, tokenize, type SearchFields } from '@/lib/partnerSearch'
@@ -442,11 +444,21 @@ export function PartnerList({
   reloadKey = 0,
   onOpenDetails,
   onChanged,
+  openChatId = null,
+  openDetailsId = null,
+  unreadFirst = false,
+  onDeepLinkHandled,
 }: {
   initialView?: PartnerView
   reloadKey?: number
   onOpenDetails?: (partner: AdminPartner) => void
   onChanged?: () => void
+  // From the admin bell: open this partner's chat / details once the list is loaded.
+  openChatId?: string | null
+  openDetailsId?: string | null
+  // From the chat icon: partners with unread messages first.
+  unreadFirst?: boolean
+  onDeepLinkHandled?: () => void
 }) {
   const view = initialView
   const [partners, setPartners] = useState<AdminPartner[]>([])
@@ -492,7 +504,25 @@ export function PartnerList({
   const query = useDebounced(search, 200)
   const tokens = useMemo(() => tokenize(query), [query])
 
-  const visible = useMemo(() => partners.filter((p) => matchesSearch(partnerFields(p), tokens)), [partners, tokens])
+  const visible = useMemo(() => {
+    const list = partners.filter((p) => matchesSearch(partnerFields(p), tokens))
+    return unreadFirst ? [...list].sort((a, b) => (unread[b.id] ?? 0) - (unread[a.id] ?? 0)) : list
+  }, [partners, tokens, unreadFirst, unread])
+
+  // Bell deep links: open the chat or the details of one partner as soon as the list has loaded.
+  useEffect(() => {
+    if (loading || (!openChatId && !openDetailsId)) return
+    const target = partners.find((p) => p.id === (openChatId ?? openDetailsId))
+    const id = requestAnimationFrame(() => {
+      if (target && openChatId) {
+        setDialogError('')
+        setDialog({ kind: 'chat', partner: target })
+      } else if (target && openDetailsId) onOpenDetails?.(target)
+      else setMessage('Dieser Partner ist in dieser Liste nicht vorhanden.')
+      onDeepLinkHandled?.()
+    })
+    return () => cancelAnimationFrame(id)
+  }, [loading, partners, openChatId, openDetailsId, onOpenDetails, onDeepLinkHandled])
   // "Meintest du": cities where the query matches or that are close to a typo; picking one searches for that city.
   const suggestions = useMemo(
     () => (tokens.length && visible.length === 0 ? suggestRegions(partners, tokens, partnerFields, (p) => regionOf(p.postcode, p.city)) : []),
@@ -622,9 +652,15 @@ export function PartnerList({
           onClose={() => {
             setDialog(null)
             loadUnread()
+            refreshAdminNotifications()
           }}
         >
-          <ChatBox me="admin" endpoint={`/api/admin/partners/${dialog.partner.id}/messages`} labels={ADMIN_CHAT_LABELS} />
+          <ChatBox
+            me="admin"
+            endpoint={`/api/admin/partners/${dialog.partner.id}/messages`}
+            labels={ADMIN_CHAT_LABELS}
+            onLoaded={refreshAdminNotifications}
+          />
         </Modal>
       )}
       {dialog?.kind === 'hardDelete' && (
@@ -681,7 +717,8 @@ export default function PartnersManager({ view }: { view: PartnerView }) {
           >
             <ArrowLeft className="h-5 w-5" />
           </Link>
-          <h1 className="text-2xl font-bold text-[#1A4D2E]">{VIEW_TITLES[view]}</h1>
+          <h1 className="min-w-0 flex-1 truncate text-2xl font-bold text-[#1A4D2E]">{VIEW_TITLES[view]}</h1>
+          <AdminNotifications />
         </div>
         <PartnerList initialView={view} />
       </main>

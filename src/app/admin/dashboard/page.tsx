@@ -1,8 +1,8 @@
 'use client'
 
-import { useCallback, useEffect, useState, type ReactNode } from 'react'
+import { Suspense, useCallback, useEffect, useState, type ReactNode } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
   AlertCircle,
   Ban,
@@ -32,6 +32,37 @@ import SettingsPanel from '@/components/admin/SettingsPanel'
 import { Modal, ModalButtons, PartnerList, type AdminPartner } from '@/components/admin/PartnersManager'
 import RequestPhotos, { splitPhotos } from '@/components/admin/RequestPhotos'
 import PartnerOffersModal, { PartnerOffersButton } from '@/components/admin/PartnerOffers'
+import AdminNotifications from '@/components/admin/AdminNotifications'
+import { markAdminNotificationRead, refreshAdminNotifications } from '@/lib/notificationsClient'
+
+type DeepLink = { kind: 'request' | 'offers' | 'chat' | 'partner' | 'unread'; id: string }
+
+const isId = (v: string | null): v is string => !!v && /^[0-9a-f-]{36}$/i.test(v)
+
+// Reads the bell's target from the URL once, hands it to the dashboard and removes it from the address bar.
+function DeepLinks({ onLink }: { onLink: (link: DeepLink) => void }) {
+  const params = useSearchParams()
+  const router = useRouter()
+  const key = params.toString()
+  useEffect(() => {
+    if (!key) return
+    const p = new URLSearchParams(key)
+    const link: DeepLink | null = isId(p.get('request'))
+      ? { kind: 'request', id: p.get('request')! }
+      : isId(p.get('offers'))
+        ? { kind: 'offers', id: p.get('offers')! }
+        : isId(p.get('chat'))
+          ? { kind: 'chat', id: p.get('chat')! }
+          : isId(p.get('partner'))
+            ? { kind: 'partner', id: p.get('partner')! }
+            : p.get('tab') === 'partners'
+              ? { kind: 'unread', id: p.get('unread') === '1' ? 'unread' : 'all' }
+              : null
+    if (link) onLink(link)
+    router.replace('/admin/dashboard', { scroll: false })
+  }, [key, onLink, router])
+  return null
+}
 
 type Request = {
   id: string
@@ -232,6 +263,32 @@ export default function AdminDashboardPage() {
   const [deleting, setDeleting] = useState(false)
   const [partnerReloadKey, setPartnerReloadKey] = useState(0)
   const [offersRequest, setOffersRequest] = useState<Request | null>(null)
+  const [deepLink, setDeepLink] = useState<DeepLink | null>(null)
+
+  // Opening a request marks its notification as read (bell count drops immediately).
+  const openRequest = useCallback((r: Request) => {
+    setDetailRequest(r)
+    void markAdminNotificationRead(`request:${r.id}`)
+  }, [])
+
+  // Links from the bell: ?request=… / ?offers=… / ?chat=… / ?partner=… / ?tab=partners&unread=1
+  useEffect(() => {
+    if (!deepLink) return
+    if (deepLink.kind === 'chat' || deepLink.kind === 'partner' || deepLink.kind === 'unread') {
+      const id = requestAnimationFrame(() => setTab('partners'))
+      return () => cancelAnimationFrame(id)
+    }
+    if (loading) return
+    const r = requests.find((x) => x.id === deepLink.id)
+    const id = requestAnimationFrame(() => {
+      setTab('requests')
+      if (r && deepLink.kind === 'request') openRequest(r)
+      if (r && deepLink.kind === 'offers') setOffersRequest(r)
+      if (!r) setMessage('Diese Anfrage ist nicht mehr vorhanden.')
+      setDeepLink(null)
+    })
+    return () => cancelAnimationFrame(id)
+  }, [deepLink, loading, requests, openRequest])
 
   const loadData = useCallback(async () => {
     const res = await callApi<{
@@ -308,6 +365,7 @@ export default function AdminDashboardPage() {
     setMessage(data?.emailSent ? 'Partner verifiziert. Annahme-E-Mail wurde gesendet.' : (data?.warning ?? 'Partner verifiziert.'))
     setDetailPartner({ ...partner, verified: true })
     setPartnerReloadKey((k) => k + 1)
+    refreshAdminNotifications()
   }
 
   function logout() {
@@ -328,12 +386,18 @@ export default function AdminDashboardPage() {
   return (
     <div className="min-h-screen bg-[#E6F1E6]">
       <main className="mx-auto max-w-5xl px-4 py-6 sm:py-10">
-        <header className="mb-5">
-          <p className="text-[13px] font-medium text-[#4B5563]">
-            {new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })}
-          </p>
-          <h1 className="text-2xl font-bold text-[#1A4D2E] sm:text-3xl">Admin-Dashboard</h1>
+        <header className="mb-5 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[13px] font-medium text-[#4B5563]">
+              {new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })}
+            </p>
+            <h1 className="text-2xl font-bold text-[#1A4D2E] sm:text-3xl">Admin-Dashboard</h1>
+          </div>
+          <AdminNotifications />
         </header>
+        <Suspense fallback={null}>
+          <DeepLinks onLink={setDeepLink} />
+        </Suspense>
 
         <nav aria-label="Schnellzugriff" className="grid grid-cols-3 gap-2 sm:grid-cols-5 sm:gap-3">
           <QuickAction
@@ -399,8 +463,8 @@ export default function AdminDashboardPage() {
                       <div
                         role="button"
                         tabIndex={0}
-                        onClick={() => setDetailRequest(r)}
-                        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), setDetailRequest(r))}
+                        onClick={() => openRequest(r)}
+                        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), openRequest(r))}
                         className="cursor-pointer"
                       >
                         <div className="flex items-start justify-between gap-3">
@@ -480,7 +544,15 @@ export default function AdminDashboardPage() {
             ))}
 
           {tab === 'partners' && (
-            <PartnerList reloadKey={partnerReloadKey} onOpenDetails={setDetailPartner} onChanged={loadData} />
+            <PartnerList
+              reloadKey={partnerReloadKey}
+              onOpenDetails={setDetailPartner}
+              onChanged={loadData}
+              openChatId={deepLink?.kind === 'chat' ? deepLink.id : null}
+              openDetailsId={deepLink?.kind === 'partner' ? deepLink.id : null}
+              unreadFirst={deepLink?.kind === 'unread' && deepLink.id === 'unread'}
+              onDeepLinkHandled={() => setDeepLink((d) => (d?.kind === 'unread' ? d : null))}
+            />
           )}
 
           {tab === 'stats' && (
@@ -511,6 +583,7 @@ export default function AdminDashboardPage() {
             onSent={async () => {
               setOffersRequest(null)
               setMessage('Angebot an den Kunden gesendet. Warten auf Kunde.')
+              refreshAdminNotifications()
               await loadData()
             }}
           />

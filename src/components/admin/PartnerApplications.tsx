@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Trash2 } from 'lucide-react'
 import { callApi } from '@/lib/apiClient'
+import { refreshAdminNotifications } from '@/lib/notificationsClient'
 import { serviceLabel, type ApplicationRow } from '@/lib/applications'
 import { ALL_GROUP, extractPostcode, groupByRegion, regionOf } from '@/lib/regions'
 import { firstPostcodeToken, matchesSearch, suggestRegions, tokenize, type SearchFields } from '@/lib/partnerSearch'
@@ -99,6 +100,7 @@ export default function PartnerApplications() {
       setMessage(res.data?.error ?? 'Status konnte nicht geändert werden.')
       return
     }
+    refreshAdminNotifications()
     await load()
   }
 
@@ -118,6 +120,7 @@ export default function PartnerApplications() {
       return
     }
     setSetupLink({ id, emailSent: !!data.emailSent, sentTo: data.sentTo, url: data.setupUrl, emailError: data.emailError })
+    refreshAdminNotifications()
     await load()
   }
 
@@ -137,6 +140,7 @@ export default function PartnerApplications() {
     if (setupLink?.id === a.id) setSetupLink(null)
     setRows((prev) => prev.filter((r) => r.id !== a.id))
     setMessage(`Antrag von ${a.full_name} wurde gelöscht.`)
+    refreshAdminNotifications()
   }
 
   async function copyLink(url: string) {

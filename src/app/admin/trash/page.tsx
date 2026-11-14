@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { AlertCircle, ArrowLeft, Calendar, Mail, MapPin, RotateCcw, Trash2, User } from 'lucide-react'
 import { callApi } from '@/lib/apiClient'
 import { Modal, ModalButtons, PartnerList } from '@/components/admin/PartnersManager'
+import AdminNotifications from '@/components/admin/AdminNotifications'
 
 type DeletedRequest = {
   id: string
@@ -92,7 +93,8 @@ export default function AdminTrashPage() {
           >
             <ArrowLeft className="h-5 w-5" />
           </Link>
-          <h1 className="text-2xl font-bold text-[#1A4D2E]">Papierkorb</h1>
+          <h1 className="min-w-0 flex-1 truncate text-2xl font-bold text-[#1A4D2E]">Papierkorb</h1>
+          <AdminNotifications />
         </div>
 
         {message && <p className={`${card} mb-4 p-3 text-sm text-[#1A4D2E]`}>{message}</p>}

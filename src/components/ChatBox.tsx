@@ -26,11 +26,14 @@ export default function ChatBox({
   endpoint,
   labels,
   locale = 'de-DE',
+  onLoaded,
 }: {
   me: Side
   endpoint: string
   labels: ChatLabels
   locale?: string
+  // Called when the conversation (and thereby the read state on the server) changed, e.g. to refresh badges.
+  onLoaded?: () => void
 }) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [loading, setLoading] = useState(true)
@@ -39,12 +42,23 @@ export default function ChatBox({
   const [sending, setSending] = useState(false)
   const listRef = useRef<HTMLDivElement>(null)
   const lastIdRef = useRef<string | null>(null)
+  const loadedCountRef = useRef<number | null>(null)
+  const onLoadedRef = useRef(onLoaded)
+
+  useEffect(() => {
+    onLoadedRef.current = onLoaded
+  }, [onLoaded])
 
   const load = useCallback(async () => {
     const res = await callApi<{ messages: ChatMessage[] }>(me, endpoint)
     if (res.ok && res.data) {
-      setMessages(res.data.messages ?? [])
+      const list = res.data.messages ?? []
+      setMessages(list)
       setError('')
+      if (loadedCountRef.current !== list.length) {
+        loadedCountRef.current = list.length
+        onLoadedRef.current?.()
+      }
     } else if (res.status !== 401) {
       setError(res.data?.error ?? labels.loadError)
     }
