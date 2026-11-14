@@ -7,6 +7,7 @@ import { callApi, logout as logoutSession } from '@/lib/apiClient'
 import { useLang } from '@/components/LanguageProvider'
 import ChatBox from '@/components/ChatBox'
 import PartnerRequests from '@/components/partner/PartnerRequests'
+import WelcomeSplash, { WELCOME_FLAG } from '@/components/partner/WelcomeSplash'
 
 type Partner = { id: string; company_name: string; email: string }
 
@@ -19,6 +20,8 @@ export default function PartnerDashboardPage() {
   const [loading, setLoading] = useState(true)
   const [unread, setUnread] = useState(0)
   const [chatOpen, setChatOpen] = useState(false)
+  const [welcome, setWelcome] = useState(false)
+  const hideWelcome = useCallback(() => setWelcome(false), [])
 
   const checkAccess = useCallback(async () => {
     setLoading(true)
@@ -37,6 +40,11 @@ export default function PartnerDashboardPage() {
       }
       const storedPartner = JSON.parse(stored) as Partner
       setPartner(storedPartner)
+      // Only right after login (flag from /partner/login), not on every reload.
+      if (sessionStorage.getItem(WELCOME_FLAG)) {
+        sessionStorage.removeItem(WELCOME_FLAG)
+        setWelcome(true)
+      }
       await checkAccess()
     }
     init()
@@ -57,11 +65,20 @@ export default function PartnerDashboardPage() {
     void logoutSession('partner')
   }
 
+  const splash = welcome && partner ? <WelcomeSplash name={partner.company_name} onDone={hideWelcome} /> : null
+
   if (loading) {
-    return <main className="p-8 text-center text-primary/70">{t('Lade…', 'جارٍ التحميل…', 'Loading…')}</main>
+    return (
+      <>
+        {splash}
+        <main className="p-8 text-center text-primary/70">{t('Lade…', 'جارٍ التحميل…', 'Loading…')}</main>
+      </>
+    )
   }
 
   return (
+    <>
+    {splash}
     <main className="mx-auto max-w-4xl px-4 py-10">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
@@ -164,5 +181,6 @@ export default function PartnerDashboardPage() {
         </div>
       )}
     </main>
+    </>
   )
 }

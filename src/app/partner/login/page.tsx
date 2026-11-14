@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import PasswordInput from '@/components/PasswordInput'
 import { useLang } from '@/components/LanguageProvider'
+import { WELCOME_FLAG } from '@/components/partner/WelcomeSplash'
 
 const inputClass =
   'w-full rounded-lg border border-primary/20 bg-card px-3 py-2 text-primary focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30'
@@ -54,6 +55,7 @@ export default function PartnerLoginPage() {
 
     const partner = (await res.json()) as { id: string; company_name: string; email: string }
     localStorage.setItem('partner', JSON.stringify(partner))
+    sessionStorage.setItem(WELCOME_FLAG, '1')
     router.push('/partner/dashboard')
   }
 
