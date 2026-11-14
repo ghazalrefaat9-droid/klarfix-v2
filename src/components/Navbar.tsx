@@ -82,7 +82,7 @@ export default function Navbar() {
             width={235}
             height={70}
             preload
-            className="h-auto w-[130px] md:w-[165px]"
+            className="h-auto w-[150px] md:w-[180px]"
           />
         </Link>
 

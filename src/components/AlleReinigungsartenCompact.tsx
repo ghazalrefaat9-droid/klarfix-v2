@@ -3,11 +3,12 @@
 import { useRouter } from 'next/navigation'
 import { useLang } from '@/components/LanguageProvider'
 import { REINIGUNGSARTEN, reinigungsartIcon, reinigungsartName, type Reinigungsart } from '@/lib/reinigungsarten'
+import { BRAND } from '@/lib/brand'
 
 // KlarFix brand palette only: mint, green, dark green, orange as accent.
-const GREEN = '#2D8A57'
-const ORANGE = '#D9772B'
-const DARK = '#1B4332'
+const GREEN = BRAND.green
+const ORANGE = BRAND.orange
+const DARK = BRAND.darkGreen
 
 // Highlighted cards; all others are white with soft icon circles from the same palette.
 const FEATURED: Partial<Record<Reinigungsart['id'], { bg: string; popular?: boolean }>> = {
@@ -17,9 +18,9 @@ const FEATURED: Partial<Record<Reinigungsart['id'], { bg: string; popular?: bool
 
 // Rotating soft tints: light green, light orange, mint.
 const SOFT_TINTS = [
-  { circle: '#E3F1E8', icon: GREEN },
-  { circle: '#FBE9DA', icon: ORANGE },
-  { circle: '#DDEDE3', icon: DARK },
+  { circle: BRAND.greenTint, icon: GREEN },
+  { circle: BRAND.orangeTint, icon: ORANGE },
+  { circle: BRAND.mint, icon: DARK },
 ]
 const TINT_BY_ID = new Map(
   REINIGUNGSARTEN.filter((r) => !FEATURED[r.id]).map((r, i) => [r.id, SOFT_TINTS[i % SOFT_TINTS.length]] as const),

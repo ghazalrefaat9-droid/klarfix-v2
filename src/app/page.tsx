@@ -4,12 +4,13 @@ import Link from 'next/link'
 import { ArrowRight, CalendarCheck, CalendarX, ChevronDown, FileText, ReceiptEuro, Send, ShieldCheck } from 'lucide-react'
 import { useLang } from '@/components/LanguageProvider'
 import AlleReinigungsartenCompact from '@/components/AlleReinigungsartenCompact'
+import { BRAND } from '@/lib/brand'
 
 // "So funktioniert es": green -> orange -> dark green (KlarFix primary).
 const STEPS = [
   {
     icon: Send,
-    color: '#2D8A57',
+    color: BRAND.green,
     de: 'Anfrage senden',
     ar: 'أرسل طلبك',
     en: 'Send your request',
@@ -19,7 +20,7 @@ const STEPS = [
   },
   {
     icon: FileText,
-    color: '#D9772B',
+    color: BRAND.orange,
     de: 'Angebot erhalten',
     ar: 'احصل على عرض السعر',
     en: 'Receive your quote',
@@ -29,7 +30,7 @@ const STEPS = [
   },
   {
     icon: CalendarCheck,
-    color: '#1B4332',
+    color: BRAND.darkGreen,
     de: 'Termin bestätigen',
     ar: 'أكّد الموعد',
     en: 'Confirm the appointment',
@@ -41,19 +42,19 @@ const STEPS = [
 
 // "Warum KlarFix?" – same brand tints as the service icons (light green, light orange, mint).
 const TRUST = [
-  { icon: ShieldCheck, circle: '#E3F1E8', color: '#2D8A57', de: 'Geprüfte Partner', ar: 'شركاء معتمدون', en: 'Vetted partners' },
+  { icon: ShieldCheck, circle: BRAND.greenTint, color: BRAND.green, de: 'Geprüfte Partner', ar: 'شركاء معتمدون', en: 'Vetted partners' },
   {
     icon: ReceiptEuro,
-    circle: '#FBE9DA',
-    color: '#D9772B',
+    circle: BRAND.orangeTint,
+    color: BRAND.orange,
     de: 'Festpreis ohne Überraschungen',
     ar: 'سعر ثابت بدون مفاجآت',
     en: 'Fixed price, no surprises',
   },
   {
     icon: CalendarX,
-    circle: '#DDEDE3',
-    color: '#1B4332',
+    circle: BRAND.mint,
+    color: BRAND.darkGreen,
     de: 'Kostenlos stornieren bis 24h vorher',
     ar: 'إلغاء مجاني حتى 24 ساعة قبل الموعد',
     en: 'Free cancellation up to 24h before',
