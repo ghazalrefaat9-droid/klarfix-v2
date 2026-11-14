@@ -27,7 +27,7 @@ function approvalMessage(companyName: string, loginUrl: string) {
     <p>Guten Tag,</p>
     <p>herzlichen Glückwunsch! Ihr Partnerantrag für <strong>${escapeHtml(companyName)}</strong> wurde von ${SITE_NAME} angenommen.</p>
     <p>Ab sofort können Sie sich im Partnerbereich anmelden und passende Aufträge annehmen:</p>
-    <p><a href="${escapeHtml(loginUrl)}" style="display:inline-block;padding:12px 20px;background:#1B4332;color:#FAF3EB;text-decoration:none;border-radius:8px;font-weight:bold">Zum Partnerbereich</a></p>
+    <p><a href="${escapeHtml(loginUrl)}" style="display:inline-block;padding:12px 20px;background:#1B4332;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:bold">Zum Partnerbereich</a></p>
     <p>Mit freundlichen Grüßen<br>${escapeHtml(CAMPAIGN_TEXT)}</p>
   `
   return { subject: `${SITE_NAME}: Ihr Partnerantrag wurde angenommen`, text, html }

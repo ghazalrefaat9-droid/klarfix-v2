@@ -35,13 +35,13 @@ export function resetMessage(accountType: AccountType, email: string, code: stri
       ``,
       CAMPAIGN_TEXT,
     ].join('\n'),
-    html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;border-radius:16px;background:#FAF3EB;color:#1B4332">
+    html: `<div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;border-radius:16px;background:#FFFFFF;color:#1B4332">
   <h2 style="color:#1B4332;margin-bottom:8px">${SITE_NAME}</h2>
   <p>Guten Tag,</p>
   <p>Sie haben angefordert, Ihr Passwort bei ${SITE_NAME} zurückzusetzen.</p>
   <p>Ihr Bestätigungscode lautet: <strong style="font-size:20px;letter-spacing:4px">${code}</strong></p>
   <p style="margin:28px 0">
-    <a href="${link}" style="background:#1B4332;color:#FAF3EB;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:bold;display:inline-block">Hier klicken, um das Passwort zurückzusetzen</a>
+    <a href="${link}" style="background:#1B4332;color:#FFFFFF;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:bold;display:inline-block">Hier klicken, um das Passwort zurückzusetzen</a>
   </p>
   <p style="font-size:13px;color:#1B4332;opacity:0.75">Der Code ist ${minutes} Minuten gültig. Wenn Sie diese Anfrage nicht gestellt haben, können Sie diese E-Mail ignorieren.</p>
   <p style="font-size:13px;color:#1B4332;opacity:0.75;margin-top:24px">${campaignHtml}</p>

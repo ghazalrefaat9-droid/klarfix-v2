@@ -26,7 +26,7 @@ function setupMessage(name: string, setupUrl: string) {
     <p>Hallo ${escapeHtml(name)},</p>
     <p>Ihr Partnerantrag bei ${SITE_NAME} wurde angenommen!</p>
     <p>Bitte richten Sie jetzt Ihr Partnerkonto ein (dauert ca. 2 Minuten):</p>
-    <p><a href="${escapeHtml(setupUrl)}" style="display:inline-block;padding:12px 20px;background:#1B4332;color:#FAF3EB;text-decoration:none;border-radius:8px;font-weight:bold">Partnerkonto einrichten</a></p>
+    <p><a href="${escapeHtml(setupUrl)}" style="display:inline-block;padding:12px 20px;background:#1B4332;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:bold">Partnerkonto einrichten</a></p>
     <p>Sie benötigen: ein Passwort, Ihren Gewerbenachweis und Ihre Haftpflichtversicherung (PDF oder JPG, max. 5&nbsp;MB). Ein Logo ist optional.</p>
     <p>Mit freundlichen Grüßen<br>${escapeHtml(CAMPAIGN_TEXT)}</p>
   `

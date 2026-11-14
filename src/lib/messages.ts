@@ -87,8 +87,8 @@ export async function notifyNewMessage(partner: PartnerInfo, sender: Sender, bod
     const html = `
       <p>Hallo ${escapeHtml(partner.company_name)},</p>
       <p>Sie haben eine neue Nachricht von ${SITE_NAME}:</p>
-      <blockquote style="margin:0;padding:12px 16px;border-left:4px solid #1B4332;background:#FAF3EB;white-space:pre-wrap">${escapeHtml(preview)}</blockquote>
-      <p><a href="${escapeHtml(link)}" style="display:inline-block;padding:12px 20px;background:#1B4332;color:#FAF3EB;text-decoration:none;border-radius:8px;font-weight:bold">Im Partnerbereich antworten</a></p>
+      <blockquote style="margin:0;padding:12px 16px;border-left:4px solid #1B4332;background:#FFFFFF;white-space:pre-wrap">${escapeHtml(preview)}</blockquote>
+      <p><a href="${escapeHtml(link)}" style="display:inline-block;padding:12px 20px;background:#1B4332;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:bold">Im Partnerbereich antworten</a></p>
       <p>${escapeHtml(CAMPAIGN_TEXT)}</p>`
     await sendMail(partner.email, `${SITE_NAME}: Neue Nachricht`, text, html)
     return
@@ -101,7 +101,7 @@ export async function notifyNewMessage(partner: PartnerInfo, sender: Sender, bod
   const text = [`Neue Nachricht von ${partner.company_name}:`, ``, preview, ``, `Antworten: ${link}`].join('\n')
   const html = `
     <p>Neue Nachricht von <strong>${escapeHtml(partner.company_name)}</strong>:</p>
-    <blockquote style="margin:0;padding:12px 16px;border-left:4px solid #1B4332;background:#FAF3EB;white-space:pre-wrap">${escapeHtml(preview)}</blockquote>
+    <blockquote style="margin:0;padding:12px 16px;border-left:4px solid #1B4332;background:#FFFFFF;white-space:pre-wrap">${escapeHtml(preview)}</blockquote>
     <p><a href="${escapeHtml(link)}">Im Admin-Bereich antworten</a></p>`
   await sendMail(to, `Neue Partner-Nachricht: ${partner.company_name}`, text, html)
 }

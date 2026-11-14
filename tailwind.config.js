@@ -8,7 +8,7 @@ module.exports = {
       transparent: 'transparent',
       current: 'currentColor',
       background: '#DDEDE3',
-      card: '#FAF3EB',
+      card: '#FFFFFF',
       primary: '#1B4332',
       primaryHover: '#2D5A4C',
       'primary-hover': '#2D5A4C',

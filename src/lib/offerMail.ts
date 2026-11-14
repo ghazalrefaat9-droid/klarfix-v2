@@ -5,7 +5,7 @@ import { loadAdmin } from '@/lib/adminAuth'
 const escapeHtml = (v: string) => v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
 const button = (href: string, label: string) =>
-  `<a href="${escapeHtml(href)}" style="display:inline-block;padding:12px 20px;background:#1B4332;color:#FAF3EB;text-decoration:none;border-radius:8px;font-weight:bold">${escapeHtml(label)}</a>`
+  `<a href="${escapeHtml(href)}" style="display:inline-block;padding:12px 20px;background:#1B4332;color:#FFFFFF;text-decoration:none;border-radius:8px;font-weight:bold">${escapeHtml(label)}</a>`
 
 // Offer email to the customer, sent only by the admin (partner -> admin -> customer). Sender is KlarFix:
 // no partner name or contact data; the customer accepts or rejects on the /angebot page.
