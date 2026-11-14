@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { ArrowRight, CalendarCheck, ChevronDown, FileText, Send } from 'lucide-react'
+import { ArrowRight, CalendarCheck, CalendarX, ChevronDown, FileText, ReceiptEuro, Send, ShieldCheck } from 'lucide-react'
 import { useLang } from '@/components/LanguageProvider'
 import AlleReinigungsartenCompact from '@/components/AlleReinigungsartenCompact'
 
@@ -36,6 +36,27 @@ const STEPS = [
     subDe: 'Entspannt zurücklehnen – wir putzen!',
     subAr: 'استرخِ – نحن نتولى التنظيف!',
     subEn: 'Sit back and relax – we clean!',
+  },
+]
+
+// "Warum KlarFix?" – same brand tints as the service icons (light green, light orange, mint).
+const TRUST = [
+  { icon: ShieldCheck, circle: '#E3F1E8', color: '#2D8A57', de: 'Geprüfte Partner', ar: 'شركاء معتمدون', en: 'Vetted partners' },
+  {
+    icon: ReceiptEuro,
+    circle: '#FBE9DA',
+    color: '#D9772B',
+    de: 'Festpreis ohne Überraschungen',
+    ar: 'سعر ثابت بدون مفاجآت',
+    en: 'Fixed price, no surprises',
+  },
+  {
+    icon: CalendarX,
+    circle: '#DDEDE3',
+    color: '#1B4332',
+    de: 'Kostenlos stornieren bis 24h vorher',
+    ar: 'إلغاء مجاني حتى 24 ساعة قبل الموعد',
+    en: 'Free cancellation up to 24h before',
   },
 ]
 
@@ -121,21 +142,27 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="px-4 pb-4 pt-8">
-        <div className="mx-auto max-w-5xl rounded-3xl bg-primary px-6 py-14 text-center text-card shadow-lg">
-          <h2 className="text-2xl font-bold">
-            {t(
-              'Bereit für saubere Räume?',
-              'هل أنت مستعد لمساحات نظيفة؟',
-              'Ready for clean spaces?',
-            )}
+      <section className="px-4 pb-12 pt-4">
+        <div className="mx-auto max-w-5xl">
+          <h2 className="text-center text-3xl font-bold text-primary">
+            {t('Warum KlarFix?', 'لماذا KlarFix؟', 'Why KlarFix?')}
           </h2>
-          <Link
-            href="/buchen"
-            className="mt-7 inline-block rounded-full bg-[#FFFFFF] px-10 py-4 text-lg font-bold text-primary shadow-xl ring-4 ring-[#FFFFFF]/20 transition hover:scale-105 hover:shadow-2xl motion-reduce:hover:scale-100"
-          >
-            {t('Jetzt Preis anfragen', 'اطلب السعر الآن', 'Request a quote now')}
-          </Link>
+          <ul className="mt-8 grid gap-4 sm:grid-cols-3">
+            {TRUST.map((item) => {
+              const Icon = item.icon
+              return (
+                <li key={item.de} className="flex items-center gap-4 rounded-2xl bg-card p-5 shadow-sm ring-1 ring-primary/10 sm:flex-col sm:text-center">
+                  <span
+                    className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full"
+                    style={{ backgroundColor: item.circle, color: item.color }}
+                  >
+                    <Icon className="h-6 w-6" aria-hidden="true" />
+                  </span>
+                  <p className="font-semibold text-primary">{t(item.de, item.ar, item.en)}</p>
+                </li>
+              )
+            })}
+          </ul>
         </div>
       </section>
     </main>
