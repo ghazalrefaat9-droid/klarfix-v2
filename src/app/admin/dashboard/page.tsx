@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
   AlertCircle,
+  Ban,
   BarChart3,
   Bell,
   Calendar,
@@ -218,6 +219,8 @@ export default function AdminDashboardPage() {
   const [requests, setRequests] = useState<Request[]>([])
   const [partners, setPartners] = useState<PartnerOption[]>([])
   const [trashCount, setTrashCount] = useState(0)
+  const [blockedPartners, setBlockedPartners] = useState(0)
+  const [partnerTrashCount, setPartnerTrashCount] = useState(0)
   const [newApplications, setNewApplications] = useState(0)
   const [unreadMessages, setUnreadMessages] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -235,6 +238,8 @@ export default function AdminDashboardPage() {
       requests: Request[]
       partners: PartnerOption[]
       trashCount: number
+      blockedPartners: number
+      partnerTrashCount: number
       newApplications: number
       unreadMessages: number
     }>('admin', '/api/admin/dashboard')
@@ -245,6 +250,8 @@ export default function AdminDashboardPage() {
     setRequests(res.data.requests ?? [])
     setPartners(res.data.partners ?? [])
     setTrashCount(res.data.trashCount ?? 0)
+    setBlockedPartners(res.data.blockedPartners ?? 0)
+    setPartnerTrashCount(res.data.partnerTrashCount ?? 0)
     setNewApplications(res.data.newApplications ?? 0)
     setUnreadMessages(res.data.unreadMessages ?? 0)
   }, [])
@@ -328,7 +335,7 @@ export default function AdminDashboardPage() {
           <h1 className="text-2xl font-bold text-[#1A4D2E] sm:text-3xl">Admin-Dashboard</h1>
         </header>
 
-        <nav aria-label="Schnellzugriff" className="grid grid-cols-4 gap-2 sm:gap-3">
+        <nav aria-label="Schnellzugriff" className="grid grid-cols-3 gap-2 sm:grid-cols-5 sm:gap-3">
           <QuickAction
             icon={Inbox}
             label="Partner-Anträge"
@@ -342,7 +349,9 @@ export default function AdminDashboardPage() {
             onClick={() => setTab('partners')}
             badge={unreadMessages > 0 ? `${unreadMessages} Nachr.` : null}
           />
-          <QuickAction icon={Trash2} label={`Papierkorb (${trashCount})`} href="/admin/trash" />
+          <QuickAction icon={Ban} label={`Blockiert (${blockedPartners})`} href="/admin/partners/blocked" />
+          {/* One trash for both: deleted requests and deleted partners (/admin/trash shows both sections). */}
+          <QuickAction icon={Trash2} label={`Papierkorb (${trashCount + partnerTrashCount})`} href="/admin/trash" />
           <QuickAction icon={LogOut} label="Abmelden" onClick={logout} />
         </nav>
 

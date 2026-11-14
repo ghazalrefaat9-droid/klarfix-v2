@@ -9,7 +9,7 @@ export async function GET() {
   const denied = await requireAdmin()
   if (denied) return denied
 
-  const [reqRes, partnerRes, trashRes, appRes] = await Promise.all([
+  const [reqRes, partnerRes, trashRes, appRes, blockedRes, partnerTrashRes] = await Promise.all([
     supabase
       .from('requests')
       .select('id, customer_name, customer_email, customer_phone, postcode, service_type, area_sqm, message, status, partner_id, partner_price, partner_message, created_at')
@@ -23,6 +23,9 @@ export async function GET() {
       .order('company_name', { ascending: true }),
     supabase.from('requests').select('id', { count: 'exact', head: true }).not('deleted_at', 'is', null),
     supabase.from('partner_applications').select('id', { count: 'exact', head: true }).eq('status', 'pending_review'),
+    // Same filters as /api/admin/partners?view=blocked|trash
+    supabase.from('partners').select('id', { count: 'exact', head: true }).is('deleted_at', null).eq('is_blocked', true),
+    supabase.from('partners').select('id', { count: 'exact', head: true }).not('deleted_at', 'is', null),
   ])
 
   if (reqRes.error || partnerRes.error) {
@@ -37,6 +40,8 @@ export async function GET() {
     requests: requests.map((r) => ({ ...r, pending_offers: offerCounts[r.id] ?? 0 })),
     partners: partnerRes.data ?? [],
     trashCount: trashRes.count ?? 0,
+    blockedPartners: blockedRes.count ?? 0,
+    partnerTrashCount: partnerTrashRes.count ?? 0,
     newApplications: appRes.count ?? 0,
     unreadMessages: Object.values(unread).reduce((sum, n) => sum + n, 0),
   })

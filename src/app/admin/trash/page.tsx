@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { AlertCircle, ArrowLeft, Calendar, Mail, MapPin, RotateCcw, Trash2, User } from 'lucide-react'
 import { callApi } from '@/lib/apiClient'
-import { Modal, ModalButtons } from '@/components/admin/PartnersManager'
+import { Modal, ModalButtons, PartnerList } from '@/components/admin/PartnersManager'
 
 type DeletedRequest = {
   id: string
@@ -92,17 +92,18 @@ export default function AdminTrashPage() {
           >
             <ArrowLeft className="h-5 w-5" />
           </Link>
-          <h1 className="text-2xl font-bold text-[#1A4D2E]">Papierkorb ({items.length})</h1>
+          <h1 className="text-2xl font-bold text-[#1A4D2E]">Papierkorb</h1>
         </div>
 
         {message && <p className={`${card} mb-4 p-3 text-sm text-[#1A4D2E]`}>{message}</p>}
 
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#4B5563]">Anfragen ({items.length})</h2>
         {items.length === 0 ? (
-          <div className={`${card} flex flex-col items-center px-6 py-12 text-center`}>
-            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-[#A8D5A2]/50 text-[#1A4D2E]">
-              <AlertCircle className="h-8 w-8" />
+          <div className={`${card} flex flex-col items-center px-6 py-8 text-center`}>
+            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#A8D5A2]/50 text-[#1A4D2E]">
+              <AlertCircle className="h-6 w-6" />
             </span>
-            <p className="mt-4 font-semibold text-[#1A4D2E]">Der Papierkorb ist leer</p>
+            <p className="mt-3 font-semibold text-[#1A4D2E]">Keine Anfragen im Papierkorb</p>
             <p className="mt-1 text-[13px] text-[#4B5563]">Gelöschte Anfragen erscheinen hier und können wiederhergestellt werden.</p>
           </div>
         ) : (
@@ -142,6 +143,11 @@ export default function AdminTrashPage() {
             ))}
           </ul>
         )}
+
+        <section className="mt-8">
+          <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#4B5563]">Partner</h2>
+          <PartnerList initialView="trash" />
+        </section>
 
         {confirmTarget && (
           <Modal title="Endgültig löschen?" onClose={() => setConfirmTarget(null)}>

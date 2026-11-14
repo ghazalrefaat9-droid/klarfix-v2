@@ -21,9 +21,8 @@ import {
 import { callApi as requestApi } from '@/lib/apiClient'
 import { CLEANING_TYPES } from '@/lib/applications'
 import ChatBox, { type ChatLabels } from '@/components/ChatBox'
-import RegionTabs from '@/components/admin/RegionTabs'
 import { LocationTag, SearchFeedback, SearchInput, useDebounced } from '@/components/admin/PartnerSearch'
-import { ALL_GROUP, groupByRegion, regionOf } from '@/lib/regions'
+import { regionOf } from '@/lib/regions'
 import { firstPostcodeToken, matchesSearch, suggestRegions, tokenize, type SearchFields } from '@/lib/partnerSearch'
 
 export type PartnerView = 'active' | 'blocked' | 'trash'
@@ -65,11 +64,11 @@ export type AdminPartner = {
 const LEGAL_FORMS = ['Einzelunternehmen', 'GbR', 'UG (haftungsbeschränkt)', 'GmbH', 'Sonstige']
 const SERVICE_OPTIONS: string[] = CLEANING_TYPES.map((c) => c.label)
 
-const VIEWS: { key: PartnerView; label: string; icon: typeof CheckCircle; href: string }[] = [
-  { key: 'active', label: 'Aktiv', icon: CheckCircle, href: '/admin/partners' },
-  { key: 'blocked', label: 'Blockiert', icon: Ban, href: '/admin/partners/blocked' },
-  { key: 'trash', label: 'Papierkorb', icon: Trash2, href: '/admin/partners/trash' },
-]
+const VIEW_TITLES: Record<PartnerView, string> = {
+  active: 'Partner verwalten',
+  blocked: 'Blockierte Partner',
+  trash: 'Papierkorb – Partner',
+}
 
 const inputClass =
   'mt-1 min-h-[44px] w-full rounded-xl border border-[#1A4D2E]/15 bg-[#FFFFFF] px-3 py-2 text-sm text-[#1A4D2E] focus:border-[#1A4D2E] focus:outline-none focus:ring-2 focus:ring-[#1A4D2E]/15'
@@ -436,25 +435,22 @@ function PartnerCard({
   )
 }
 
-// Card list with search + Aktiv/Blockiert/Papierkorb chips. Used in the dashboard "Partner" tab and on /admin/partners.
+// Card list with one search field (company, city, postcode). Shows one fixed view: active partners in the dashboard
+// "Partner" tab; blocked and trashed partners are only reached via the "Blockiert" / "Papierkorb" cards at the top.
 export function PartnerList({
   initialView = 'active',
-  linkViews = false,
   reloadKey = 0,
   onOpenDetails,
   onChanged,
 }: {
   initialView?: PartnerView
-  linkViews?: boolean
   reloadKey?: number
   onOpenDetails?: (partner: AdminPartner) => void
   onChanged?: () => void
 }) {
-  const [view, setView] = useState<PartnerView>(initialView)
+  const view = initialView
   const [partners, setPartners] = useState<AdminPartner[]>([])
-  const [counts, setCounts] = useState<Record<PartnerView, number>>({ active: 0, blocked: 0, trash: 0 })
   const [search, setSearch] = useState('')
-  const [region, setRegion] = useState(ALL_GROUP)
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('')
   const [dialog, setDialog] = useState<Dialog | null>(null)
@@ -480,13 +476,9 @@ export function PartnerList({
   }, [loadUnread])
 
   const load = useCallback(async () => {
-    const { ok, data } = await requestApi<{ partners: AdminPartner[]; counts: { active: number; blocked: number; trash: number } }>(
-      'admin',
-      `/api/admin/partners?view=${view}`,
-    )
+    const { ok, data } = await requestApi<{ partners: AdminPartner[] }>('admin', `/api/admin/partners?view=${view}`)
     if (!ok) setMessage(data?.error ?? 'Partner konnten nicht geladen werden.')
     setPartners(data?.partners ?? [])
-    setCounts(data?.counts ?? { active: 0, blocked: 0, trash: 0 })
     setLoading(false)
   }, [view])
 
@@ -497,30 +489,16 @@ export function PartnerList({
     init()
   }, [load, reloadKey])
 
-  const { groups, keyOf } = useMemo(() => groupByRegion(partners, (p) => ({ postcode: p.postcode, city: p.city })), [partners])
-  // Switching Aktiv/Blockiert/Papierkorb can make the selected region disappear; fall back to "Alle".
-  const activeRegion = region === ALL_GROUP || groups.some((g) => g.key === region) ? region : ALL_GROUP
-  const activeLabel = groups.find((g) => g.key === activeRegion)?.label
-
   const query = useDebounced(search, 200)
   const tokens = useMemo(() => tokenize(query), [query])
 
-  const visible = useMemo(
-    () => partners.filter((p) => (activeRegion === ALL_GROUP || keyOf(p) === activeRegion) && matchesSearch(partnerFields(p), tokens)),
-    [partners, tokens, activeRegion, keyOf],
-  )
+  const visible = useMemo(() => partners.filter((p) => matchesSearch(partnerFields(p), tokens)), [partners, tokens])
+  // "Meintest du": cities where the query matches or that are close to a typo; picking one searches for that city.
   const suggestions = useMemo(
-    () =>
-      tokens.length && visible.length === 0
-        ? suggestRegions(partners, tokens, partnerFields, (p) => regionOf(p.postcode, p.city), activeRegion === ALL_GROUP ? undefined : activeRegion)
-        : [],
-    [tokens, visible.length, partners, activeRegion],
+    () => (tokens.length && visible.length === 0 ? suggestRegions(partners, tokens, partnerFields, (p) => regionOf(p.postcode, p.city)) : []),
+    [tokens, visible.length, partners],
   )
-  // "Meintest du": switch to the region; if the query still finds nothing there (typo), clear the search too.
-  const pickSuggestion = (key: string) => {
-    setRegion(key)
-    if (!partners.some((p) => keyOf(p) === key && matchesSearch(partnerFields(p), tokens))) setSearch('')
-  }
+  const pickSuggestion = (key: string) => setSearch(suggestions.find((s) => s.key === key)?.label ?? '')
 
   const openDialog = (d: Dialog) => {
     setDialogError('')
@@ -561,41 +539,9 @@ export function PartnerList({
       (r) => (r.data?.emailSent ? 'Partner verifiziert. Annahme-E-Mail wurde gesendet.' : (r.data?.warning ?? 'Partner verifiziert.')),
     )
 
-  const chipClass = (active: boolean) =>
-    `flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-full px-3 text-[13px] font-medium transition ${
-      active ? 'bg-[#1A4D2E] text-[#FFFFFF]' : 'bg-[#FFFFFF] text-[#1A4D2E] shadow-[0_2px_10px_rgba(0,0,0,0.05)] hover:bg-[#F5F5F0]'
-    }`
-
   return (
     <div>
       <SearchInput value={search} onChange={setSearch} label="Partner suchen nach Firma, Stadt oder PLZ" />
-
-      <div className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1">
-        {VIEWS.map((v) => {
-          const Icon = v.icon
-          const content = (
-            <>
-              <Icon className="h-4 w-4" /> {v.label}
-              <span className={`rounded-full px-1.5 text-[11px] ${v.key === view ? 'bg-[#FFFFFF]/20' : 'bg-[#F5F5F0]'}`}>{counts[v.key]}</span>
-            </>
-          )
-          return linkViews ? (
-            <Link key={v.key} href={v.href} className={chipClass(v.key === view)}>
-              {content}
-            </Link>
-          ) : (
-            <button key={v.key} type="button" onClick={() => setView(v.key)} className={chipClass(v.key === view)}>
-              {content}
-            </button>
-          )
-        })}
-      </div>
-
-      {!loading && partners.length > 0 && (
-        <div className="mt-3">
-          <RegionTabs groups={groups} total={partners.length} active={activeRegion} onChange={setRegion} />
-        </div>
-      )}
 
       {message && <p className="mt-3 rounded-xl bg-[#FFFFFF] p-3 text-sm text-[#1A4D2E] shadow-[0_2px_10px_rgba(0,0,0,0.05)]">{message}</p>}
 
@@ -606,7 +552,6 @@ export function PartnerList({
           <SearchFeedback
             query={query}
             count={0}
-            regionLabel={activeLabel}
             suggestions={suggestions}
             onPick={pickSuggestion}
             postcode={firstPostcodeToken(tokens)}
@@ -618,13 +563,11 @@ export function PartnerList({
             <Users className="h-6 w-6" />
           </div>
           <p className="mt-3 font-semibold text-[#1A4D2E]">
-            {activeLabel
-              ? `Keine Partner in ${activeLabel} gefunden.`
-              : view === 'trash'
-                ? 'Der Papierkorb ist leer'
-                : view === 'blocked'
-                  ? 'Keine blockierten Partner'
-                  : 'Keine aktiven Partner'}
+            {view === 'trash'
+              ? 'Keine Partner im Papierkorb'
+              : view === 'blocked'
+                ? 'Keine blockierten Partner'
+                : 'Keine aktiven Partner'}
           </p>
           <p className="mt-1 text-[13px] text-[#4B5563]">Hier erscheinen Partner, sobald es welche gibt.</p>
         </div>
@@ -632,7 +575,7 @@ export function PartnerList({
         <>
         {query.trim() && (
           <div className="mt-3">
-            <SearchFeedback query={query} count={visible.length} regionLabel={activeLabel} suggestions={[]} onPick={setRegion} postcode={null} />
+            <SearchFeedback query={query} count={visible.length} suggestions={[]} onPick={pickSuggestion} postcode={null} />
           </div>
         )}
         <ul className="mt-4 grid gap-3 lg:grid-cols-2">
@@ -738,9 +681,9 @@ export default function PartnersManager({ view }: { view: PartnerView }) {
           >
             <ArrowLeft className="h-5 w-5" />
           </Link>
-          <h1 className="text-2xl font-bold text-[#1A4D2E]">Partner verwalten</h1>
+          <h1 className="text-2xl font-bold text-[#1A4D2E]">{VIEW_TITLES[view]}</h1>
         </div>
-        <PartnerList initialView={view} linkViews />
+        <PartnerList initialView={view} />
       </main>
     </div>
   )
