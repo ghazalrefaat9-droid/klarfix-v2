@@ -1,8 +1,43 @@
 'use client'
 
 import Link from 'next/link'
+import { ArrowRight, CalendarCheck, ChevronDown, FileText, Send } from 'lucide-react'
 import { useLang } from '@/components/LanguageProvider'
 import AlleReinigungsartenCompact from '@/components/AlleReinigungsartenCompact'
+
+// "So funktioniert es": green -> orange -> dark green (KlarFix primary).
+const STEPS = [
+  {
+    icon: Send,
+    color: '#2D8A57',
+    de: 'Anfrage senden',
+    ar: 'أرسل طلبك',
+    en: 'Send your request',
+    subDe: 'In 2 Minuten · ohne Anmeldung',
+    subAr: 'في دقيقتين · بدون تسجيل',
+    subEn: 'In 2 minutes · no sign-up',
+  },
+  {
+    icon: FileText,
+    color: '#D9772B',
+    de: 'Angebot erhalten',
+    ar: 'احصل على عرض السعر',
+    en: 'Receive your quote',
+    subDe: 'Vergleiche echte Preise von geprüften Partnern',
+    subAr: 'قارن أسعاراً حقيقية من شركاء معتمدين',
+    subEn: 'Compare real prices from vetted partners',
+  },
+  {
+    icon: CalendarCheck,
+    color: '#1B4332',
+    de: 'Termin bestätigen',
+    ar: 'أكّد الموعد',
+    en: 'Confirm the appointment',
+    subDe: 'Entspannt zurücklehnen – wir putzen!',
+    subAr: 'استرخِ – نحن نتولى التنظيف!',
+    subEn: 'Sit back and relax – we clean!',
+  },
+]
 
 export default function HomePage() {
   const { t } = useLang()
@@ -28,18 +63,19 @@ export default function HomePage() {
               'Apartment, office, windows or deep cleaning – vetted partners, fair prices, fast replies.',
             )}
           </p>
-          <div className="mt-10 flex flex-wrap justify-center gap-4">
+          <div className="mt-10 flex flex-col items-center gap-6">
             <Link
               href="/buchen"
-              className="rounded-full bg-primary px-7 py-3 font-semibold text-card shadow-md transition-colors hover:bg-primary-hover"
+              className="rounded-full bg-primary px-8 py-3.5 text-lg font-semibold text-card shadow-md transition-colors hover:bg-primary-hover"
             >
               {t('Preis anfragen', 'اطلب السعر', 'Request a quote')}
             </Link>
             <a
               href="#leistungen"
-              className="rounded-full border border-primary/30 bg-card px-7 py-3 font-semibold text-primary transition-colors hover:border-primary"
+              aria-label={t('Nach unten scrollen', 'التمرير للأسفل', 'Scroll down')}
+              className="flex h-10 w-10 items-center justify-center rounded-full text-primary/60 transition-colors hover:bg-primary/5 hover:text-primary motion-safe:animate-bounce"
             >
-              {t('Leistungen ansehen', 'عرض الخدمات', 'View services')}
+              <ChevronDown className="h-6 w-6" />
             </a>
           </div>
         </div>
@@ -47,24 +83,42 @@ export default function HomePage() {
 
       <AlleReinigungsartenCompact />
 
-      <section className="mx-auto max-w-6xl px-4 py-16">
+      <section className="mx-auto max-w-2xl px-4 py-16">
         <h2 className="text-center text-3xl font-bold text-primary">
           {t('So funktioniert es', 'كيف تعمل الخدمة', 'How it works')}
         </h2>
-        <ol className="mt-10 grid gap-6 sm:grid-cols-3">
-          {[
-            { de: 'Anfrage senden', ar: 'أرسل طلبك', en: 'Send your request', n: '1' },
-            { de: 'Angebot erhalten', ar: 'احصل على عرض السعر', en: 'Receive your quote', n: '2' },
-            { de: 'Termin bestätigen', ar: 'أكد الموعد', en: 'Confirm the appointment', n: '3' },
-          ].map((step) => (
-            <li key={step.n} className="rounded-2xl bg-card p-6 text-center shadow-sm ring-1 ring-primary/10">
-              <span className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-primary font-bold text-card">
-                {step.n}
-              </span>
-              <p className="mt-4 font-semibold">{t(step.de, step.ar, step.en)}</p>
-            </li>
-          ))}
+        <ol className="mt-10 space-y-4">
+          {STEPS.map((step) => {
+            const Icon = step.icon
+            return (
+              <li
+                key={step.de}
+                className="flex items-center justify-between gap-4 rounded-2xl p-5 text-[#FFFFFF] shadow-md sm:p-6"
+                style={{ backgroundColor: step.color }}
+              >
+                <div className="min-w-0">
+                  <h3 className="text-lg font-bold sm:text-xl">{t(step.de, step.ar, step.en)}</h3>
+                  <p className="mt-1 text-sm opacity-90 sm:text-base">{t(step.subDe, step.subAr, step.subEn)}</p>
+                </div>
+                <span
+                  className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#FFFFFF] shadow-sm sm:h-16 sm:w-16"
+                  style={{ color: step.color }}
+                >
+                  <Icon className="h-7 w-7 sm:h-8 sm:w-8" aria-hidden="true" />
+                </span>
+              </li>
+            )
+          })}
         </ol>
+        <div className="mt-8 text-center">
+          <Link
+            href="/buchen"
+            className="inline-flex items-center gap-2 rounded-full bg-primary px-10 py-4 text-lg font-bold text-card shadow-lg transition-colors hover:bg-primary-hover"
+          >
+            {t('Jetzt anfragen', 'اطلب الآن', 'Request now')}
+            <ArrowRight className="h-5 w-5 rtl:rotate-180" aria-hidden="true" />
+          </Link>
+        </div>
       </section>
 
       <section className="px-4 pb-4 pt-8">
@@ -78,7 +132,7 @@ export default function HomePage() {
           </h2>
           <Link
             href="/buchen"
-            className="mt-6 inline-block rounded-full bg-card px-7 py-3 font-semibold text-primary transition-colors hover:bg-background"
+            className="mt-7 inline-block rounded-full bg-[#FFFFFF] px-10 py-4 text-lg font-bold text-primary shadow-xl ring-4 ring-[#FFFFFF]/20 transition hover:scale-105 hover:shadow-2xl motion-reduce:hover:scale-100"
           >
             {t('Jetzt Preis anfragen', 'اطلب السعر الآن', 'Request a quote now')}
           </Link>
