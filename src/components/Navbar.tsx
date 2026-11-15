@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Globe, Check, Menu, X } from 'lucide-react'
 import { LANGUAGES, useLang } from './LanguageProvider'
+import { TOP_ICON_BUTTON, TopIcon } from './IconBadge'
 
 const MENU_WIDTH = 160
 const VIEWPORT_GAP = 8
@@ -104,9 +105,9 @@ export default function Navbar() {
               onClick={() => setOpen((v) => !v)}
               aria-label={t('Sprache wählen', 'اختر اللغة', 'Choose language')}
               aria-expanded={open}
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-primary/20 bg-card text-primary/80 hover:border-primary hover:text-primary-hover md:h-9 md:w-9"
+              className={`${TOP_ICON_BUTTON} hover:border-primary hover:text-primary-hover`}
             >
-              <Globe className="h-4 w-4" />
+              <TopIcon icon={Globe} />
             </button>
             {open && (
               <ul
@@ -138,9 +139,9 @@ export default function Navbar() {
             aria-label={t('Menü', 'القائمة', 'Menu')}
             aria-expanded={mobileOpen}
             aria-controls="mobile-menu"
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-card hover:bg-primary-hover md:hidden"
+            className={`${TOP_ICON_BUTTON} hover:border-primary hover:text-primary-hover md:hidden`}
           >
-            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            <TopIcon icon={mobileOpen ? X : Menu} />
           </button>
         </div>
       </div>

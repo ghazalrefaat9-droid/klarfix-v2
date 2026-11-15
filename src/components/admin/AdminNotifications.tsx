@@ -7,6 +7,7 @@ import { Bell, BellRing, CheckCheck, Inbox, MessageCircle, Sparkles, UserPlus, t
 import { useLang } from '@/components/LanguageProvider'
 import { callApi } from '@/lib/apiClient'
 import { BRAND } from '@/lib/brand'
+import { CountBadge, TOP_ICON_BUTTON, TopIcon } from '@/components/IconBadge'
 import { NOTIFICATIONS_REFRESH_EVENT, markAdminNotificationRead, refreshAdminNotifications } from '@/lib/notificationsClient'
 
 // Mirrors AdminNotification in src/lib/adminNotifications.ts
@@ -151,17 +152,7 @@ export async function markAllAdminNotificationsRead() {
   refreshAdminNotifications()
 }
 
-const circle =
-  'relative flex h-12 w-12 items-center justify-center rounded-full bg-[#FFFFFF] shadow-[0_2px_10px_rgba(0,0,0,0.08)] transition hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1A4D2E]/40'
-
-function Badge({ count }: { count: number }) {
-  if (count <= 0) return null
-  return (
-    <span className="absolute -end-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1.5 text-[11px] font-bold leading-none text-[#FFFFFF] shadow motion-safe:animate-pulse">
-      {count > 99 ? '99+' : count}
-    </span>
-  )
-}
+const circle = TOP_ICON_BUTTON
 
 // Bell (all notifications) + chat icon (only chat messages) for the top of every admin page.
 export default function AdminNotifications() {
@@ -215,8 +206,8 @@ export default function AdminNotifications() {
   return (
     <div ref={wrapRef} className="relative flex items-center gap-2 sm:gap-3">
       <button type="button" onClick={openChats} aria-label={chatLabel} title={chatLabel} className={circle}>
-        <MessageCircle className="h-5 w-5" style={{ color: chat > 0 ? BRAND.orange : BRAND.darkGreen }} aria-hidden="true" />
-        <Badge count={chat} />
+        <TopIcon icon={MessageCircle} style={{ color: chat > 0 ? BRAND.orange : BRAND.darkGreen }} />
+        <CountBadge count={chat} className="motion-safe:animate-pulse" />
       </button>
 
       <button
@@ -231,13 +222,13 @@ export default function AdminNotifications() {
         aria-expanded={open}
         className={`${circle} ${total > 0 ? 'ring-4 ring-danger/20' : ''}`}
       >
-        <BellIcon
+        <TopIcon
           key={shakeKey}
-          className={`h-5 w-5 ${total > 0 && shakeKey > 0 ? 'klarfix-bell-shake' : ''}`}
+          icon={BellIcon}
+          className={total > 0 && shakeKey > 0 ? 'klarfix-bell-shake' : undefined}
           style={{ color: total > 0 ? BRAND.orange : BRAND.darkGreen }}
-          aria-hidden="true"
         />
-        <Badge count={total} />
+        <CountBadge count={total} className="motion-safe:animate-pulse" />
       </button>
 
       {open && (

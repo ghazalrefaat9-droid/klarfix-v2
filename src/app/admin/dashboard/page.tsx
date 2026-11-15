@@ -34,6 +34,7 @@ import { Modal, ModalButtons, PartnerList, type AdminPartner } from '@/component
 import RequestPhotos, { splitPhotos } from '@/components/admin/RequestPhotos'
 import PartnerOffersModal, { PartnerOffersButton } from '@/components/admin/PartnerOffers'
 import AdminNotifications from '@/components/admin/AdminNotifications'
+import { DashboardIcon } from '@/components/IconBadge'
 import { markAdminNotificationRead, refreshAdminNotifications } from '@/lib/notificationsClient'
 
 type DeepLink = { kind: 'request' | 'offers' | 'chat' | 'partner' | 'unread'; id: string }
@@ -188,26 +189,27 @@ function QuickAction({
   href?: string
   onClick?: () => void
 }) {
-  const className = `group relative flex min-h-[124px] flex-col items-start overflow-hidden rounded-[22px] bg-[#FFFFFF] p-3.5 text-left shadow-[0_12px_32px_-14px_rgba(27,67,50,0.22)] transition hover:-translate-y-1 hover:shadow-[0_18px_36px_-14px_rgba(27,67,50,0.3)] sm:min-h-[150px] sm:p-5 ${
+  const className = `relative flex h-full flex-col items-start overflow-visible rounded-[22px] bg-[#FFFFFF] p-3.5 text-left shadow-[0_12px_32px_-14px_rgba(27,67,50,0.22)] transition hover:-translate-y-1 hover:shadow-[0_18px_36px_-14px_rgba(27,67,50,0.3)] sm:p-5 ${
     active ? 'ring-2 ring-[#1B4332]' : ''
   }`
   const content = (
     <>
-      <span
-        aria-hidden
-        className="pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full transition-transform duration-300 group-hover:scale-125"
-        style={{ background: `${color}1A` }}
-      />
       {badge && (
-        <span className="absolute right-2 top-2 rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none text-[#FFFFFF]" style={{ background: color }}>
+        <span
+          className="absolute end-2 top-2 flex h-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold leading-none text-[#FFFFFF]"
+          style={{ background: color }}
+        >
           {badge}
         </span>
       )}
-      <span className="relative flex h-11 w-11 items-center justify-center rounded-2xl sm:h-12 sm:w-12" style={{ background: `${color}1F`, color }}>
-        <Icon className="h-6 w-6" />
+      <DashboardIcon icon={Icon} color={color} />
+      {/* Fixed line-heights + 2-line min-heights keep all tiles aligned in the grid. */}
+      <span className="mt-3 line-clamp-2 min-h-[36px] text-[13px] font-bold leading-[18px] text-[#1B4332] sm:min-h-[44px] sm:text-base sm:leading-[22px]">
+        {label}
       </span>
-      <span className="relative mt-3 text-[13px] font-bold leading-tight text-[#1B4332] sm:text-base">{label}</span>
-      {subtitle && <span className="relative mt-1 text-[11px] font-medium leading-snug text-[#4B5563] sm:text-[13px]">{subtitle}</span>}
+      <span className="mt-1 line-clamp-2 min-h-[30px] text-[11px] font-medium leading-[15px] text-[#4B5563] sm:min-h-[36px] sm:text-[13px] sm:leading-[18px]">
+        {subtitle}
+      </span>
     </>
   )
   return href ? (
