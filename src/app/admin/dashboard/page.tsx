@@ -7,7 +7,6 @@ import {
   AlertCircle,
   Ban,
   BarChart3,
-  Bell,
   Calendar,
   CheckCircle,
   Clock,
@@ -22,7 +21,6 @@ import {
   Settings,
   ShieldCheck,
   Trash2,
-  TrendingUp,
   User,
   Users,
   X,
@@ -224,30 +222,6 @@ function QuickAction({
   )
 }
 
-function StatCard({
-  icon: Icon,
-  label,
-  value,
-  iconClass,
-}: {
-  icon: LucideIcon
-  label: string
-  value: number
-  iconClass: string
-}) {
-  return (
-    <div className="flex items-center gap-4 rounded-[20px] bg-[#FFFAF5] p-5 shadow-[0_2px_10px_rgba(0,0,0,0.05)]">
-      <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${iconClass}`}>
-        <Icon className="h-6 w-6" />
-      </span>
-      <div>
-        <p className="text-3xl font-bold leading-none text-[#1A4D2E]">{value}</p>
-        <span className="mt-2 inline-block rounded-full bg-[#E6F1E6] px-2.5 py-0.5 text-[11px] font-medium text-[#1A4D2E]">{label}</span>
-      </div>
-    </div>
-  )
-}
-
 function EmptyState({ title, subtitle }: { title: string; subtitle: string }) {
   return (
     <div className={`${card} flex flex-col items-center px-6 py-12 text-center`}>
@@ -395,11 +369,6 @@ export default function AdminDashboardPage() {
     return <div className="min-h-screen bg-[#FFF9F5] p-8 text-center text-[#4B5563]">Lade…</div>
   }
 
-  const stats = {
-    total: requests.length,
-    new: requests.filter((r) => r.status === 'new' || r.status === 'offer_rejected').length,
-    assigned: requests.filter((r) => ['assigned', 'offer_sent', 'offer_accepted'].includes(r.status)).length,
-  }
   const partnerName = (id: string | null) => partners.find((p) => p.id === id)?.company_name ?? null
 
   return (
@@ -585,16 +554,7 @@ export default function AdminDashboardPage() {
             />
           )}
 
-          {tab === 'stats' && (
-            <>
-              <RequestsChart requests={requests} />
-              <div className="grid gap-3 sm:grid-cols-3">
-                <StatCard icon={TrendingUp} label="Anfragen gesamt" value={stats.total} iconClass="bg-[#A8D5A2]/50 text-[#1A4D2E]" />
-                <StatCard icon={Bell} label="Offene Anfragen" value={stats.new} iconClass="bg-[#F2E7E0] text-[#A65F33]" />
-                <StatCard icon={CheckCircle} label="In Bearbeitung" value={stats.assigned} iconClass="bg-[#DBEAFE] text-[#1D4ED8]" />
-              </div>
-            </>
-          )}
+          {tab === 'stats' && <RequestsChart requests={requests} />}
         </section>
 
         <button

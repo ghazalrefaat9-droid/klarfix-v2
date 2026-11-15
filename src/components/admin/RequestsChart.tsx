@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { ChevronDown } from 'lucide-react'
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 
 export type ChartRequest = { created_at: string; status: string }
@@ -18,15 +19,17 @@ const RANGES: { key: Range; unit: Unit; count: number }[] = [
   { key: 'Alle', unit: 'week', count: 0 },
 ]
 
-// Same status groups as the stat cards below the chart.
+// Same status groups as the former stat cards (Anfragen gesamt / Offene Anfragen / In Bearbeitung).
 const OPEN = new Set(['new', 'offer_rejected'])
-const WORKING = new Set(['assigned', 'offer_sent', 'offer_accepted', 'done'])
+const WORKING = new Set(['assigned', 'offer_sent', 'offer_accepted'])
 
 const SERIES = [
-  { key: 'total', label: 'Neu / Anfragen gesamt', color: '#1A4D2E', fill: '#A8D5A2', fillOpacity: 0.55 },
-  { key: 'open', label: 'Offene Anfragen', color: '#E86A33', fill: '#E86A33', fillOpacity: 0.12 },
-  { key: 'working', label: 'In Bearbeitung / Gelöst', color: '#2A9DCC', fill: '#2A9DCC', fillOpacity: 0.12 },
+  { key: 'total', label: 'Anfragen gesamt', color: '#1A4D2E', fill: '#A8D5A2', fillOpacity: 0.6 },
+  { key: 'open', label: 'Offene Anfragen', color: '#E86A33', fill: '#E86A33', fillOpacity: 0.2 },
+  { key: 'working', label: 'In Bearbeitung', color: '#2A9DCC', fill: '#2A9DCC', fillOpacity: 0.2 },
 ] as const
+
+type Metric = (typeof SERIES)[number]['key']
 
 type Point = { ts: number; total: number; open: number; working: number }
 
@@ -87,6 +90,8 @@ function buildSeries(requests: ChartRequest[], range: (typeof RANGES)[number], n
 
 export default function RequestsChart({ requests }: { requests: ChartRequest[] }) {
   const [rangeKey, setRangeKey] = useState<Range>('3M')
+  const [metric, setMetric] = useState<Metric>('total')
+  const series = SERIES.find((s) => s.key === metric)!
   const range = RANGES.find((r) => r.key === rangeKey)!
   const data = useMemo(() => buildSeries(requests, range, new Date()), [requests, range])
 
@@ -123,28 +128,38 @@ export default function RequestsChart({ requests }: { requests: ChartRequest[] }
       </div>
 
       <div className="rounded-[20px] bg-[#FFFAF5] p-4 shadow-[0_2px_10px_rgba(0,0,0,0.05)] sm:p-5">
-        <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h3 className="font-bold text-[#1A4D2E]">Anfragen</h3>
-          <ul className="flex flex-wrap gap-x-4 gap-y-1 text-[12px] font-medium text-[#4B5563]">
-            {SERIES.map((s) => (
-              <li key={s.key} className="flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: s.color }} aria-hidden />
-                {s.label}
-              </li>
-            ))}
-          </ul>
+          <div className="relative">
+            <span
+              className="pointer-events-none absolute start-3 top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full"
+              style={{ backgroundColor: series.color }}
+              aria-hidden
+            />
+            <select
+              aria-label="Kennzahl"
+              value={metric}
+              onChange={(e) => setMetric(e.target.value as Metric)}
+              className="min-h-[40px] cursor-pointer appearance-none rounded-full border border-[#1A4D2E]/15 bg-[#FFFFFF] pe-9 ps-8 text-[13px] font-semibold text-[#1A4D2E] shadow-[0_2px_10px_rgba(0,0,0,0.05)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1A4D2E]/40"
+            >
+              {SERIES.map((s) => (
+                <option key={s.key} value={s.key}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute end-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#1A4D2E]/70" aria-hidden />
+          </div>
         </div>
 
         <div className="h-64 w-full sm:h-80">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={data} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
               <defs>
-                {SERIES.map((s) => (
-                  <linearGradient key={s.key} id={`fill-${s.key}`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={s.fill} stopOpacity={s.fillOpacity} />
-                    <stop offset="100%" stopColor={s.fill} stopOpacity={0} />
-                  </linearGradient>
-                ))}
+                <linearGradient id="fill-metric" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={series.fill} stopOpacity={series.fillOpacity} />
+                  <stop offset="100%" stopColor={series.fill} stopOpacity={0} />
+                </linearGradient>
               </defs>
               <CartesianGrid stroke="#1A4D2E" strokeOpacity={0.08} vertical={false} />
               <XAxis
@@ -164,34 +179,28 @@ export default function RequestsChart({ requests }: { requests: ChartRequest[] }
                   return (
                     <div className="rounded-xl bg-[#FFFFFF] px-3 py-2 text-[12px] shadow-[0_8px_24px_rgba(0,0,0,0.12)] ring-1 ring-[#1A4D2E]/10">
                       <p className="font-bold text-[#1A4D2E]">
-                        {p.total} Anfragen - {tooltipLabel(p.ts)}
+                        {p[metric]} Anfragen - {tooltipLabel(p.ts)}
                       </p>
-                      <ul className="mt-1 space-y-0.5 text-[#4B5563]">
-                        {SERIES.map((s) => (
-                          <li key={s.key} className="flex items-center gap-1.5">
-                            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: s.color }} aria-hidden />
-                            {s.label}: <span className="font-semibold text-[#1A4D2E]">{p[s.key]}</span>
-                          </li>
-                        ))}
-                      </ul>
+                      <p className="mt-0.5 flex items-center gap-1.5 text-[#4B5563]">
+                        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: series.color }} aria-hidden />
+                        {series.label}
+                      </p>
                     </div>
                   )
                 }}
               />
-              {SERIES.map((s) => (
-                <Area
-                  key={s.key}
-                  type="monotone"
-                  dataKey={s.key}
-                  name={s.label}
-                  stroke={s.color}
-                  strokeWidth={2}
-                  fill={`url(#fill-${s.key})`}
-                  dot={false}
-                  activeDot={{ r: 4, strokeWidth: 2, stroke: '#FFFFFF' }}
-                  isAnimationActive={false}
-                />
-              ))}
+              <Area
+                key={metric}
+                type="monotone"
+                dataKey={metric}
+                name={series.label}
+                stroke={series.color}
+                strokeWidth={2}
+                fill="url(#fill-metric)"
+                dot={false}
+                activeDot={{ r: 4, strokeWidth: 2, stroke: '#FFFFFF' }}
+                isAnimationActive={false}
+              />
             </AreaChart>
           </ResponsiveContainer>
         </div>
