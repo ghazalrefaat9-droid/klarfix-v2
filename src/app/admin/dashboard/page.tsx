@@ -34,6 +34,7 @@ import { Modal, ModalButtons, PartnerList, type AdminPartner } from '@/component
 import RequestPhotos, { splitPhotos } from '@/components/admin/RequestPhotos'
 import PartnerOffersModal, { PartnerOffersButton } from '@/components/admin/PartnerOffers'
 import AdminNotifications from '@/components/admin/AdminNotifications'
+import RequestsChart from '@/components/admin/RequestsChart'
 import { DashboardIcon } from '@/components/IconBadge'
 import { markAdminNotificationRead, refreshAdminNotifications } from '@/lib/notificationsClient'
 
@@ -585,11 +586,14 @@ export default function AdminDashboardPage() {
           )}
 
           {tab === 'stats' && (
-            <div className="grid gap-3 sm:grid-cols-3">
-              <StatCard icon={TrendingUp} label="Anfragen gesamt" value={stats.total} iconClass="bg-[#A8D5A2]/50 text-[#1A4D2E]" />
-              <StatCard icon={Bell} label="Offene Anfragen" value={stats.new} iconClass="bg-[#F2E7E0] text-[#A65F33]" />
-              <StatCard icon={CheckCircle} label="In Bearbeitung" value={stats.assigned} iconClass="bg-[#DBEAFE] text-[#1D4ED8]" />
-            </div>
+            <>
+              <RequestsChart requests={requests} />
+              <div className="grid gap-3 sm:grid-cols-3">
+                <StatCard icon={TrendingUp} label="Anfragen gesamt" value={stats.total} iconClass="bg-[#A8D5A2]/50 text-[#1A4D2E]" />
+                <StatCard icon={Bell} label="Offene Anfragen" value={stats.new} iconClass="bg-[#F2E7E0] text-[#A65F33]" />
+                <StatCard icon={CheckCircle} label="In Bearbeitung" value={stats.assigned} iconClass="bg-[#DBEAFE] text-[#1D4ED8]" />
+              </div>
+            </>
           )}
         </section>
 
