@@ -23,15 +23,22 @@ const RANGES: { key: Range; unit: Unit; count: number }[] = [
 const OPEN = new Set(['new', 'offer_rejected'])
 const WORKING = new Set(['assigned', 'offer_sent', 'offer_accepted'])
 
-const SERIES = [
-  { key: 'total', label: 'Anfragen gesamt', color: '#1A4D2E', fill: '#A8D5A2', fillOpacity: 0.6 },
-  { key: 'open', label: 'Offene Anfragen', color: '#E86A33', fill: '#E86A33', fillOpacity: 0.2 },
-  { key: 'working', label: 'In Bearbeitung', color: '#2A9DCC', fill: '#2A9DCC', fillOpacity: 0.2 },
-] as const
+export type ChartMetric = {
+  key: string
+  label: string
+  color: string
+  fill: string
+  fillOpacity: number
+  match: (status: string) => boolean
+}
 
-type Metric = (typeof SERIES)[number]['key']
+const ADMIN_METRICS: ChartMetric[] = [
+  { key: 'total', label: 'Anfragen gesamt', color: '#1A4D2E', fill: '#A8D5A2', fillOpacity: 0.6, match: () => true },
+  { key: 'open', label: 'Offene Anfragen', color: '#E86A33', fill: '#E86A33', fillOpacity: 0.2, match: (s) => OPEN.has(s) },
+  { key: 'working', label: 'In Bearbeitung', color: '#2A9DCC', fill: '#2A9DCC', fillOpacity: 0.2, match: (s) => WORKING.has(s) },
+]
 
-type Point = { ts: number; total: number; open: number; working: number }
+type Point = { ts: number; [metric: string]: number }
 
 function bucketStart(date: Date, unit: Unit): Date {
   const d = new Date(date)
@@ -54,7 +61,7 @@ const dayLabel = (ts: number) =>
   new Date(ts).toLocaleDateString('de-DE', { day: '2-digit', month: 'short' }).replace(/\.$/, '')
 const timeLabel = (ts: number) => new Date(ts).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
 
-function buildSeries(requests: ChartRequest[], range: (typeof RANGES)[number], now: Date): Point[] {
+function buildSeries(requests: ChartRequest[], metrics: ChartMetric[], range: (typeof RANGES)[number], now: Date): Point[] {
   const { unit } = range
   let first: Date
   let last: Date
@@ -74,26 +81,39 @@ function buildSeries(requests: ChartRequest[], range: (typeof RANGES)[number], n
   const points: Point[] = []
   const index = new Map<number, Point>()
   for (let d = first; d <= last; d = addUnits(d, unit, 1)) {
-    const p = { ts: d.getTime(), total: 0, open: 0, working: 0 }
+    const p: Point = { ts: d.getTime() }
+    for (const m of metrics) p[m.key] = 0
     points.push(p)
     index.set(p.ts, p)
   }
   for (const r of requests) {
     const p = index.get(bucketStart(new Date(r.created_at), unit).getTime())
     if (!p) continue
-    p.total += 1
-    if (OPEN.has(r.status)) p.open += 1
-    else if (WORKING.has(r.status)) p.working += 1
+    for (const m of metrics) if (m.match(r.status)) p[m.key] += 1
   }
   return points
 }
 
-export default function RequestsChart({ requests }: { requests: ChartRequest[] }) {
+export default function RequestsChart({
+  requests,
+  metrics = ADMIN_METRICS,
+  title = 'Statistik',
+  subtitle = 'Anfragen im Vergleich über Zeit',
+  cardTitle = 'Anfragen',
+  unitLabel = 'Anfragen',
+}: {
+  requests: ChartRequest[]
+  metrics?: ChartMetric[]
+  title?: string
+  subtitle?: string
+  cardTitle?: string
+  unitLabel?: string
+}) {
   const [rangeKey, setRangeKey] = useState<Range>('3M')
-  const [metric, setMetric] = useState<Metric>('total')
-  const series = SERIES.find((s) => s.key === metric)!
+  const [metric, setMetric] = useState(metrics[0].key)
+  const series = metrics.find((s) => s.key === metric) ?? metrics[0]
   const range = RANGES.find((r) => r.key === rangeKey)!
-  const data = useMemo(() => buildSeries(requests, range, new Date()), [requests, range])
+  const data = useMemo(() => buildSeries(requests, metrics, range, new Date()), [requests, metrics, range])
 
   const tickLabel = (ts: number) => (range.unit === 'hour' ? timeLabel(ts) : dayLabel(ts))
   const tooltipLabel = (ts: number) =>
@@ -103,8 +123,8 @@ export default function RequestsChart({ requests }: { requests: ChartRequest[] }
     <section className="mb-4">
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="text-xl font-bold text-[#1A4D2E] sm:text-2xl">Statistik</h2>
-          <p className="text-[13px] text-[#4B5563]">Anfragen im Vergleich über Zeit</p>
+          <h2 className="text-xl font-bold text-[#1A4D2E] sm:text-2xl">{title}</h2>
+          <p className="text-[13px] text-[#4B5563]">{subtitle}</p>
         </div>
         <div role="tablist" aria-label="Zeitraum" className="flex gap-1 overflow-x-auto rounded-full bg-[#FFFFFF] p-1 shadow-[0_2px_10px_rgba(0,0,0,0.05)]">
           {RANGES.map((r) => {
@@ -129,7 +149,8 @@ export default function RequestsChart({ requests }: { requests: ChartRequest[] }
 
       <div className="rounded-[20px] bg-[#FFFAF5] p-4 shadow-[0_2px_10px_rgba(0,0,0,0.05)] sm:p-5">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h3 className="font-bold text-[#1A4D2E]">Anfragen</h3>
+          <h3 className="font-bold text-[#1A4D2E]">{cardTitle}</h3>
+          {metrics.length > 1 && (
           <div className="relative">
             <span
               className="pointer-events-none absolute start-3 top-1/2 h-2.5 w-2.5 -translate-y-1/2 rounded-full"
@@ -139,10 +160,10 @@ export default function RequestsChart({ requests }: { requests: ChartRequest[] }
             <select
               aria-label="Kennzahl"
               value={metric}
-              onChange={(e) => setMetric(e.target.value as Metric)}
+              onChange={(e) => setMetric(e.target.value)}
               className="min-h-[40px] cursor-pointer appearance-none rounded-full border border-[#1A4D2E]/15 bg-[#FFFFFF] pe-9 ps-8 text-[13px] font-semibold text-[#1A4D2E] shadow-[0_2px_10px_rgba(0,0,0,0.05)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1A4D2E]/40"
             >
-              {SERIES.map((s) => (
+              {metrics.map((s) => (
                 <option key={s.key} value={s.key}>
                   {s.label}
                 </option>
@@ -150,6 +171,7 @@ export default function RequestsChart({ requests }: { requests: ChartRequest[] }
             </select>
             <ChevronDown className="pointer-events-none absolute end-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#1A4D2E]/70" aria-hidden />
           </div>
+          )}
         </div>
 
         <div className="h-64 w-full sm:h-80">
@@ -179,20 +201,22 @@ export default function RequestsChart({ requests }: { requests: ChartRequest[] }
                   return (
                     <div className="rounded-xl bg-[#FFFFFF] px-3 py-2 text-[12px] shadow-[0_8px_24px_rgba(0,0,0,0.12)] ring-1 ring-[#1A4D2E]/10">
                       <p className="font-bold text-[#1A4D2E]">
-                        {p[metric]} Anfragen - {tooltipLabel(p.ts)}
+                        {p[series.key]} {unitLabel} - {tooltipLabel(p.ts)}
                       </p>
-                      <p className="mt-0.5 flex items-center gap-1.5 text-[#4B5563]">
-                        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: series.color }} aria-hidden />
-                        {series.label}
-                      </p>
+                      {metrics.length > 1 && (
+                        <p className="mt-0.5 flex items-center gap-1.5 text-[#4B5563]">
+                          <span className="h-2 w-2 rounded-full" style={{ backgroundColor: series.color }} aria-hidden />
+                          {series.label}
+                        </p>
+                      )}
                     </div>
                   )
                 }}
               />
               <Area
-                key={metric}
+                key={series.key}
                 type="monotone"
-                dataKey={metric}
+                dataKey={series.key}
                 name={series.label}
                 stroke={series.color}
                 strokeWidth={2}
