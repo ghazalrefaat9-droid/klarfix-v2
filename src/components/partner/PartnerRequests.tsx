@@ -202,15 +202,28 @@ export default function PartnerRequests({ locale }: { locale: string }) {
 
   const revealed = selected?.customer ?? null
   const regionText = region ? [region.postcode, region.city].filter(Boolean).join(' ') : ''
+  const active = mine.filter((r) => r.status !== 'done')
+  // Job date = agreed service date, falling back to when the request came in.
+  const jobDate = (r: PartnerRequest) => r.preferred_date ?? r.created_at
+  const jobTime = (r: PartnerRequest) => {
+    const d = jobDate(r)
+    return new Date(/^\d{4}-\d{2}-\d{2}$/.test(d) ? `${d}T12:00:00` : d).getTime() || 0
+  }
+  const completed = mine.filter((r) => r.status === 'done').sort((a, b) => jobTime(b) - jobTime(a))
+  const shortDate = (r: PartnerRequest) => {
+    const d = jobDate(r)
+    const date = new Date(/^\d{4}-\d{2}-\d{2}$/.test(d) ? `${d}T12:00:00` : d)
+    return Number.isNaN(date.getTime()) ? d : date.toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' })
+  }
 
   return (
     <div className="space-y-8">
       {notice && <p className="rounded-lg bg-primary/5 p-3 text-sm text-primary">{notice}</p>}
 
-      {mine.length > 0 && (
+      {active.length > 0 && (
         <section>
           <h2 className="mb-3 text-lg font-bold">{t('Meine Aufträge', 'طلباتي', 'My jobs')}</h2>
-          <div className="grid gap-4 sm:grid-cols-2">{mine.map((r) => card(r, true))}</div>
+          <div className="grid gap-4 sm:grid-cols-2">{active.map((r) => card(r, true))}</div>
         </section>
       )}
 
@@ -235,6 +248,44 @@ export default function PartnerRequests({ locale }: { locale: string }) {
           </p>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">{open.map((r) => card(r, false))}</div>
+        )}
+      </section>
+
+      <section>
+        <h2 className="mb-3 text-lg font-bold">{t('Abgeschlossene Aufträge', 'الطلبات المنجزة', 'Completed jobs')}</h2>
+        {completed.length === 0 ? (
+          <p className="rounded-xl bg-card p-8 text-center text-primary/70 shadow-sm">
+            {t('Noch keine abgeschlossenen Aufträge.', 'لا توجد طلبات منجزة بعد.', 'No completed jobs yet.')}
+          </p>
+        ) : (
+          <div className="overflow-x-auto rounded-xl bg-card shadow-sm">
+            <table className="w-full min-w-[640px] text-start text-sm">
+              <thead className="border-b border-primary/10 bg-primary/5 text-[12px] font-semibold uppercase tracking-wide text-primary/70">
+                <tr>
+                  <th className="px-4 py-3 text-start">{t('Datum', 'التاريخ', 'Date')}</th>
+                  <th className="px-4 py-3 text-start">{t('Kunde', 'العميل', 'Customer')}</th>
+                  <th className="px-4 py-3 text-start">{t('Adresse', 'العنوان', 'Address')}</th>
+                  <th className="px-4 py-3 text-start">{t('Auftrag', 'الطلب', 'Job')}</th>
+                  <th className="px-4 py-3 text-end">{t('Betrag', 'المبلغ', 'Amount')}</th>
+                  <th className="px-4 py-3 text-start">{t('Status', 'الحالة', 'Status')}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-primary/5 text-primary">
+                {completed.map((r) => (
+                  <tr key={r.id} onClick={() => openDetails(r)} className="cursor-pointer hover:bg-primary/5">
+                    <td className="whitespace-nowrap px-4 py-3">{shortDate(r)}</td>
+                    <td className="px-4 py-3 font-medium">{r.customer?.name ?? '–'}</td>
+                    <td className="px-4 py-3">{r.customer?.address ?? (place(r) || '–')}</td>
+                    <td className="px-4 py-3">{r.service_type}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-end font-semibold">{r.offer ? formatPrice(r.offer.price) : '–'}</td>
+                    <td className="px-4 py-3">
+                      <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${STATUS_STYLE.done}`}>{statusLabel('done')}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
 
