@@ -31,5 +31,9 @@ export async function callApi<T = Record<string, unknown>>(
 export async function logout(area: Area) {
   await fetch(`/api/${area}/logout`, { method: 'POST' }).catch(() => null)
   localStorage.removeItem(area)
+  if (area === 'admin') {
+    sessionStorage.removeItem('kf_export_until')
+    sessionStorage.removeItem('kf_pin_lock_until')
+  }
   goToLogin(area)
 }

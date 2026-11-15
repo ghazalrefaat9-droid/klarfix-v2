@@ -11,6 +11,7 @@ import {
   Calendar,
   CheckCircle,
   Clock,
+  Download,
   FileText,
   Inbox,
   LogOut,
@@ -171,6 +172,8 @@ function DetailField({ label, value, wide }: { label: string; value?: string | n
 function QuickAction({
   icon: Icon,
   label,
+  subtitle,
+  color,
   badge,
   active,
   href,
@@ -178,23 +181,33 @@ function QuickAction({
 }: {
   icon: LucideIcon
   label: string
+  subtitle?: string | null
+  color: string
   badge?: string | null
   active?: boolean
   href?: string
   onClick?: () => void
 }) {
-  const className = `relative flex min-h-[88px] flex-col items-center justify-center gap-2 rounded-[18px] bg-[#FFFFFF] p-3 text-center shadow-[0_2px_10px_rgba(0,0,0,0.05)] transition hover:-translate-y-0.5 hover:shadow-[0_6px_16px_rgba(0,0,0,0.08)] ${
-    active ? 'ring-2 ring-[#1A4D2E]' : ''
+  const className = `group relative flex min-h-[124px] flex-col items-start overflow-hidden rounded-[22px] bg-[#FFFFFF] p-3.5 text-left shadow-[0_12px_32px_-14px_rgba(27,67,50,0.22)] transition hover:-translate-y-1 hover:shadow-[0_18px_36px_-14px_rgba(27,67,50,0.3)] sm:min-h-[150px] sm:p-5 ${
+    active ? 'ring-2 ring-[#1B4332]' : ''
   }`
   const content = (
     <>
+      <span
+        aria-hidden
+        className="pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full transition-transform duration-300 group-hover:scale-125"
+        style={{ background: `${color}1A` }}
+      />
       {badge && (
-        <span className="absolute right-2 top-2 rounded-full bg-[#1A4D2E] px-1.5 py-0.5 text-[10px] font-bold leading-none text-[#FFFFFF]">{badge}</span>
+        <span className="absolute right-2 top-2 rounded-full px-1.5 py-0.5 text-[10px] font-bold leading-none text-[#FFFFFF]" style={{ background: color }}>
+          {badge}
+        </span>
       )}
-      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#E6F1E6] text-[#1A4D2E]">
-        <Icon className="h-5 w-5" />
+      <span className="relative flex h-11 w-11 items-center justify-center rounded-2xl sm:h-12 sm:w-12" style={{ background: `${color}1F`, color }}>
+        <Icon className="h-6 w-6" />
       </span>
-      <span className="text-[11px] font-semibold leading-tight text-[#1A4D2E]">{label}</span>
+      <span className="relative mt-3 text-[13px] font-bold leading-tight text-[#1B4332] sm:text-base">{label}</span>
+      {subtitle && <span className="relative mt-1 text-[11px] font-medium leading-snug text-[#4B5563] sm:text-[13px]">{subtitle}</span>}
     </>
   )
   return href ? (
@@ -253,6 +266,7 @@ export default function AdminDashboardPage() {
   const [blockedPartners, setBlockedPartners] = useState(0)
   const [partnerTrashCount, setPartnerTrashCount] = useState(0)
   const [newApplications, setNewApplications] = useState(0)
+  const [acceptedApplications, setAcceptedApplications] = useState(0)
   const [unreadMessages, setUnreadMessages] = useState(0)
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('')
@@ -298,6 +312,7 @@ export default function AdminDashboardPage() {
       blockedPartners: number
       partnerTrashCount: number
       newApplications: number
+      acceptedApplications: number
       unreadMessages: number
     }>('admin', '/api/admin/dashboard')
     if (!res.ok || !res.data) {
@@ -310,6 +325,7 @@ export default function AdminDashboardPage() {
     setBlockedPartners(res.data.blockedPartners ?? 0)
     setPartnerTrashCount(res.data.partnerTrashCount ?? 0)
     setNewApplications(res.data.newApplications ?? 0)
+    setAcceptedApplications(res.data.acceptedApplications ?? 0)
     setUnreadMessages(res.data.unreadMessages ?? 0)
   }, [])
 
@@ -373,7 +389,7 @@ export default function AdminDashboardPage() {
   }
 
   if (loading) {
-    return <div className="min-h-screen bg-[#E6F1E6] p-8 text-center text-[#4B5563]">Lade…</div>
+    return <div className="min-h-screen bg-[#FFF9F5] p-8 text-center text-[#4B5563]">Lade…</div>
   }
 
   const stats = {
@@ -384,14 +400,14 @@ export default function AdminDashboardPage() {
   const partnerName = (id: string | null) => partners.find((p) => p.id === id)?.company_name ?? null
 
   return (
-    <div className="min-h-screen bg-[#E6F1E6]">
+    <div className="min-h-screen bg-[#FFF9F5]">
       <main className="mx-auto max-w-5xl px-4 py-6 sm:py-10">
         <header className="mb-5 flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-[13px] font-medium text-[#4B5563]">
               {new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })}
             </p>
-            <h1 className="text-2xl font-bold text-[#1A4D2E] sm:text-3xl">Admin-Dashboard</h1>
+            <h1 className="text-2xl font-bold text-[#1B4332] sm:text-3xl">Admin-Dashboard</h1>
           </div>
           <AdminNotifications />
         </header>
@@ -399,24 +415,35 @@ export default function AdminDashboardPage() {
           <DeepLinks onLink={setDeepLink} />
         </Suspense>
 
-        <nav aria-label="Schnellzugriff" className="grid grid-cols-3 gap-2 sm:grid-cols-5 sm:gap-3">
+        {/* FINAL order (most used → least used). "Abmelden" must always stay the last tile. */}
+        <nav aria-label="Schnellzugriff" className="grid grid-cols-3 gap-3 sm:gap-5">
           <QuickAction
             icon={Inbox}
             label="Partner-Anträge"
+            color="#E86A33"
+            subtitle={`${acceptedApplications} aktiv • ${newApplications} neu`}
             href="/admin/partner-applications"
-            badge={newApplications > 0 ? `${newApplications} neu` : null}
           />
           <QuickAction
             icon={Users}
             label="Partner verwalten"
+            color="#14A090"
+            subtitle={`${partners.length} Partner`}
             active={tab === 'partners'}
             onClick={() => setTab('partners')}
             badge={unreadMessages > 0 ? `${unreadMessages} Nachr.` : null}
           />
-          <QuickAction icon={Ban} label={`Blockiert (${blockedPartners})`} href="/admin/partners/blocked" />
           {/* One trash for both: deleted requests and deleted partners (/admin/trash shows both sections). */}
-          <QuickAction icon={Trash2} label={`Papierkorb (${trashCount + partnerTrashCount})`} href="/admin/trash" />
-          <QuickAction icon={LogOut} label="Abmelden" onClick={logout} />
+          <QuickAction
+            icon={Trash2}
+            label={`Papierkorb (${trashCount + partnerTrashCount})`}
+            color="#FFC53D"
+            subtitle="Anfragen & Partner"
+            href="/admin/trash"
+          />
+          <QuickAction icon={Ban} label={`Blockiert (${blockedPartners})`} color="#E85D5D" subtitle="Gesperrte Partner" href="/admin/partners/blocked" />
+          <QuickAction icon={Download} label="Export Center" color="#2A9DCC" subtitle="Backup & Export" href="/admin/export" />
+          <QuickAction icon={LogOut} label="Abmelden" color="#8A8A8A" subtitle="Sitzung beenden" onClick={logout} />
         </nav>
 
         <div role="tablist" className="mt-5 flex gap-1 rounded-full bg-[#FFFFFF] p-1.5 shadow-[0_2px_10px_rgba(0,0,0,0.05)]">
@@ -642,7 +669,7 @@ export default function AdminDashboardPage() {
                   <button
                     type="button"
                     onClick={() => verifyPartner(detailPartner)}
-                    className="flex min-h-[44px] items-center gap-2 rounded-xl bg-[#1A4D2E] px-5 font-medium text-[#FFFFFF] hover:bg-[#143D24]"
+                    className="flex min-h-[44px] items-center gap-2 rounded-xl bg-[#E86A33] px-5 font-semibold text-[#FFFFFF] shadow-[0_10px_24px_-8px_rgba(232,106,51,0.65)] transition hover:-translate-y-0.5 hover:bg-[#CF5824]"
                   >
                     <ShieldCheck className="h-4 w-4" /> Verifizieren
                   </button>
@@ -720,6 +747,13 @@ export default function AdminDashboardPage() {
 
         {settingsOpen && (
           <DetailModal title="Einstellungen" onClose={() => setSettingsOpen(false)}>
+            <Link
+              href="/admin/settings"
+              className="mb-5 flex min-h-[48px] items-center justify-between rounded-2xl bg-[#FFFFFF] px-4 font-semibold text-[#1B4332] shadow-[0_4px_14px_-6px_rgba(27,67,50,0.25)] transition hover:-translate-y-0.5"
+            >
+              <span dir="auto">🔐 Export-PIN ändern · تغيير PIN للتصدير</span>
+              <span aria-hidden>→</span>
+            </Link>
             <SettingsPanel onMessage={setMessage} />
           </DetailModal>
         )}
