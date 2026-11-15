@@ -1,11 +1,20 @@
 'use client'
 
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import { CalendarDays, Camera, Clock, DoorOpen, Lock, Mail, MapPin, Phone, Ruler, Send } from 'lucide-react'
+import { CalendarDays, Camera, Clock, DoorOpen, Lock, Mail, MapPin, Phone, Ruler, Send, User } from 'lucide-react'
 import { callApi } from '@/lib/apiClient'
 import { useLang } from '@/components/LanguageProvider'
 import OrderSteps from '@/components/OrderSteps'
 import RequestsChart, { type ChartMetric } from '@/components/admin/RequestsChart'
+import type { PartnerCounts, PartnerView } from '@/components/partner/PartnerSidebar'
+
+// "Meine Aufträge" sub-filters, matching the 3-step stepper (OrderSteps).
+const MINE_FILTERS: Record<string, (s: string) => boolean> = {
+  meine: () => true,
+  'meine-angebot': (s) => s === 'offer_pending' || s === 'offer_sent',
+  'meine-angenommen': (s) => s === 'offer_accepted' || s === 'assigned',
+  'meine-erledigt': (s) => s === 'done',
+}
 
 // Fixed single metric for the partner chart: only this partner's own done jobs.
 const PARTNER_METRICS: ChartMetric[] = [
@@ -39,7 +48,16 @@ const STATUS_STYLE: Record<string, string> = {
   done: 'bg-[#F5F5F0] text-[#4B5563]',
 }
 
-export default function PartnerRequests({ locale }: { locale: string }) {
+export default function PartnerRequests({
+  locale,
+  view = 'all',
+  onCounts,
+}: {
+  locale: string
+  // 'all' renders every section (previous behaviour); otherwise only the section picked in the side menu.
+  view?: PartnerView | 'all'
+  onCounts?: (counts: PartnerCounts) => void
+}) {
   const { t } = useLang()
   const [open, setOpen] = useState<PartnerRequest[]>([])
   const [mine, setMine] = useState<PartnerRequest[]>([])
@@ -74,6 +92,19 @@ export default function PartnerRequests({ locale }: { locale: string }) {
     }
     init()
   }, [load])
+
+  useEffect(() => {
+    if (loading || !onCounts) return
+    const count = (key: string) => mine.filter((r) => MINE_FILTERS[key](r.status)).length
+    onCounts({
+      neu: open.length,
+      meine: mine.length,
+      angebot: count('meine-angebot'),
+      angenommen: count('meine-angenommen'),
+      erledigt: count('meine-erledigt'),
+      abgeschlossen: count('meine-erledigt'),
+    })
+  }, [loading, open, mine, onCounts])
 
   const statusLabel = (s: PartnerRequest['status']) =>
     ({
@@ -222,26 +253,52 @@ export default function PartnerRequests({ locale }: { locale: string }) {
     return Number.isNaN(date.getTime()) ? d : date.toLocaleDateString(locale, { day: '2-digit', month: '2-digit', year: 'numeric' })
   }
 
+  const all = view === 'all'
+  const show = (v: PartnerView) => all || view === v
+  const mineView = !all && view.startsWith('meine') ? view : null
+  const mineList = mineView ? mine.filter((r) => MINE_FILTERS[mineView](r.status)) : active
+  const mineTitle =
+    mineView === 'meine-angebot'
+      ? t('Angebot gesendet', 'تم إرسال العرض', 'Offer sent')
+      : mineView === 'meine-angenommen'
+        ? t('Kunde hat angenommen', 'وافق العميل', 'Customer accepted')
+        : mineView === 'meine-erledigt'
+          ? t('Auftrag erledigt', 'تم إنجاز الطلب', 'Job done')
+          : t('Meine Aufträge', 'طلباتي', 'My jobs')
+  const doneBadge = `rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${STATUS_STYLE.done}`
+
   return (
     <div className="space-y-8">
-      <RequestsChart
-        requests={completed.map((r) => ({ created_at: new Date(jobTime(r)).toISOString(), status: r.status }))}
-        metrics={PARTNER_METRICS}
-        title="Meine Statistik"
-        subtitle="Erledigte Aufträge über Zeit"
-        cardTitle="Erledigte Aufträge"
-        unitLabel="Erledigte Aufträge"
-      />
+      {show('statistik') && (
+        <RequestsChart
+          requests={completed.map((r) => ({ created_at: new Date(jobTime(r)).toISOString(), status: r.status }))}
+          metrics={PARTNER_METRICS}
+          title="Meine Statistik"
+          subtitle="Erledigte Aufträge über Zeit"
+          cardTitle="Erledigte Aufträge"
+          unitLabel="Erledigte Aufträge"
+        />
+      )}
 
       {notice && <p className="rounded-lg bg-primary/5 p-3 text-sm text-primary">{notice}</p>}
 
-      {active.length > 0 && (
+      {(mineView || (all && active.length > 0)) && (
         <section>
-          <h2 className="mb-3 text-lg font-bold">{t('Meine Aufträge', 'طلباتي', 'My jobs')}</h2>
-          <div className="grid gap-4 sm:grid-cols-2">{active.map((r) => card(r, true))}</div>
+          <h2 className="mb-3 text-lg font-bold">
+            {mineTitle}
+            {mineView && mineView !== 'meine' && <span className="ms-2 text-sm font-normal text-primary/60">· {t('Meine Aufträge', 'طلباتي', 'My jobs')}</span>}
+          </h2>
+          {mineList.length === 0 ? (
+            <p className="rounded-xl bg-card p-8 text-center text-primary/70 shadow-sm">
+              {t('Keine Aufträge in dieser Ansicht.', 'لا توجد طلبات في هذا العرض.', 'No jobs in this view.')}
+            </p>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2">{mineList.map((r) => card(r, true))}</div>
+          )}
         </section>
       )}
 
+      {show('neu') && (
       <section>
         <h2 className="mb-3 text-lg font-bold">
           {t('Neue Anfragen', 'طلبات جديدة', 'New requests')}
@@ -265,7 +322,9 @@ export default function PartnerRequests({ locale }: { locale: string }) {
           <div className="grid gap-4 sm:grid-cols-2">{open.map((r) => card(r, false))}</div>
         )}
       </section>
+      )}
 
+      {show('abgeschlossen') && (
       <section>
         <h2 className="mb-3 text-lg font-bold">{t('Abgeschlossene Aufträge', 'الطلبات المنجزة', 'Completed jobs')}</h2>
         {completed.length === 0 ? (
@@ -273,7 +332,46 @@ export default function PartnerRequests({ locale }: { locale: string }) {
             {t('Noch keine abgeschlossenen Aufträge.', 'لا توجد طلبات منجزة بعد.', 'No completed jobs yet.')}
           </p>
         ) : (
-          <div className="overflow-x-auto rounded-xl bg-card shadow-sm">
+          <>
+          {/* Mobile: stacked cards so Datum / Kunde / Adresse are never cut off. */}
+          <ul className="space-y-3 md:hidden">
+            {completed.map((r) => (
+              <li key={r.id}>
+                <button
+                  type="button"
+                  onClick={() => openDetails(r)}
+                  className="block w-full min-w-0 rounded-xl bg-card p-4 text-start shadow-sm ring-1 ring-transparent transition hover:ring-primary"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="min-w-0 break-words font-semibold text-primary">{r.service_type}</p>
+                    <span className={`shrink-0 ${doneBadge}`}>{statusLabel('done')}</span>
+                  </div>
+                  <dl className="mt-3 space-y-1.5 text-sm text-primary/80">
+                    <div className="flex items-center gap-2">
+                      <CalendarDays className="h-4 w-4 shrink-0" aria-hidden />
+                      <dt className="sr-only">{t('Datum', 'التاريخ', 'Date')}</dt>
+                      <dd>{shortDate(r)}</dd>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4 shrink-0" aria-hidden />
+                      <dt className="sr-only">{t('Kunde', 'العميل', 'Customer')}</dt>
+                      <dd className="min-w-0 break-words font-medium text-primary">{r.customer?.name ?? '–'}</dd>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <MapPin className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+                      <dt className="sr-only">{t('Adresse', 'العنوان', 'Address')}</dt>
+                      <dd className="min-w-0 break-words">{r.customer?.address ?? (place(r) || '–')}</dd>
+                    </div>
+                  </dl>
+                  <div className="mt-3 flex items-center justify-between border-t border-primary/10 pt-3 text-sm">
+                    <span className="text-primary/70">{t('Betrag', 'المبلغ', 'Amount')}</span>
+                    <span className="font-semibold text-primary">{r.offer ? formatPrice(r.offer.price) : '–'}</span>
+                  </div>
+                </button>
+              </li>
+            ))}
+          </ul>
+          <div className="hidden overflow-x-auto rounded-xl bg-card shadow-sm md:block">
             <table className="w-full min-w-[640px] text-start text-sm">
               <thead className="border-b border-primary/10 bg-primary/5 text-[12px] font-semibold uppercase tracking-wide text-primary/70">
                 <tr>
@@ -301,8 +399,10 @@ export default function PartnerRequests({ locale }: { locale: string }) {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </section>
+      )}
 
       {selected && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-primary/50 sm:items-center sm:p-4" onClick={() => setSelected(null)}>

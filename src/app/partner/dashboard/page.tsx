@@ -2,11 +2,12 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { MessageCircle } from 'lucide-react'
+import { Menu, MessageCircle } from 'lucide-react'
 import { callApi, logout as logoutSession } from '@/lib/apiClient'
 import { useLang } from '@/components/LanguageProvider'
 import ChatBox from '@/components/ChatBox'
 import PartnerRequests from '@/components/partner/PartnerRequests'
+import PartnerSidebar, { isPartnerView, type PartnerCounts, type PartnerView } from '@/components/partner/PartnerSidebar'
 import WelcomeSplash, { WELCOME_FLAG } from '@/components/partner/WelcomeSplash'
 
 type Partner = { id: string; company_name: string; email: string }
@@ -22,6 +23,19 @@ export default function PartnerDashboardPage() {
   const [chatOpen, setChatOpen] = useState(false)
   const [welcome, setWelcome] = useState(false)
   const hideWelcome = useCallback(() => setWelcome(false), [])
+  const [view, setView] = useState<PartnerView>('statistik')
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [counts, setCounts] = useState<PartnerCounts | null>(null)
+  const closeDrawer = useCallback(() => setDrawerOpen(false), [])
+
+  // ?tab=… is read from window.location (not useSearchParams) so the page needs no Suspense boundary.
+  function selectView(next: PartnerView) {
+    setView(next)
+    setDrawerOpen(false)
+    if (next === 'nachrichten') setUnread(0)
+    router.replace(`/partner/dashboard?tab=${next}`, { scroll: false })
+    window.scrollTo({ top: 0 })
+  }
 
   const checkAccess = useCallback(async () => {
     setLoading(true)
@@ -40,6 +54,8 @@ export default function PartnerDashboardPage() {
       }
       const storedPartner = JSON.parse(stored) as Partner
       setPartner(storedPartner)
+      const tab = new URLSearchParams(window.location.search).get('tab')
+      if (isPartnerView(tab)) setView(tab)
       // Only right after login (flag from /partner/login), not on every reload.
       if (sessionStorage.getItem(WELCOME_FLAG)) {
         sessionStorage.removeItem(WELCOME_FLAG)
@@ -67,6 +83,15 @@ export default function PartnerDashboardPage() {
 
   const splash = welcome && partner ? <WelcomeSplash name={partner.company_name} onDone={hideWelcome} /> : null
 
+  const chatLabels = {
+    placeholder: t('Nachricht schreiben…', 'اكتب رسالة…', 'Write a message…'),
+    send: t('Senden', 'إرسال', 'Send'),
+    empty: t('Noch keine Nachrichten. Schreiben Sie uns!', 'لا توجد رسائل بعد. راسلنا!', 'No messages yet. Write to us!'),
+    loadError: t('Nachrichten konnten nicht geladen werden.', 'تعذّر تحميل الرسائل.', 'Messages could not be loaded.'),
+    sendError: t('Nachricht konnte nicht gesendet werden.', 'تعذّر إرسال الرسالة.', 'Message could not be sent.'),
+    otherName: 'KlarFix',
+  }
+
   if (loading) {
     return (
       <>
@@ -79,13 +104,26 @@ export default function PartnerDashboardPage() {
   return (
     <>
     {splash}
-    <main className="mx-auto max-w-4xl px-4 py-10">
+    <main className={`mx-auto px-4 py-10 ${verified ? 'max-w-6xl' : 'max-w-4xl'}`}>
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div>
+        <div className="flex min-w-0 items-center gap-3">
+          {verified && (
+            <button
+              type="button"
+              onClick={() => setDrawerOpen(true)}
+              aria-label={t('Menü öffnen', 'فتح القائمة', 'Open menu')}
+              aria-expanded={drawerOpen}
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-primary/10 bg-card text-primary shadow-sm md:hidden"
+            >
+              <Menu className="h-5 w-5" aria-hidden />
+            </button>
+          )}
+          <div className="min-w-0">
           <h1 className="text-2xl font-bold text-primary">{t('Partner-Dashboard', 'لوحة الشركاء', 'Partner dashboard')}</h1>
           <p className="text-sm text-primary/80">
             {t('Angemeldet als', 'مسجل الدخول باسم', 'Signed in as')} {partner?.company_name}
           </p>
+          </div>
         </div>
         <div className="flex items-center gap-4">
           {verified && (
@@ -129,7 +167,27 @@ export default function PartnerDashboardPage() {
           </button>
         </div>
       ) : (
-        <PartnerRequests locale={locale} />
+        <div className="md:grid md:grid-cols-[240px_minmax(0,1fr)] md:gap-6">
+          <PartnerSidebar
+            view={view}
+            counts={counts}
+            unread={unread}
+            onSelect={selectView}
+            drawerOpen={drawerOpen}
+            onCloseDrawer={closeDrawer}
+          />
+          <div className="min-w-0">
+            <PartnerRequests locale={locale} view={view} onCounts={setCounts} />
+            {view === 'nachrichten' && (
+              <section>
+                <h2 className="mb-3 text-lg font-bold">{t('Nachrichten mit KlarFix', 'الرسائل مع KlarFix', 'Messages with KlarFix')}</h2>
+                <div className="rounded-xl bg-card p-5 shadow-sm">
+                  <ChatBox me="partner" endpoint="/api/partner/messages" locale={locale} labels={chatLabels} />
+                </div>
+              </section>
+            )}
+          </div>
+        </div>
       )}
 
       {chatOpen && (
@@ -164,18 +222,7 @@ export default function PartnerDashboardPage() {
               me="partner"
               endpoint="/api/partner/messages"
               locale={locale}
-              labels={{
-                placeholder: t('Nachricht schreiben…', 'اكتب رسالة…', 'Write a message…'),
-                send: t('Senden', 'إرسال', 'Send'),
-                empty: t(
-                  'Noch keine Nachrichten. Schreiben Sie uns!',
-                  'لا توجد رسائل بعد. راسلنا!',
-                  'No messages yet. Write to us!',
-                ),
-                loadError: t('Nachrichten konnten nicht geladen werden.', 'تعذّر تحميل الرسائل.', 'Messages could not be loaded.'),
-                sendError: t('Nachricht konnte nicht gesendet werden.', 'تعذّر إرسال الرسالة.', 'Message could not be sent.'),
-                otherName: 'KlarFix',
-              }}
+              labels={chatLabels}
             />
           </div>
         </div>
