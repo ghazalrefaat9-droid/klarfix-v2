@@ -103,10 +103,8 @@ export default function HomePage() {
           items={[
             { k: 'vacuum', x: 0.03, y: 0.08, size: 50, rot: -8 },
             { k: 'spray', x: 0.97, y: 0.07, size: 46, rot: 10, m: false },
-            { k: 'bubbles', x: 0.5, y: 0.05, size: 42 },
             { k: 'sparkle', x: 0.33, y: 0.1, size: 40, m: false },
             { k: 'sparkle', x: 0.96, y: 0.5, size: 42, delay: 3 },
-            { k: 'heart', x: 0.03, y: 0.92, size: 44 },
           ]}
         />
         <div className="mx-auto grid max-w-6xl items-center gap-10 md:grid-cols-2 md:gap-12">
@@ -173,10 +171,7 @@ export default function HomePage() {
       <Decor
         items={[
           { k: 'calendar', x: 0.04, y: 0.08, size: 48 },
-          { k: 'spray', x: 0.96, y: 0.28, size: 46, rot: 8 },
           { k: 'bucket', x: 0.04, y: 0.5, size: 50, m: false },
-          { k: 'sparkle', x: 0.93, y: 0.05, size: 42 },
-          { k: 'cloth', x: 0.05, y: 0.82, size: 46, rot: -8 },
           { k: 'squeegee', x: 0.95, y: 0.9, size: 46, rot: -10, m: false },
         ]}
       />
@@ -190,17 +185,13 @@ export default function HomePage() {
             return (
               <li
                 key={step.de}
-                className="flex items-center justify-between gap-4 rounded-2xl p-5 text-[#FFFFFF] shadow-md sm:p-6"
-                style={{ backgroundColor: step.color }}
+                className="flex items-center justify-between gap-4 rounded-2xl bg-[#FFFFFF] p-5 text-[#1A3C2E] shadow-md sm:p-6"
               >
                 <div className="min-w-0">
                   <h3 className="text-lg font-bold sm:text-xl">{t(step.de, step.ar, step.en)}</h3>
-                  <p className="mt-1 text-sm opacity-90 sm:text-base">{t(step.subDe, step.subAr, step.subEn)}</p>
+                  <p className="mt-1 text-sm text-[#2F4A3A] sm:text-base">{t(step.subDe, step.subAr, step.subEn)}</p>
                 </div>
-                <span
-                  className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#FFFFFF] shadow-sm sm:h-16 sm:w-16"
-                  style={{ color: step.color }}
-                >
+                <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#EAF4EC] sm:h-16 sm:w-16">
                   <Icon className="h-7 w-7 sm:h-8 sm:w-8" aria-hidden="true" />
                 </span>
               </li>
@@ -210,7 +201,7 @@ export default function HomePage() {
         <div className="mt-8 text-center">
           <Link
             href="/buchen"
-            className="inline-flex items-center gap-2 rounded-full bg-[#C67A4A] px-10 py-4 text-lg font-bold text-[#FFFFFF] shadow-lg transition-colors hover:bg-[#B56B3D]"
+            className="inline-flex items-center gap-2 rounded-full bg-[#1A3C2E] px-10 py-4 text-lg font-bold text-[#FFFFFF] shadow-lg transition-colors hover:bg-[#2D5A4C]"
           >
             {t('Jetzt anfragen', 'اطلب الآن', 'Request now')}
             <ArrowRight className="h-5 w-5 rtl:rotate-180" aria-hidden="true" />
