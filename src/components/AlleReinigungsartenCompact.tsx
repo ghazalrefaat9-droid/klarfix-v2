@@ -6,6 +6,7 @@ import { ChevronDown } from 'lucide-react'
 import { useLang } from '@/components/LanguageProvider'
 import { REINIGUNGSARTEN, reinigungsartIcon, reinigungsartName, type Reinigungsart } from '@/lib/reinigungsarten'
 import { BRAND } from '@/lib/brand'
+import Decor from '@/components/Decor'
 
 // The first 6 services are shown directly, the rest after "Alle 14 Leistungen anzeigen".
 const INITIAL_COUNT = 6
@@ -46,7 +47,18 @@ export default function AlleReinigungsartenCompact() {
   const hiddenCount = REINIGUNGSARTEN.length - INITIAL_COUNT
 
   return (
-    <section id="leistungen" className="scroll-mt-28 bg-[#E8F0E6] px-3 py-10 md:px-8 md:py-14">
+    <section id="leistungen" className="relative isolate scroll-mt-28 bg-[#E8F0E6] px-3 py-10 md:px-8 md:py-14">
+      <Decor
+        items={[
+          { k: 'sponge', pos: 'left-[1%] top-[3%]', m: true },
+          { k: 'mop', pos: 'right-[1%] top-[2%]', rot: 12 },
+          { k: 'bubbles', pos: 'left-[48%] top-[1%]', size: 34 },
+          { k: 'sparkle', pos: 'left-[2%] top-[45%]', size: 26 },
+          { k: 'bubbles', pos: 'right-[1%] top-[50%]', size: 34, delay: 4 },
+          { k: 'sponge', pos: 'left-[45%] bottom-[1%]', size: 34, rot: -10 },
+          { k: 'sparkle', pos: 'right-[3%] bottom-[3%]', size: 24, m: true },
+        ]}
+      />
       <h2 className="mb-2 text-center text-3xl font-bold text-[#1A3C34] md:text-4xl">
         {t('Unsere Leistungen', 'خدماتنا', 'Our services')}
       </h2>

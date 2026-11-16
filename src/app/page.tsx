@@ -6,6 +6,7 @@ import { ArrowRight, CalendarCheck, CalendarX, Check, ChevronDown, FileText, Rec
 import { useLang } from '@/components/LanguageProvider'
 import AlleReinigungsartenCompact from '@/components/AlleReinigungsartenCompact'
 import { BRAND } from '@/lib/brand'
+import Decor from '@/components/Decor'
 
 // "So funktioniert es": green -> orange -> dark green (KlarFix primary).
 const STEPS = [
@@ -90,7 +91,18 @@ export default function HomePage() {
 
   return (
     <main>
-      <section className="bg-background px-4 pb-16 pt-14 text-primary md:pb-24 md:pt-20">
+      <section className="relative isolate bg-background px-4 pb-16 pt-14 text-primary md:pb-24 md:pt-20">
+        <Decor
+          items={[
+            { k: 'vacuum', pos: 'left-[2%] top-[6%]', m: true, rot: -8 },
+            { k: 'spray', pos: 'right-[3%] top-[4%]', rot: 10 },
+            { k: 'bubbles', pos: 'left-[46%] top-[3%]', size: 36 },
+            { k: 'sparkle', pos: 'left-[30%] top-[10%]', m: true, size: 30 },
+            { k: 'sparkle', pos: 'right-[8%] bottom-[16%]', size: 26, delay: 3 },
+            { k: 'heart', pos: 'left-[3%] bottom-[10%]', size: 32 },
+            { k: 'bubbles', pos: 'right-[2%] bottom-[5%]', size: 36, delay: 5 },
+          ]}
+        />
         <div className="mx-auto grid max-w-6xl items-center gap-10 md:grid-cols-2 md:gap-12">
           <div className="text-center md:text-start">
             <p className="mb-4 text-sm font-semibold uppercase tracking-[0.25em] text-primary/70">
@@ -152,6 +164,16 @@ export default function HomePage() {
 
       <AlleReinigungsartenCompact />
 
+      <div className="relative isolate">
+      <Decor
+        items={[
+          { k: 'calendar', pos: 'left-[4%] top-[8%]', m: true },
+          { k: 'spray', pos: 'right-[4%] top-[38%]', rot: 8 },
+          { k: 'bucket', pos: 'left-[6%] bottom-[16%]' },
+          { k: 'sparkle', pos: 'right-[12%] top-[6%]', size: 28 },
+          { k: 'cloth', pos: 'right-[6%] bottom-[8%]', size: 36 },
+        ]}
+      />
       <section className="mx-auto max-w-2xl px-4 py-16">
         <h2 className="text-center text-3xl font-bold text-primary">
           {t('So funktioniert es', 'كيف تعمل الخدمة', 'How it works')}
@@ -189,8 +211,20 @@ export default function HomePage() {
           </Link>
         </div>
       </section>
+      </div>
 
-      <section className="px-4 pb-12 pt-4">
+      <section className="relative isolate px-4 pb-12 pt-4">
+        <Decor
+          items={[
+            { k: 'leaf', pos: 'left-[4%] top-[6%]', m: true },
+            { k: 'shield', pos: 'right-[5%] top-[10%]' },
+            { k: 'smiley', pos: 'left-[8%] bottom-[8%]', size: 36 },
+            { k: 'heart', pos: 'right-[10%] bottom-[10%]', size: 30, m: true },
+            { k: 'heart', pos: 'left-[48%] top-[2%]', size: 24 },
+            { k: 'sparkle', pos: 'left-[20%] top-[4%]', size: 28 },
+            { k: 'sparkle', pos: 'right-[22%] bottom-[4%]', size: 26 },
+          ]}
+        />
         <div className="mx-auto max-w-5xl">
           <h2 className="text-center text-3xl font-bold text-primary">
             {t('Warum KlarFix?', 'لماذا KlarFix؟', 'Why KlarFix?')}

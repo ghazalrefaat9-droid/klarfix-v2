@@ -1,13 +1,18 @@
 'use client'
 
 import Link from 'next/link'
+import { Suspense } from 'react'
+import FooterDecor from './FooterDecor'
 import { useLang } from './LanguageProvider'
 
 export default function Footer() {
   const { t } = useLang()
 
   return (
-    <footer className="mt-16 bg-primary text-card/80">
+    <footer className="relative isolate mt-16 bg-primary text-card/80">
+      <Suspense fallback={null}>
+        <FooterDecor />
+      </Suspense>
       <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:grid-cols-3">
         <div>
           <p className="text-lg font-bold text-card">KlarFix</p>
