@@ -46,8 +46,9 @@ const STEPS = [
 const TRUST = [
   {
     icon: ShieldCheck,
-    circle: BRAND.greenTint,
-    color: BRAND.green,
+    circle: '#DFF0E3',
+    color: '#1A3C2E',
+    hl: false,
     de: 'Geprüfte Partner',
     ar: 'شركاء معتمدون',
     en: 'Vetted partners',
@@ -57,8 +58,9 @@ const TRUST = [
   },
   {
     icon: ReceiptEuro,
-    circle: BRAND.orangeTint,
-    color: BRAND.orange,
+    circle: '#F5D6C0',
+    color: '#C67A4A',
+    hl: true,
     de: 'Festpreis ohne Überraschungen',
     ar: 'سعر ثابت بدون مفاجآت',
     en: 'Fixed price, no surprises',
@@ -68,8 +70,9 @@ const TRUST = [
   },
   {
     icon: CalendarX,
-    circle: BRAND.mint,
-    color: BRAND.darkGreen,
+    circle: '#F7E8C0',
+    color: '#B98A2F',
+    hl: true,
     de: 'Kostenlos stornieren per E-Mail bis 24h vorher',
     ar: 'إلغاء مجاني عبر الإيميل حتى قبل 24 ساعة',
     en: 'Free cancellation by e-mail up to 24h before',
@@ -88,6 +91,10 @@ const HERO_POINTS = [
 
 export default function HomePage() {
   const { t } = useLang()
+  const heroTitle = t('Saubere Räume. Klare Preise.', 'مساحات نظيفة. أسعار واضحة.', 'Clean spaces. Clear prices.')
+  const split = heroTitle.indexOf('. ')
+  const heroA = split === -1 ? heroTitle : heroTitle.slice(0, split + 1)
+  const heroB = split === -1 ? '' : heroTitle.slice(split + 2)
 
   return (
     <main>
@@ -104,17 +111,16 @@ export default function HomePage() {
         />
         <div className="mx-auto grid max-w-6xl items-center gap-10 md:grid-cols-2 md:gap-12">
           <div className="text-center md:text-start">
-            <p className="mb-4 text-sm font-semibold uppercase tracking-[0.25em] text-primary/70">
+            <p className="mb-4 text-sm font-semibold uppercase tracking-[0.25em] text-[#C67A4A]">
               {t('Reinigung in Stuttgart', 'تنظيف في شتوتغارت', 'Cleaning in Stuttgart')}
             </p>
-            <h1 className="text-4xl font-bold leading-tight tracking-tight text-primary sm:text-5xl lg:text-6xl">
-              {t(
-                'Saubere Räume. Klare Preise.',
-                'مساحات نظيفة. أسعار واضحة.',
-                'Clean spaces. Clear prices.',
-              )}
+            <h1 className="text-4xl font-bold leading-tight tracking-tight text-[#1A3C2E] sm:text-5xl lg:text-6xl">
+              {heroA}{' '}
+              <span className="text-[#C67A4A] underline decoration-[#E9B44C]/40 decoration-[6px] underline-offset-[6px]">
+                {heroB}
+              </span>
             </h1>
-            <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-primary/80 md:mx-0">
+            <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-[#2F4A3A] md:mx-0">
               {t(
                 'Wohnung, Büro, Fenster oder Grundreinigung – geprüfte Partner, faire Preise, schnelle Antwort.',
                 'شقق ومكاتب ونوافذ وتنظيف شامل – شركاء معتمدون وأسعار عادلة ورد سريع.',
@@ -124,7 +130,7 @@ export default function HomePage() {
             <div className="mt-8 flex flex-col items-center gap-5 md:items-start">
               <Link
                 href="/buchen"
-                className="rounded-full bg-primary px-8 py-3.5 text-lg font-semibold text-card shadow-md transition-colors hover:bg-primary-hover"
+                className="rounded-full bg-[#1A3C2E] px-8 py-3.5 text-lg font-semibold text-card shadow-md transition-colors hover:bg-[#2D5A4C]"
               >
                 {t('Preis anfragen', 'اطلب السعر', 'Request a quote')}
               </Link>
@@ -204,7 +210,7 @@ export default function HomePage() {
         <div className="mt-8 text-center">
           <Link
             href="/buchen"
-            className="inline-flex items-center gap-2 rounded-full bg-primary px-10 py-4 text-lg font-bold text-card shadow-lg transition-colors hover:bg-primary-hover"
+            className="inline-flex items-center gap-2 rounded-full bg-[#C67A4A] px-10 py-4 text-lg font-bold text-[#FFFFFF] shadow-lg transition-colors hover:bg-[#B56B3D]"
           >
             {t('Jetzt anfragen', 'اطلب الآن', 'Request now')}
             <ArrowRight className="h-5 w-5 rtl:rotate-180" aria-hidden="true" />
@@ -213,7 +219,7 @@ export default function HomePage() {
       </section>
       </div>
 
-      <section className="relative isolate px-4 pb-12 pt-4">
+      <section className="relative isolate bg-[#FFFFFF] px-4 pb-14 pt-12">
         <Decor
           items={[
             { k: 'leaf', x: 0.04, y: 0.1, size: 46 },
@@ -239,8 +245,23 @@ export default function HomePage() {
                     <Icon className="h-6 w-6" aria-hidden="true" />
                   </span>
                   <div className="min-w-0">
-                    <p className="font-semibold text-primary">{t(item.de, item.ar, item.en)}</p>
-                    <p className="mt-1 text-sm text-primary/65">{t(item.subDe, item.subAr, item.subEn)}</p>
+                    {(() => {
+                      const title = t(item.de, item.ar, item.en)
+                      const sp = title.indexOf(' ')
+                      return (
+                        <p className="font-bold text-[#1A3C2E]">
+                          {item.hl && sp > 0 ? (
+                            <>
+                              <span className="text-[#C67A4A]">{title.slice(0, sp)}</span>
+                              {title.slice(sp)}
+                            </>
+                          ) : (
+                            title
+                          )}
+                        </p>
+                      )
+                    })()}
+                    <p className="mt-1 text-sm text-[#2F4A3A]">{t(item.subDe, item.subAr, item.subEn)}</p>
                   </div>
                 </li>
               )
