@@ -1,10 +1,12 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { BarChart3, CheckCircle2, ChevronDown, ClipboardList, Handshake, Inbox, MessageCircle, Send, Sparkles, X, type LucideIcon } from 'lucide-react'
+import { BarChart3, CheckCircle2, ChevronDown, ClipboardList, Handshake, Inbox, LayoutDashboard, MessageCircle, Send, Sparkles, Video, X, type LucideIcon } from 'lucide-react'
 import { useLang } from '@/components/LanguageProvider'
 
 export const PARTNER_VIEWS = [
+  'start',
+  'video',
   'statistik',
   'neu',
   'meine',
@@ -89,7 +91,7 @@ function Menu({
 
   return (
     <nav aria-label={t('Partner-Menü', 'قائمة الشريك', 'Partner menu')} className="space-y-1">
-      <Item icon={BarChart3} label={t('Meine Statistik', 'إحصائياتي', 'My statistics')} active={view === 'statistik'} onClick={() => onSelect('statistik')} />
+      <Item icon={LayoutDashboard} label={t('Übersicht', 'نظرة عامة', 'Overview')} active={view === 'start'} onClick={() => onSelect('start')} />      <Item icon={BarChart3} label={t('Meine Statistik', 'إحصائياتي', 'My statistics')} active={view === 'statistik'} onClick={() => onSelect('statistik')} />
       <Item icon={Inbox} label={t('Neue Anfragen', 'طلبات جديدة', 'New requests')} count={c('neu')} active={view === 'neu'} onClick={() => onSelect('neu')} />
 
       <div>
@@ -127,6 +129,7 @@ function Menu({
 
       <Item icon={CheckCircle2} label={t('Abgeschlossene Aufträge', 'الطلبات المنجزة', 'Completed jobs')} count={c('abgeschlossen')} active={view === 'abgeschlossen'} onClick={() => onSelect('abgeschlossen')} />
       <Item icon={MessageCircle} label={t('Nachrichten', 'الرسائل', 'Messages')} count={unread} alert active={view === 'nachrichten'} onClick={() => onSelect('nachrichten')} />
+      <Item icon={Video} label={t('Video hochladen', 'رفع فيديو', 'Upload video')} active={view === 'video'} onClick={() => onSelect('video')} />
     </nav>
   )
 }

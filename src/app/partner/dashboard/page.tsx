@@ -7,6 +7,8 @@ import { callApi, logout as logoutSession } from '@/lib/apiClient'
 import { useLang } from '@/components/LanguageProvider'
 import ChatBox from '@/components/ChatBox'
 import PartnerRequests from '@/components/partner/PartnerRequests'
+import PartnerHome from '@/components/partner/PartnerHome'
+import PartnerMedia from '@/components/partner/PartnerMedia'
 import PartnerSidebar, { isPartnerView, type PartnerCounts, type PartnerView } from '@/components/partner/PartnerSidebar'
 import WelcomeSplash, { WELCOME_FLAG } from '@/components/partner/WelcomeSplash'
 
@@ -23,7 +25,7 @@ export default function PartnerDashboardPage() {
   const [chatOpen, setChatOpen] = useState(false)
   const [welcome, setWelcome] = useState(false)
   const hideWelcome = useCallback(() => setWelcome(false), [])
-  const [view, setView] = useState<PartnerView>('statistik')
+  const [view, setView] = useState<PartnerView>('start')
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [counts, setCounts] = useState<PartnerCounts | null>(null)
   const closeDrawer = useCallback(() => setDrawerOpen(false), [])
@@ -178,6 +180,8 @@ export default function PartnerDashboardPage() {
           />
           <div className="min-w-0">
             <PartnerRequests locale={locale} view={view} onCounts={setCounts} />
+            {view === 'start' && <PartnerHome counts={counts} unread={unread} onSelect={selectView} />}
+            {view === 'video' && <PartnerMedia />}
             {view === 'nachrichten' && (
               <section>
                 <h2 className="mb-3 text-lg font-bold">{t('Nachrichten mit KlarFix', 'الرسائل مع KlarFix', 'Messages with KlarFix')}</h2>

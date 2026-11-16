@@ -9,7 +9,7 @@ import {
   BarChart3,
   Calendar,
   CheckCircle,
-  Clock,
+  Clapperboard,  Clock,
   Download,
   FileText,
   Inbox,
@@ -32,6 +32,7 @@ import { Modal, ModalButtons, PartnerList, type AdminPartner } from '@/component
 import RequestPhotos, { splitPhotos } from '@/components/admin/RequestPhotos'
 import PartnerOffersModal, { PartnerOffersButton } from '@/components/admin/PartnerOffers'
 import AdminNotifications from '@/components/admin/AdminNotifications'
+import MediaApproval from '@/components/admin/MediaApproval'
 import RequestsChart from '@/components/admin/RequestsChart'
 import { DashboardIcon } from '@/components/IconBadge'
 import { markAdminNotificationRead, refreshAdminNotifications } from '@/lib/notificationsClient'
@@ -84,11 +85,12 @@ type Request = {
 
 type PartnerOption = { id: string; company_name: string }
 
-type Tab = 'requests' | 'partners' | 'stats'
+type Tab = 'requests' | 'partners' | 'media' | 'stats'
 
 const TABS: { key: Tab; label: string; icon: LucideIcon }[] = [
   { key: 'requests', label: 'Alle Anfragen', icon: FileText },
   { key: 'partners', label: 'Partner', icon: Users },
+  { key: 'media', label: 'Medien-Freigabe', icon: Clapperboard },
   { key: 'stats', label: 'Stats', icon: BarChart3 },
 ]
 
@@ -175,6 +177,7 @@ function QuickAction({
   subtitle,
   color,
   badge,
+  badgeColor,
   active,
   href,
   onClick,
@@ -184,6 +187,7 @@ function QuickAction({
   subtitle?: string | null
   color: string
   badge?: string | null
+  badgeColor?: string
   active?: boolean
   href?: string
   onClick?: () => void
@@ -196,7 +200,7 @@ function QuickAction({
       {badge && (
         <span
           className="absolute end-2 top-2 flex h-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold leading-none text-[#FFFFFF]"
-          style={{ background: color }}
+          style={{ background: badgeColor ?? color }}
         >
           {badge}
         </span>
@@ -245,6 +249,7 @@ export default function AdminDashboardPage() {
   const [newApplications, setNewApplications] = useState(0)
   const [acceptedApplications, setAcceptedApplications] = useState(0)
   const [unreadMessages, setUnreadMessages] = useState(0)
+  const [pendingMedia, setPendingMedia] = useState(0)
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('')
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -291,6 +296,7 @@ export default function AdminDashboardPage() {
       newApplications: number
       acceptedApplications: number
       unreadMessages: number
+      pendingMedia: number
     }>('admin', '/api/admin/dashboard')
     if (!res.ok || !res.data) {
       setMessage(res.data?.error ?? 'Daten konnten nicht geladen werden.')
@@ -304,6 +310,7 @@ export default function AdminDashboardPage() {
     setNewApplications(res.data.newApplications ?? 0)
     setAcceptedApplications(res.data.acceptedApplications ?? 0)
     setUnreadMessages(res.data.unreadMessages ?? 0)
+    setPendingMedia(res.data.pendingMedia ?? 0)
   }, [])
 
   useEffect(() => {
@@ -404,6 +411,16 @@ export default function AdminDashboardPage() {
             active={tab === 'partners'}
             onClick={() => setTab('partners')}
             badge={unreadMessages > 0 ? `${unreadMessages} Nachr.` : null}
+          />
+          <QuickAction
+            icon={Clapperboard}
+            label="Medien-Freigabe"
+            color="#8B5CF6"
+            subtitle="Videos & Fotos prüfen"
+            active={tab === 'media'}
+            onClick={() => setTab('media')}
+            badge={pendingMedia > 0 ? String(pendingMedia) : null}
+            badgeColor="#E85D5D"
           />
           {/* One trash for both: deleted requests and deleted partners (/admin/trash shows both sections). */}
           <QuickAction
@@ -553,6 +570,8 @@ export default function AdminDashboardPage() {
               onDeepLinkHandled={() => setDeepLink((d) => (d?.kind === 'unread' ? d : null))}
             />
           )}
+
+          {tab === 'media' && <MediaApproval onChanged={loadData} />}
 
           {tab === 'stats' && <RequestsChart requests={requests} />}
         </section>

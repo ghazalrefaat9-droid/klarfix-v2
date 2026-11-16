@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { CheckCircle2, ShieldCheck, Star, XCircle } from 'lucide-react'
 import { useLang } from '@/components/LanguageProvider'
 import OrderSteps from '@/components/OrderSteps'
+import MediaPreview from '@/components/MediaPreview'
 
 type Offer = {
   status: string
@@ -17,6 +18,7 @@ type Offer = {
   preferred_time: string | null
   price: number
   message: string | null
+  media?: { id: string; kind: 'video' | 'photo'; url: string }[]
   partner: {
     verified: boolean
     experience_years: number | null
@@ -175,6 +177,16 @@ export default function OfferView() {
         </ul>
       </section>
 
+      {offer.media && offer.media.length > 0 && (
+        <section className="mt-4 rounded-2xl bg-card p-5 shadow-sm">
+          <h2 className="mb-3 text-sm font-semibold">{t('Eindrücke vom Partner', 'لمحات من الشريك', 'Impressions from the partner')}</h2>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {offer.media.map((m) => (
+              <MediaPreview key={m.id} kind={m.kind} url={m.url} watermark />
+            ))}
+          </div>
+        </section>
+      )}
       {error && (
         <p role="alert" className="mt-4 rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">
           {error}

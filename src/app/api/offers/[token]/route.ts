@@ -4,6 +4,7 @@ import { readJson } from '@/lib/partnerAdmin'
 import { hashSetupToken, isWellFormedToken } from '@/lib/partnerSetup'
 import { sendDecisionToPartner } from '@/lib/offerMail'
 import { cityFromAddress, parseMessage } from '@/lib/requests'
+import { listApprovedMedia } from '@/lib/mediaServer'
 import { siteUrl } from '@/lib/siteUrl'
 
 const INVALID = 'Dieses Angebot ist nicht mehr gültig.'
@@ -70,6 +71,8 @@ export async function GET(_request: Request, ctx: RouteContext<'/api/offers/[tok
     preferred_time: row.is_flexible ? null : (row.preferred_time ?? parsed.time),
     price: Number(row.partner_price),
     message: row.partner_message,
+    // Approved media only (listApprovedMedia filters on status = 'approved').
+    media: await listApprovedMedia(row.partner_id as string),
     partner: {
       verified: partner?.verified === true,
       experience_years: partner?.experience_years ?? null,

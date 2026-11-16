@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabaseServer'
 import { requireAdmin } from '@/lib/session'
 import { unreadForAdmin } from '@/lib/messages'
+import { countPendingMedia } from '@/lib/mediaServer'
 import { pendingOfferCounts } from '@/lib/partnerOffers'
 
 // Data for /admin/dashboard: active requests, selectable partners and badge counters.
@@ -35,6 +36,7 @@ export async function GET() {
   }
   // A missing partner_messages table (migration not run yet) must not break the dashboard.
   const unread = await unreadForAdmin().catch(() => ({}) as Record<string, number>)
+  const pendingMedia = await countPendingMedia().catch(() => 0)
   const requests = (reqRes.data ?? []) as { id: string }[]
   const offerCounts = await pendingOfferCounts(requests.map((r) => r.id))
   return NextResponse.json({
@@ -45,6 +47,7 @@ export async function GET() {
     partnerTrashCount: partnerTrashRes.count ?? 0,
     newApplications: appRes.count ?? 0,
     acceptedApplications: acceptedAppRes.count ?? 0,
+    pendingMedia,
     unreadMessages: Object.values(unread).reduce((sum, n) => sum + n, 0),
   })
 }
