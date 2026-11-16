@@ -13,9 +13,9 @@ import {
   Download,
   FileText,
   Inbox,
-  LogOut,
   Mail,
   MapPin,
+  MessageCircle,
   Phone,
   Ruler,
   Settings,
@@ -33,6 +33,7 @@ import RequestPhotos, { splitPhotos } from '@/components/admin/RequestPhotos'
 import PartnerOffersModal, { PartnerOffersButton } from '@/components/admin/PartnerOffers'
 import AdminNotifications from '@/components/admin/AdminNotifications'
 import MediaApproval from '@/components/admin/MediaApproval'
+import { BackButton, LogoutButton } from '@/components/DashboardNav'
 import RequestsChart from '@/components/admin/RequestsChart'
 import { DashboardIcon } from '@/components/IconBadge'
 import { markAdminNotificationRead, refreshAdminNotifications } from '@/lib/notificationsClient'
@@ -85,14 +86,7 @@ type Request = {
 
 type PartnerOption = { id: string; company_name: string }
 
-type Tab = 'requests' | 'partners' | 'media' | 'stats'
-
-const TABS: { key: Tab; label: string; icon: LucideIcon }[] = [
-  { key: 'requests', label: 'Alle Anfragen', icon: FileText },
-  { key: 'partners', label: 'Partner', icon: Users },
-  { key: 'media', label: 'Medien-Freigabe', icon: Clapperboard },
-  { key: 'stats', label: 'Stats', icon: BarChart3 },
-]
+type Tab = 'start' | 'requests' | 'partners' | 'media' | 'stats'
 
 const STATUS: Record<string, { label: string; className: string }> = {
   new: { label: 'Neu', className: 'bg-[#F2E7E0] text-[#A65F33]' },
@@ -240,7 +234,7 @@ function EmptyState({ title, subtitle }: { title: string; subtitle: string }) {
 
 export default function AdminDashboardPage() {
   const router = useRouter()
-  const [tab, setTab] = useState<Tab>('requests')
+  const [tab, setTab] = useState<Tab>('start')
   const [requests, setRequests] = useState<Request[]>([])
   const [partners, setPartners] = useState<PartnerOption[]>([])
   const [trashCount, setTrashCount] = useState(0)
@@ -369,7 +363,7 @@ export default function AdminDashboardPage() {
   }
 
   function logout() {
-    void logoutSession('admin')
+    void logoutSession('admin', '/')
   }
 
   if (loading) {
@@ -381,6 +375,7 @@ export default function AdminDashboardPage() {
   return (
     <div className="min-h-screen bg-[#FFF9F5]">
       <main className="mx-auto max-w-5xl px-4 py-6 sm:py-10">
+        <BackButton onClick={() => (tab === 'start' ? router.push('/') : setTab('start'))} />
         <header className="mb-5 flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="text-[13px] font-medium text-[#4B5563]">
@@ -394,68 +389,65 @@ export default function AdminDashboardPage() {
           <DeepLinks onLink={setDeepLink} />
         </Suspense>
 
-        {/* FINAL order (most used → least used). "Abmelden" must always stay the last tile. */}
-        <nav aria-label="Schnellzugriff" className="grid grid-cols-3 gap-3 sm:gap-5">
-          <QuickAction
-            icon={Inbox}
-            label="Partner-Anträge"
-            color="#E86A33"
-            subtitle={`${acceptedApplications} aktiv • ${newApplications} neu`}
-            href="/admin/partner-applications"
-          />
-          <QuickAction
-            icon={Users}
-            label="Partner verwalten"
-            color="#14A090"
-            subtitle={`${partners.length} Partner`}
-            active={tab === 'partners'}
-            onClick={() => setTab('partners')}
-            badge={unreadMessages > 0 ? `${unreadMessages} Nachr.` : null}
-          />
-          <QuickAction
-            icon={Clapperboard}
-            label="Medien-Freigabe"
-            color="#8B5CF6"
-            subtitle="Videos & Fotos prüfen"
-            active={tab === 'media'}
-            onClick={() => setTab('media')}
-            badge={pendingMedia > 0 ? String(pendingMedia) : null}
-            badgeColor="#E85D5D"
-          />
-          {/* One trash for both: deleted requests and deleted partners (/admin/trash shows both sections). */}
-          <QuickAction
-            icon={Trash2}
-            label={`Papierkorb (${trashCount + partnerTrashCount})`}
-            color="#FFC53D"
-            subtitle="Anfragen & Partner"
-            href="/admin/trash"
-          />
-          <QuickAction icon={Ban} label={`Blockiert (${blockedPartners})`} color="#E85D5D" subtitle="Gesperrte Partner" href="/admin/partners/blocked" />
-          <QuickAction icon={Download} label="Export Center" color="#2A9DCC" subtitle="Backup & Export" href="/admin/export" />
-          <QuickAction icon={LogOut} label="Abmelden" color="#8A8A8A" subtitle="Sitzung beenden" onClick={logout} />
-        </nav>
-
-        <div role="tablist" className="mt-5 flex gap-1 rounded-full bg-[#FFFFFF] p-1.5 shadow-[0_2px_10px_rgba(0,0,0,0.05)]">
-          {TABS.map((t) => {
-            const Icon = t.icon
-            const active = tab === t.key
-            return (
+        {tab === 'start' && (
+          <>
+            <div className="mb-5 flex gap-3">
               <button
-                key={t.key}
                 type="button"
-                role="tab"
-                aria-selected={active}
-                onClick={() => setTab(t.key)}
-                className={`flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-full px-2 text-[13px] font-semibold transition sm:text-sm ${
-                  active ? 'bg-[#A8D5A2] text-[#0F2A1D]' : 'text-[#4B5563] hover:bg-[#F5F5F0]'
-                }`}
+                onClick={() => setTab('partners')}
+                className="flex min-h-[44px] min-w-0 flex-1 items-center justify-center gap-2 rounded-lg bg-[#1B4332] px-4 text-sm font-semibold text-[#FFFFFF] hover:opacity-90"
               >
-                <Icon className="h-4 w-4 shrink-0" />
-                <span className="truncate">{t.label}</span>
+                <MessageCircle className="h-4 w-4 shrink-0" />
+                Nachrichten
+                {unreadMessages > 0 && (
+                  <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#E85D5D] px-1.5 text-[11px] font-bold text-[#FFFFFF]">
+                    {unreadMessages > 99 ? '99+' : unreadMessages}
+                  </span>
+                )}
               </button>
-            )
-          })}
-        </div>
+              <LogoutButton onConfirm={logout} />
+            </div>
+
+            <nav aria-label="Schnellzugriff" className="grid grid-cols-3 gap-3 sm:gap-5">
+              <QuickAction icon={FileText} label="Alle Anfragen" color="#1B4332" subtitle={`${requests.length} Anfragen`} onClick={() => setTab('requests')} />
+              <QuickAction
+                icon={Inbox}
+                label="Partner-Anträge"
+                color="#E86A33"
+                subtitle={`${acceptedApplications} aktiv • ${newApplications} neu`}
+                href="/admin/partner-applications"
+              />
+              <QuickAction
+                icon={Users}
+                label="Partner verwalten"
+                color="#14A090"
+                subtitle={`${partners.length} Partner`}
+                onClick={() => setTab('partners')}
+                badge={unreadMessages > 0 ? `${unreadMessages} Nachr.` : null}
+              />
+              <QuickAction
+                icon={Clapperboard}
+                label="Medien-Freigabe"
+                color="#8B5CF6"
+                subtitle="Videos & Fotos prüfen"
+                onClick={() => setTab('media')}
+                badge={pendingMedia > 0 ? String(pendingMedia) : null}
+                badgeColor="#E85D5D"
+              />
+              <QuickAction icon={BarChart3} label="Stats" color="#2E9E5B" subtitle="Anfragen im Zeitverlauf" onClick={() => setTab('stats')} />
+              {/* One trash for both: deleted requests and deleted partners (/admin/trash shows both sections). */}
+              <QuickAction
+                icon={Trash2}
+                label={`Papierkorb (${trashCount + partnerTrashCount})`}
+                color="#FFC53D"
+                subtitle="Anfragen & Partner"
+                href="/admin/trash"
+              />
+              <QuickAction icon={Ban} label={`Blockiert (${blockedPartners})`} color="#E85D5D" subtitle="Gesperrte Partner" href="/admin/partners/blocked" />
+              <QuickAction icon={Download} label="Export Center" color="#2A9DCC" subtitle="Backup & Export" href="/admin/export" />
+            </nav>
+          </>
+        )}
 
         {message && (
           <p className={`${card} mt-4 flex items-center gap-2 p-3 text-sm text-[#1A4D2E]`}>

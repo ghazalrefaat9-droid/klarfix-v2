@@ -2,8 +2,8 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { Globe, Check, Menu, X } from 'lucide-react'
+import { useLayoutEffect, useRef, useState } from 'react'
+import { Globe, Check } from 'lucide-react'
 import { LANGUAGES, useLang } from './LanguageProvider'
 import { TOP_ICON_BUTTON, TopIcon } from './IconBadge'
 
@@ -13,20 +13,8 @@ const VIEWPORT_GAP = 8
 export default function Navbar() {
   const { lang, setLang, t } = useLang()
   const [open, setOpen] = useState(false)
-  const [mobileOpen, setMobileOpen] = useState(false)
   const [menuLeft, setMenuLeft] = useState(0)
   const menuRef = useRef<HTMLDivElement>(null)
-
-  // No usePathname here: it would force a Suspense boundary on dynamic routes (Cache Components).
-  // Every link in the header closes the mobile menu itself instead.
-  const closeMobile = () => setMobileOpen(false)
-
-  useEffect(() => {
-    if (!mobileOpen) return
-    const onKeyDown = (e: KeyboardEvent) => e.key === 'Escape' && setMobileOpen(false)
-    document.addEventListener('keydown', onKeyDown)
-    return () => document.removeEventListener('keydown', onKeyDown)
-  }, [mobileOpen])
 
   useLayoutEffect(() => {
     if (!open) return
@@ -73,7 +61,6 @@ export default function Navbar() {
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
         <Link
           href="/"
-          onClick={closeMobile}
           aria-label={t('KlarFix – Startseite', 'KlarFix – الصفحة الرئيسية', 'KlarFix – Home')}
           className="shrink-0"
         >
@@ -132,44 +119,9 @@ export default function Navbar() {
               </ul>
             )}
           </div>
-
-          <button
-            type="button"
-            onClick={() => setMobileOpen((v) => !v)}
-            aria-label={t('Menü', 'القائمة', 'Menu')}
-            aria-expanded={mobileOpen}
-            aria-controls="mobile-menu"
-            className={`${TOP_ICON_BUTTON} hover:border-primary hover:text-primary-hover md:hidden`}
-          >
-            <TopIcon icon={mobileOpen ? X : Menu} />
-          </button>
         </div>
       </div>
 
-      {mobileOpen && (
-        <nav id="mobile-menu" className="border-t border-primary/10 px-4 pb-4 pt-2 md:hidden">
-          <ul className="space-y-1 text-base font-medium text-primary">
-            {links.map((l) => (
-              <li key={l.href}>
-                <Link
-                  href={l.href}
-                  onClick={() => setMobileOpen(false)}
-                  className="flex min-h-[48px] items-center rounded-xl px-3 hover:bg-primary/5"
-                >
-                  {l.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-          <Link
-            href="/buchen"
-            onClick={() => setMobileOpen(false)}
-            className="mt-3 flex min-h-[48px] items-center justify-center rounded-full bg-primary text-base font-semibold text-card hover:bg-primary-hover"
-          >
-            {cta}
-          </Link>
-        </nav>
-      )}
     </header>
   )
 }

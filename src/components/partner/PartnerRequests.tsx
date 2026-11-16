@@ -6,7 +6,7 @@ import { callApi } from '@/lib/apiClient'
 import { useLang } from '@/components/LanguageProvider'
 import OrderSteps from '@/components/OrderSteps'
 import RequestsChart, { type ChartMetric } from '@/components/admin/RequestsChart'
-import type { PartnerCounts, PartnerView } from '@/components/partner/PartnerSidebar'
+import type { PartnerCounts, PartnerView } from '@/lib/partnerViews'
 
 // "Meine Aufträge" sub-filters, matching the 3-step stepper (OrderSteps).
 const MINE_FILTERS: Record<string, (s: string) => boolean> = {

@@ -3,7 +3,7 @@
 import { BarChart3, CheckCircle2, ClipboardList, Inbox, MessageCircle, Video, type LucideIcon } from 'lucide-react'
 import { useLang } from '@/components/LanguageProvider'
 import { DashboardIcon } from '@/components/IconBadge'
-import type { PartnerCounts, PartnerView } from '@/components/partner/PartnerSidebar'
+import type { PartnerCounts, PartnerView } from '@/lib/partnerViews'
 
 function Tile({
   icon,

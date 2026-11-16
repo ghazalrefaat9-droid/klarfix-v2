@@ -2,14 +2,15 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Menu, MessageCircle } from 'lucide-react'
+import { MessageCircle } from 'lucide-react'
 import { callApi, logout as logoutSession } from '@/lib/apiClient'
 import { useLang } from '@/components/LanguageProvider'
 import ChatBox from '@/components/ChatBox'
+import { BackButton, LogoutButton } from '@/components/DashboardNav'
 import PartnerRequests from '@/components/partner/PartnerRequests'
 import PartnerHome from '@/components/partner/PartnerHome'
 import PartnerMedia from '@/components/partner/PartnerMedia'
-import PartnerSidebar, { isPartnerView, type PartnerCounts, type PartnerView } from '@/components/partner/PartnerSidebar'
+import { isPartnerView, type PartnerCounts, type PartnerView } from '@/lib/partnerViews'
 import WelcomeSplash, { WELCOME_FLAG } from '@/components/partner/WelcomeSplash'
 
 type Partner = { id: string; company_name: string; email: string }
@@ -26,14 +27,11 @@ export default function PartnerDashboardPage() {
   const [welcome, setWelcome] = useState(false)
   const hideWelcome = useCallback(() => setWelcome(false), [])
   const [view, setView] = useState<PartnerView>('start')
-  const [drawerOpen, setDrawerOpen] = useState(false)
   const [counts, setCounts] = useState<PartnerCounts | null>(null)
-  const closeDrawer = useCallback(() => setDrawerOpen(false), [])
 
   // ?tab=… is read from window.location (not useSearchParams) so the page needs no Suspense boundary.
   function selectView(next: PartnerView) {
     setView(next)
-    setDrawerOpen(false)
     if (next === 'nachrichten') setUnread(0)
     router.replace(`/partner/dashboard?tab=${next}`, { scroll: false })
     window.scrollTo({ top: 0 })
@@ -80,8 +78,11 @@ export default function PartnerDashboardPage() {
   }, [verified])
 
   function logout() {
-    void logoutSession('partner')
+    void logoutSession('partner', '/')
   }
+
+  // Unverified partners only ever see the "account is being reviewed" start page.
+  const page: PartnerView = verified ? view : 'start'
 
   const splash = welcome && partner ? <WelcomeSplash name={partner.company_name} onDone={hideWelcome} /> : null
 
@@ -106,35 +107,24 @@ export default function PartnerDashboardPage() {
   return (
     <>
     {splash}
-    <main className={`mx-auto px-4 py-10 ${verified ? 'max-w-6xl' : 'max-w-4xl'}`}>
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-3">
-          {verified && (
-            <button
-              type="button"
-              onClick={() => setDrawerOpen(true)}
-              aria-label={t('Menü öffnen', 'فتح القائمة', 'Open menu')}
-              aria-expanded={drawerOpen}
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-primary/10 bg-card text-primary shadow-sm md:hidden"
-            >
-              <Menu className="h-5 w-5" aria-hidden />
-            </button>
-          )}
-          <div className="min-w-0">
-          <h1 className="text-2xl font-bold text-primary">{t('Partner-Dashboard', 'لوحة الشركاء', 'Partner dashboard')}</h1>
-          <p className="text-sm text-primary/80">
-            {t('Angemeldet als', 'مسجل الدخول باسم', 'Signed in as')} {partner?.company_name}
-          </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-4">
+    <main className="mx-auto max-w-4xl overflow-x-hidden px-4 py-6 sm:py-10">
+      <BackButton onClick={() => (page === 'start' ? router.push('/') : selectView('start'))} />
+      <div className="mb-6 min-w-0">
+        <h1 className="break-words text-2xl font-bold text-primary">{t('Partner-Dashboard', 'لوحة الشركاء', 'Partner dashboard')}</h1>
+        <p className="break-words text-sm text-primary/80">
+          {t('Angemeldet als', 'مسجل الدخول باسم', 'Signed in as')} {partner?.company_name}
+        </p>
+      </div>
+
+      {page === 'start' && (
+        <div className="mb-6 flex gap-3">
           {verified && (
             <button
               type="button"
               onClick={() => setChatOpen(true)}
-              className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-card hover:bg-primary-hover"
+              className="flex min-h-[44px] min-w-0 flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-card hover:bg-primary-hover"
             >
-              <MessageCircle className="h-4 w-4" />
+              <MessageCircle className="h-4 w-4 shrink-0" />
               {t('Nachrichten', 'الرسائل', 'Messages')}
               {unread > 0 && (
                 <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1.5 text-[11px] font-bold text-[#FFFFFF]">
@@ -143,11 +133,9 @@ export default function PartnerDashboardPage() {
               )}
             </button>
           )}
-          <button onClick={logout} className="text-sm text-primary/80 underline hover:text-primary-hover">
-            {t('Abmelden', 'تسجيل الخروج', 'Sign out')}
-          </button>
+          <LogoutButton onConfirm={logout} />
         </div>
-      </div>
+      )}
 
       {!verified ? (
         <div className="rounded-xl bg-card p-8 text-center shadow-sm">
@@ -169,15 +157,6 @@ export default function PartnerDashboardPage() {
           </button>
         </div>
       ) : (
-        <div className="md:grid md:grid-cols-[240px_minmax(0,1fr)] md:gap-6">
-          <PartnerSidebar
-            view={view}
-            counts={counts}
-            unread={unread}
-            onSelect={selectView}
-            drawerOpen={drawerOpen}
-            onCloseDrawer={closeDrawer}
-          />
           <div className="min-w-0">
             <PartnerRequests locale={locale} view={view} onCounts={setCounts} />
             {view === 'start' && <PartnerHome counts={counts} unread={unread} onSelect={selectView} />}
@@ -191,7 +170,6 @@ export default function PartnerDashboardPage() {
               </section>
             )}
           </div>
-        </div>
       )}
 
       {chatOpen && (
