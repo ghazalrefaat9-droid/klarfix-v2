@@ -1,104 +1,137 @@
 import type { ReactNode } from 'react'
 
-const SAGE = '#8FA68E'
-const GREY = '#9AA39B'
-const TERRA = '#C67A4A'
-const SPARK = '#F2C94C'
+const TERRA = '#E76F51'
+const CORAL = '#FF6B8A'
+const GOLD = '#FFC53D'
+const MINT = '#2EC4B6'
+const PEACH = '#FF9F6E'
+const W = '#FFFFFF'
 
-const S = { fill: 'none', strokeWidth: 2.2, strokeLinecap: 'round', strokeLinejoin: 'round' } as const
+const line = { fill: 'none', strokeLinecap: 'round', strokeLinejoin: 'round' } as const
+
+// Small white glint (4-point star) used as the glossy highlight.
+const glint = (x: number, y: number, r = 3.2): ReactNode => (
+  <path
+    d={`M${x} ${y - r} Q${x} ${y} ${x + r} ${y} Q${x} ${y} ${x} ${y + r} Q${x} ${y} ${x - r} ${y} Q${x} ${y} ${x} ${y - r} Z`}
+    fill={W}
+  />
+)
 
 const ICONS: Record<string, ReactNode> = {
   vacuum: (
     <>
-      <circle cx="14" cy="36" r="6" stroke={SAGE} {...S} />
-      <path d="M14 30 L22 12 L30 12" stroke={GREY} {...S} />
-      <path d="M26 38 H42 L40 31 H28 Z" stroke={SAGE} {...S} />
-      <path d="M22 12 L30 31" stroke={GREY} {...S} />
+      <circle cx="14" cy="36" r="7" fill={TERRA} />
+      <path d="M14 30 L23 10 L31 10" stroke={PEACH} strokeWidth="3.4" {...line} />
+      <path d="M25 40 H44 L41 30 H28 Z" fill={TERRA} />
+      <path d="M12 33 Q13 31 15 31" stroke={W} strokeWidth="1.8" {...line} />
+      {glint(37, 34, 2.8)}
     </>
   ),
   spray: (
     <>
-      <rect x="14" y="20" width="16" height="22" rx="4" stroke={SAGE} {...S} />
-      <path d="M18 20 V14 H30 L34 17" stroke={TERRA} {...S} />
-      <path d="M38 12 H41 M38 17 H42 M38 22 H41" stroke={GREY} {...S} />
-      <path d="M14 30 H30" stroke={GREY} {...S} />
+      <rect x="13" y="20" width="18" height="23" rx="5" fill={MINT} />
+      <path d="M18 20 V13 H31 L36 17" stroke={TERRA} strokeWidth="3.6" {...line} />
+      <path d="M39 11 H43 M39 17 H44 M39 23 H43" stroke={MINT} strokeWidth="2.4" {...line} />
+      <path d="M17 26 V36" stroke={W} strokeWidth="2" {...line} />
+      {glint(26, 30, 3)}
     </>
   ),
   squeegee: (
     <>
-      <path d="M8 18 H40 V26 H8 Z" stroke={SAGE} {...S} />
-      <path d="M24 26 V42" stroke={GREY} {...S} />
-      <path d="M8 22 H40" stroke={GREY} {...S} />
+      <rect x="6" y="16" width="36" height="10" rx="3" fill={MINT} />
+      <path d="M24 26 V43" stroke={TERRA} strokeWidth="4" {...line} />
+      <path d="M10 20 H22" stroke={W} strokeWidth="2" {...line} />
+      {glint(35, 21, 3)}
     </>
   ),
   cloth: (
     <>
-      <path d="M8 14 Q24 8 40 14 Q44 26 40 36 Q24 42 8 36 Q4 26 8 14 Z" stroke={SAGE} {...S} />
-      <path d="M13 20 Q24 16 35 20 M13 30 Q24 34 35 30" stroke={TERRA} strokeDasharray="2 4" {...S} />
+      <path d="M7 13 Q24 6 41 13 Q46 26 41 37 Q24 44 7 37 Q2 26 7 13 Z" fill={PEACH} />
+      <path d="M13 20 Q24 16 35 20" stroke={W} strokeWidth="2" strokeDasharray="2 4" {...line} />
+      <path d="M13 31 Q24 35 35 31" stroke={TERRA} strokeWidth="2" strokeDasharray="2 4" {...line} />
+      {glint(34, 15, 3)}
     </>
   ),
   sponge: (
     <>
-      <rect x="8" y="16" width="32" height="20" rx="5" stroke={SAGE} {...S} />
-      <path d="M8 26 H40" stroke={GREY} {...S} />
-      <circle cx="16" cy="21" r="1.6" stroke={GREY} {...S} />
-      <circle cx="26" cy="31" r="1.6" stroke={GREY} {...S} />
-      <circle cx="33" cy="21" r="1.6" stroke={GREY} {...S} />
+      <rect x="6" y="14" width="36" height="22" rx="6" fill={CORAL} />
+      <circle cx="15" cy="22" r="2" fill={W} fillOpacity="0.7" />
+      <circle cx="27" cy="30" r="2" fill={W} fillOpacity="0.7" />
+      <circle cx="35" cy="21" r="2" fill={W} fillOpacity="0.7" />
+      {glint(12, 18, 3)}
     </>
   ),
   mop: (
     <>
-      <path d="M30 6 L20 30" stroke={GREY} {...S} />
-      <path d="M10 32 H30 L32 42 H8 Z" stroke={SAGE} {...S} />
-      <path d="M14 36 V42 M20 36 V42 M26 36 V42" stroke={GREY} {...S} />
+      <path d="M31 5 L21 29" stroke={PEACH} strokeWidth="3.6" {...line} />
+      <path d="M9 31 H31 L34 43 H7 Z" fill={TERRA} />
+      <path d="M13 36 V43 M20 36 V43 M27 36 V43" stroke={W} strokeWidth="1.6" {...line} />
+      {glint(16, 34, 2.6)}
     </>
   ),
   bucket: (
     <>
-      <path d="M10 22 H38 L35 42 H13 Z" stroke={SAGE} {...S} />
-      <path d="M10 22 Q24 8 38 22" stroke={GREY} {...S} />
-      <circle cx="18" cy="12" r="3" stroke={GREY} {...S} />
-      <circle cx="28" cy="9" r="2.2" stroke={SAGE} {...S} />
-      <circle cx="33" cy="15" r="1.6" stroke={GREY} {...S} />
+      <path d="M9 22 H39 L35 43 H13 Z" fill={TERRA} />
+      <path d="M9 22 Q24 8 39 22" stroke={PEACH} strokeWidth="2.8" {...line} />
+      <circle cx="17" cy="13" r="4" fill={CORAL} />
+      <circle cx="28" cy="9" r="3" fill={MINT} />
+      <circle cx="34" cy="16" r="2" fill={CORAL} />
+      <path d="M15 28 V37" stroke={W} strokeWidth="2" {...line} />
+      {glint(17, 12, 2)}
     </>
   ),
   bubbles: (
     <>
-      <circle cx="16" cy="30" r="10" stroke={SAGE} {...S} />
-      <circle cx="35" cy="14" r="6" stroke={GREY} {...S} />
-      <circle cx="36" cy="36" r="3.5" stroke={SAGE} {...S} />
-      <path d="M11 27 Q12 23 16 22" stroke={GREY} {...S} />
+      <circle cx="16" cy="30" r="11" fill={CORAL} fillOpacity="0.55" stroke={CORAL} strokeWidth="2.4" />
+      <circle cx="35" cy="13" r="6.5" fill={MINT} fillOpacity="0.5" stroke={MINT} strokeWidth="2.2" />
+      <circle cx="37" cy="36" r="4" fill={PEACH} fillOpacity="0.6" stroke={PEACH} strokeWidth="2" />
+      <path d="M10 26 Q11 22 15 21" stroke={W} strokeWidth="2.4" {...line} />
+      <path d="M32 11 Q33 9 35 9" stroke={W} strokeWidth="2" {...line} />
     </>
   ),
   sparkle: (
-    <path d="M24 6 Q25 22 42 24 Q25 26 24 42 Q23 26 6 24 Q23 22 24 6 Z" fill={SPARK} stroke="none" />
+    <>
+      <path d="M24 3 Q26 22 45 24 Q26 26 24 45 Q22 26 3 24 Q22 22 24 3 Z" fill={GOLD} />
+      {glint(22, 20, 3.4)}
+    </>
   ),
   heart: (
-    <path d="M24 40 C8 28 8 14 18 14 C22 14 24 17 24 19 C24 17 26 14 30 14 C40 14 40 28 24 40 Z" stroke={TERRA} {...S} />
+    <>
+      <path d="M24 42 C5 28 7 11 18 11 C22 11 24 14 24 16 C24 14 26 11 30 11 C41 11 43 28 24 42 Z" fill={CORAL} />
+      <path d="M13 19 Q14 16 17 15" stroke={W} strokeWidth="2.4" {...line} />
+      {glint(31, 21, 2.6)}
+    </>
   ),
   leaf: (
     <>
-      <path d="M10 38 C8 18 22 8 40 8 C40 26 30 40 10 38 Z" stroke={SAGE} {...S} />
-      <path d="M10 38 L28 20" stroke={GREY} {...S} />
+      <path d="M8 40 C5 18 20 6 42 6 C42 27 31 42 8 40 Z" fill={MINT} />
+      <path d="M9 39 L29 19" stroke={W} strokeWidth="2.2" {...line} />
+      {glint(34, 14, 3)}
     </>
   ),
   shield: (
     <>
-      <path d="M24 6 L39 12 V24 C39 33 32 39 24 42 C16 39 9 33 9 24 V12 Z" stroke={SAGE} {...S} />
-      <path d="M17 24 L22 29 L31 19" stroke={GREY} {...S} />
+      <path d="M24 4 L41 11 V24 C41 34 33 41 24 45 C15 41 7 34 7 24 V11 Z" fill={MINT} />
+      <path d="M16 24 L22 30 L33 18" stroke={W} strokeWidth="3.4" {...line} />
+      {glint(14, 14, 2.6)}
     </>
   ),
   smiley: (
     <>
-      <circle cx="24" cy="24" r="16" stroke={SAGE} {...S} />
-      <path d="M17 28 Q24 35 31 28" stroke={TERRA} {...S} />
+      <circle cx="24" cy="24" r="18" fill={PEACH} />
+      <path d="M16 28 Q24 37 32 28" stroke={TERRA} strokeWidth="3" {...line} />
+      <circle cx="18" cy="20" r="2" fill={TERRA} />
+      <circle cx="30" cy="20" r="2" fill={TERRA} />
+      {glint(14, 12, 3)}
     </>
   ),
   calendar: (
     <>
-      <rect x="8" y="12" width="32" height="28" rx="5" stroke={SAGE} {...S} />
-      <path d="M8 21 H40 M17 8 V15 M31 8 V15" stroke={GREY} {...S} />
-      <path d="M18 30 L22 34 L30 26" stroke={TERRA} {...S} />
+      <rect x="6" y="11" width="36" height="31" rx="6" fill={MINT} />
+      <rect x="6" y="11" width="36" height="9" rx="4" fill={CORAL} />
+      <path d="M16 6 V14 M32 6 V14" stroke={TERRA} strokeWidth="3.2" {...line} />
+      <path d="M16 31 L22 37 L33 25" stroke={W} strokeWidth="3.4" {...line} />
+      {glint(36, 25, 2.6)}
     </>
   ),
 }
@@ -109,13 +142,11 @@ export type DecorItem = {
   k: DecorKind
   /** Tailwind position classes, e.g. "left-[4%] top-[10%]" */
   pos: string
-  /** Show on mobile too (only a small share of items should) */
+  /** Set false to hide on mobile (default: shown) */
   m?: boolean
   size?: number
   rot?: number
   delay?: number
-  /** Light variant for dark backgrounds */
-  faint?: boolean
 }
 
 export default function Decor({ items }: { items: DecorItem[] }) {
@@ -124,14 +155,14 @@ export default function Decor({ items }: { items: DecorItem[] }) {
       {items.map((it, i) => (
         <span
           key={i}
-          className={`kf-float absolute ${it.m ? 'block' : 'hidden md:block'} ${it.pos}`}
-          style={{ animationDelay: `${it.delay ?? i * 1.7}s`, opacity: it.faint ? 0.2 : it.k === 'sparkle' ? 0.4 : 0.35 }}
+          className={`kf-float absolute ${it.m === false ? 'hidden md:block' : 'block'} ${it.pos}`}
+          style={{ animationDelay: `${it.delay ?? i * 1.7}s`, opacity: 0.88 }}
         >
           <svg
             viewBox="0 0 48 48"
-            width={it.size ?? 40}
-            height={it.size ?? 40}
-            style={{ transform: `rotate(${it.rot ?? 0}deg)` }}
+            width={it.size ?? 48}
+            height={it.size ?? 48}
+            style={{ transform: `rotate(${it.rot ?? 0}deg)`, filter: 'drop-shadow(0 2px 3px rgba(0,0,0,0.18))' }}
             aria-hidden="true"
             focusable="false"
           >
