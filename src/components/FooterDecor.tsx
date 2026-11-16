@@ -9,10 +9,9 @@ export default function FooterDecor() {
   return (
     <Decor
       items={[
-        { k: 'bucket', pos: 'left-[2%] bottom-[14%]', size: 48 },
-        { k: 'mop', pos: 'right-[2%] bottom-[14%]', size: 50, rot: 10 },
-        { k: 'bubbles', pos: 'right-[16%] top-[6%]', size: 42, m: false },
-        { k: 'sparkle', pos: 'left-[14%] top-[8%]', size: 40 },
+        { k: 'bucket', x: 0.97, y: 0.96, size: 44, faint: true },
+        { k: 'mop', x: 0.03, y: 0.1, size: 44, rot: 10, faint: true, m: false },
+        { k: 'sparkle', x: 0.5, y: 0.5, size: 40, faint: true },
       ]}
     />
   )

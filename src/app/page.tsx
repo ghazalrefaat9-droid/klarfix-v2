@@ -94,13 +94,12 @@ export default function HomePage() {
       <section className="relative isolate bg-background px-4 pb-16 pt-14 text-primary md:pb-24 md:pt-20">
         <Decor
           items={[
-            { k: 'vacuum', pos: 'left-[1%] top-[4%]', size: 52, rot: -8 },
-            { k: 'spray', pos: 'right-[2%] top-[3%]', size: 50, rot: 10, m: false },
-            { k: 'bubbles', pos: 'left-[45%] top-[2%]', size: 44 },
-            { k: 'sparkle', pos: 'left-[28%] top-[9%]', size: 40, m: false },
-            { k: 'sparkle', pos: 'right-[6%] top-[46%]', size: 44, delay: 3 },
-            { k: 'heart', pos: 'left-[2%] bottom-[8%]', size: 44 },
-            { k: 'squeegee', pos: 'right-[3%] bottom-[3%]', size: 48, rot: -12, m: false },
+            { k: 'vacuum', x: 0.03, y: 0.08, size: 50, rot: -8 },
+            { k: 'spray', x: 0.97, y: 0.07, size: 46, rot: 10, m: false },
+            { k: 'bubbles', x: 0.5, y: 0.05, size: 42 },
+            { k: 'sparkle', x: 0.33, y: 0.1, size: 40, m: false },
+            { k: 'sparkle', x: 0.96, y: 0.5, size: 42, delay: 3 },
+            { k: 'heart', x: 0.03, y: 0.92, size: 44 },
           ]}
         />
         <div className="mx-auto grid max-w-6xl items-center gap-10 md:grid-cols-2 md:gap-12">
@@ -167,14 +166,12 @@ export default function HomePage() {
       <div className="relative isolate">
       <Decor
         items={[
-          { k: 'calendar', pos: 'left-[3%] top-[6%]', size: 50 },
-          { k: 'spray', pos: 'right-[3%] top-[30%]', size: 48, rot: 8 },
-          { k: 'bucket', pos: 'left-[4%] top-[46%]', size: 52, m: false },
-          { k: 'sparkle', pos: 'right-[10%] top-[5%]', size: 42 },
-          { k: 'cloth', pos: 'left-[5%] top-[70%]', size: 48, rot: -8 },
-          { k: 'heart', pos: 'right-[4%] top-[58%]', size: 42, m: false },
-          { k: 'squeegee', pos: 'right-[5%] bottom-[3%]', size: 48, rot: -10 },
-          { k: 'bubbles', pos: 'left-[44%] bottom-[1%]', size: 44, m: false },
+          { k: 'calendar', x: 0.04, y: 0.08, size: 48 },
+          { k: 'spray', x: 0.96, y: 0.28, size: 46, rot: 8 },
+          { k: 'bucket', x: 0.04, y: 0.5, size: 50, m: false },
+          { k: 'sparkle', x: 0.93, y: 0.05, size: 42 },
+          { k: 'cloth', x: 0.05, y: 0.82, size: 46, rot: -8 },
+          { k: 'squeegee', x: 0.95, y: 0.9, size: 46, rot: -10, m: false },
         ]}
       />
       <section className="mx-auto max-w-2xl px-4 py-16">
@@ -219,12 +216,11 @@ export default function HomePage() {
       <section className="relative isolate px-4 pb-12 pt-4">
         <Decor
           items={[
-            { k: 'leaf', pos: 'left-[3%] top-[4%]', size: 48 },
-            { k: 'shield', pos: 'right-[4%] top-[8%]', size: 50 },
-            { k: 'smiley', pos: 'left-[6%] bottom-[6%]', size: 48, m: false },
-            { k: 'heart', pos: 'right-[8%] bottom-[8%]', size: 44 },
-            { k: 'sparkle', pos: 'left-[40%] top-[1%]', size: 42 },
-            { k: 'bucket', pos: 'left-[26%] bottom-[2%]', size: 46, m: false },
+            { k: 'leaf', x: 0.04, y: 0.1, size: 46 },
+            { k: 'shield', x: 0.96, y: 0.12, size: 48 },
+            { k: 'smiley', x: 0.05, y: 0.9, size: 44, m: false },
+            { k: 'heart', x: 0.95, y: 0.9, size: 42 },
+            { k: 'sparkle', x: 0.5, y: 0.03, size: 40 },
           ]}
         />
         <div className="mx-auto max-w-5xl">

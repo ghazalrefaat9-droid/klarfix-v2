@@ -50,12 +50,11 @@ export default function AlleReinigungsartenCompact() {
     <section id="leistungen" className="relative isolate scroll-mt-28 bg-[#E8F0E6] px-3 py-10 md:px-8 md:py-14">
       <Decor
         items={[
-          { k: 'sponge', pos: 'left-[1%] top-[2%]', size: 50 },
-          { k: 'mop', pos: 'right-[1%] top-[1%]', size: 52, rot: 12 },
-          { k: 'bubbles', pos: 'left-[46%] top-[0%]', size: 44, m: false },
-          { k: 'sparkle', pos: 'left-[1%] top-[45%]', size: 40 },
-          { k: 'cloth', pos: 'right-[1%] top-[48%]', size: 48, m: false },
-          { k: 'heart', pos: 'left-[46%] bottom-[0%]', size: 42 },
+          { k: 'sponge', x: 0.02, y: 0.05, size: 48 },
+          { k: 'mop', x: 0.98, y: 0.05, size: 50, rot: 12 },
+          { k: 'bubbles', x: 0.5, y: 0.02, size: 42, m: false },
+          { k: 'sparkle', x: 0.02, y: 0.5, size: 40 },
+          { k: 'cloth', x: 0.98, y: 0.5, size: 46, m: false },
         ]}
       />
       <h2 className="mb-2 text-center text-3xl font-bold text-[#1A3C34] md:text-4xl">
