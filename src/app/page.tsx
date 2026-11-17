@@ -99,26 +99,18 @@ export default function HomePage() {
   return (
     <main>
       <section className="relative isolate bg-background px-4 pb-[74px] pt-14 text-primary md:pb-24 md:pt-20">
-        <Decor
-          items={[
-            { k: 'vacuum', x: 0.03, y: 0.08, size: 50, rot: -8 },
-            { k: 'spray', x: 0.97, y: 0.07, size: 46, rot: 10, m: false },
-            { k: 'sparkle', x: 0.33, y: 0.1, size: 40, m: false },
-            { k: 'sparkle', x: 0.96, y: 0.5, size: 42, delay: 3 },
-          ]}
-        />
         <div className="mx-auto grid max-w-6xl items-center gap-10 md:grid-cols-2 md:gap-12">
           <div className="text-center md:text-start">
-            <p className="mb-4 text-sm font-semibold uppercase tracking-[0.25em] text-[#C67A4A]">
+            <p className="mb-4 text-sm font-semibold uppercase tracking-[0.25em]             text-[#1A3C2E]">
               {t('Reinigung in Stuttgart', 'تنظيف في شتوتغارت', 'Cleaning in Stuttgart')}
             </p>
             <h1 className="text-4xl font-bold leading-tight tracking-tight text-[#1A3C2E] sm:text-5xl lg:text-6xl">
               {heroA}{' '}
-              <span className="text-[#C67A4A] underline decoration-[#E9B44C]/40 decoration-[6px] underline-offset-[6px]">
+              <span>
                 {heroB}
               </span>
             </h1>
-            <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-[#2F4A3A] md:mx-0">
+            <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-[#1A3C2E] md:mx-0">
               {t(
                 'Wohnung, Büro, Fenster oder Grundreinigung – geprüfte Partner, faire Preise, schnelle Antwort.',
                 'شقق ومكاتب ونوافذ وتنظيف شامل – شركاء معتمدون وأسعار عادلة ورد سريع.',
