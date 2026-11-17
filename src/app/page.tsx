@@ -145,9 +145,9 @@ export default function HomePage() {
           <div className="relative mx-auto w-full max-w-xl md:max-w-none">
             <Image
               src="/hero-wohnzimmer.webp"
-              alt={t('Helles, sauberes Wohnzimmer', 'غرفة معيشة مشرقة ونظيفة', 'Bright, clean living room')}
-              width={1400}
-              height={933}
+              alt={t('Lächelnde Reinigungskraft bei der Arbeit', 'عاملة تنظيف مبتسمة أثناء العمل', 'Smiling cleaner at work')}
+                            width={1456}
+                            height={768}
               preload
               sizes="(min-width: 768px) 50vw, 100vw"
               className="h-auto w-full rounded-3xl object-cover shadow-lg ring-1 ring-primary/10"
