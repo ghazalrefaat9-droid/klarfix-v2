@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { ArrowRight, CalendarCheck, CalendarX, Check, ChevronDown, FileText, ReceiptEuro, Send, ShieldCheck } from 'lucide-react'
+import { ArrowRight, CalendarCheck, CalendarX, Check, FileText, ReceiptEuro, Send, ShieldCheck } from 'lucide-react'
 import { useLang } from '@/components/LanguageProvider'
 import AlleReinigungsartenCompact from '@/components/AlleReinigungsartenCompact'
 import { BRAND } from '@/lib/brand'
@@ -98,43 +98,40 @@ export default function HomePage() {
 
   return (
     <main>
-      <section className="relative isolate bg-background px-4 pb-[74px] pt-14 text-primary md:pb-24 md:pt-20">
-        <div className="mx-auto grid max-w-6xl items-center gap-10 md:grid-cols-2 md:gap-12">
+      <section className="relative isolate bg-[#E0EDE6] px-4 pb-4 pt-3 text-[#1A3C2E] md:pb-10 md:pt-10">
+        <div className="mx-auto grid max-w-6xl items-center gap-4 md:grid-cols-2 md:gap-12">
           <div className="text-center md:text-start">
-            <p className="mb-4 text-sm font-semibold uppercase tracking-[0.25em]             text-[#1A3C2E]">
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#1A3C2E]">
               {t('Reinigung in Stuttgart', 'تنظيف في شتوتغارت', 'Cleaning in Stuttgart')}
             </p>
-            <h1 className="text-4xl font-bold leading-tight tracking-tight text-[#1A3C2E] sm:text-5xl lg:text-6xl">
-              {heroA}{' '}
-              <span>
-                {heroB}
-              </span>
+            <h1 className="text-[38px] font-bold leading-[1.08] tracking-tight text-[#1A3C2E] md:text-5xl lg:text-6xl">
+              {heroA} {heroB}
             </h1>
-            <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-[#1A3C2E] md:mx-0">
+            <p className="mx-auto mt-3 max-w-2xl text-sm leading-snug text-[#1A3C2E] md:mx-0 md:text-lg">
               {t(
                 'Wohnung, Büro, Fenster oder Grundreinigung – geprüfte Partner, faire Preise, schnelle Antwort.',
                 'شقق ومكاتب ونوافذ وتنظيف شامل – شركاء معتمدون وأسعار عادلة ورد سريع.',
                 'Apartment, office, windows or deep cleaning – vetted partners, fair prices, fast replies.',
               )}
             </p>
-            <div className="mt-8 flex flex-col items-center gap-5 md:items-start">
+            <div className="mt-4 flex flex-col items-center gap-3 md:items-start">
               <Link
                 href="/buchen"
-                className="rounded-full bg-[#1A3C2E] px-[2.2rem] py-[0.96rem] text-xl font-semibold text-card shadow-[0_6px_16px_rgba(26,60,46,0.25)] transition-colors hover:bg-[#2D5A4C] md:text-lg"
+                className="rounded-full bg-[#1A3C2E] px-8 py-3 text-base font-semibold text-white shadow-[0_6px_16px_rgba(26,60,46,0.25)] transition-colors hover:bg-[#2D5A4C]"
               >
                 {t('Preis anfragen', 'اطلب السعر', 'Request a quote')}
               </Link>
-              <ul className="flex flex-wrap justify-center gap-x-5 gap-y-2 rounded-2xl bg-[#FFFFFF] px-5 py-3 text-sm font-medium text-primary shadow-sm ring-1 ring-primary/10 md:justify-start">
+              <ul className="grid w-full grid-cols-3 gap-1 rounded-2xl bg-white p-[10px] text-[11px] font-medium text-[#1A3C2E] shadow-sm md:max-w-md">
                 {HERO_POINTS.map((p) => (
-                  <li key={p.de} className="flex items-center gap-1.5">
-                    <Check className="h-4 w-4 shrink-0" strokeWidth={3} style={{ color: BRAND.green }} aria-hidden="true" />
+                  <li key={p.de} className="flex items-center justify-center gap-1 leading-tight">
+                    <Check className="h-3.5 w-3.5 shrink-0" strokeWidth={3} style={{ color: BRAND.green }} aria-hidden="true" />
                     {t(p.de, p.ar, p.en)}
                   </li>
                 ))}
               </ul>
             </div>
           </div>
-          <div className="relative mx-auto w-full max-w-xl space-y-4 md:max-w-none">
+          <div className="relative mx-auto w-full max-w-xl md:max-w-none">
             <Image
               src="/hero-wohnzimmer.webp"
               alt={t('Lächelnde Reinigungskraft bei der Arbeit', 'عاملة تنظيف مبتسمة أثناء العمل', 'Smiling cleaner at work')}
@@ -142,26 +139,9 @@ export default function HomePage() {
               height={768}
               preload
               sizes="(min-width: 768px) 50vw, 100vw"
-              className="h-auto w-full rounded-3xl object-cover shadow-lg ring-1 ring-primary/10"
-            />
-            <Image
-              src="/hero-team.webp"
-              alt={t('Reinigungsteam bei der Arbeit', 'فريق التنظيف أثناء العمل', 'Cleaning team at work')}
-              width={1152}
-              height={768}
-              sizes="(min-width: 768px) 50vw, 100vw"
-              className="h-auto w-full rounded-3xl object-cover shadow-lg ring-1 ring-primary/10"
+              className="h-[220px] w-full rounded-3xl object-cover md:h-auto"
             />
           </div>
-        </div>
-        <div className="mt-10 flex justify-center">
-          <a
-            href="#leistungen"
-            aria-label={t('Nach unten scrollen', 'التمرير للأسفل', 'Scroll down')}
-            className="flex h-10 w-10 items-center justify-center rounded-full text-primary/60 transition-colors hover:bg-primary/5 hover:text-primary motion-safe:animate-bounce"
-          >
-            <ChevronDown className="h-6 w-6" />
-          </a>
         </div>
       </section>
 
