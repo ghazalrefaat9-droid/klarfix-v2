@@ -117,9 +117,10 @@ export default function HomePage() {
             <div className="mt-4 flex flex-col items-center gap-3 md:items-start">
               <Link
                 href="/buchen"
-                className="rounded-full bg-[#1A3C2E] px-8 py-3 text-base font-semibold text-white shadow-[0_6px_16px_rgba(26,60,46,0.25)] transition-colors hover:bg-[#2D5A4C]"
+                style={{ color: '#FFFFFF' }}
+                className="relative z-10 inline-flex items-center justify-center rounded-full bg-[#1A3C2E] px-8 py-3 text-center text-base font-bold shadow-[0_6px_16px_rgba(26,60,46,0.25)] transition-colors hover:bg-[#2D5A4C]"
               >
-                {t('Preis anfragen', 'اطلب السعر', 'Request a quote')}
+                {t('Jetzt anfragen', 'اطلب الآن', 'Request now')}
               </Link>
               <ul className="grid w-full grid-cols-3 gap-1 rounded-2xl bg-white p-[10px] text-[11px] font-medium text-[#1A3C2E] shadow-sm md:max-w-md">
                 {HERO_POINTS.map((p) => (
