@@ -134,13 +134,21 @@ export default function HomePage() {
               </ul>
             </div>
           </div>
-          <div className="relative mx-auto w-full max-w-xl md:max-w-none">
+          <div className="relative mx-auto w-full max-w-xl space-y-4 md:max-w-none">
             <Image
               src="/hero-wohnzimmer.webp"
               alt={t('Lächelnde Reinigungskraft bei der Arbeit', 'عاملة تنظيف مبتسمة أثناء العمل', 'Smiling cleaner at work')}
-                            width={1456}
-                            height={768}
+              width={1456}
+              height={768}
               preload
+              sizes="(min-width: 768px) 50vw, 100vw"
+              className="h-auto w-full rounded-3xl object-cover shadow-lg ring-1 ring-primary/10"
+            />
+            <Image
+              src="/hero-team.webp"
+              alt={t('Reinigungsteam bei der Arbeit', 'فريق التنظيف أثناء العمل', 'Cleaning team at work')}
+              width={1152}
+              height={768}
               sizes="(min-width: 768px) 50vw, 100vw"
               className="h-auto w-full rounded-3xl object-cover shadow-lg ring-1 ring-primary/10"
             />
