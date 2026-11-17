@@ -32,23 +32,6 @@ const TINT_BY_ID = new Map(
   REINIGUNGSARTEN.filter((r) => !FEATURED[r.id]).map((r, i) => [r.id, SOFT_TINTS[i % SOFT_TINTS.length]] as const),
 )
 
-const PRICE_FROM: Record<Reinigungsart['id'], number> = {
-  wohnung: 49,
-  buero: 79,
-  haus: 99,
-  fenster: 39,
-  teppich: 49,
-  polster: 59,
-  praxis: 89,
-  gewerbe: 99,
-  industrie: 149,
-  grund: 149,
-  bau: 129,
-  treppenhaus: 59,
-  entruempelung: 149,
-  umzug: 149,
-}
-
 export default function AlleReinigungsartenCompact() {
   const { t, lang } = useLang()
   const router = useRouter()
@@ -108,9 +91,6 @@ export default function AlleReinigungsartenCompact() {
                 </span>
                 <span className="line-clamp-2 text-[13px] font-semibold leading-tight md:text-[14px]">{reinigungsartName(r, lang)}</span>
               </button>
-              <p className="mt-1.5 text-center text-xs font-medium text-[#1A3C2E]">
-                {t(`Ab ${PRICE_FROM[r.id]} €`, `من ${PRICE_FROM[r.id]} €`, `From €${PRICE_FROM[r.id]}`)}
-              </p>
             </li>
           )
         })}
