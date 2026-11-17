@@ -32,6 +32,23 @@ const TINT_BY_ID = new Map(
   REINIGUNGSARTEN.filter((r) => !FEATURED[r.id]).map((r, i) => [r.id, SOFT_TINTS[i % SOFT_TINTS.length]] as const),
 )
 
+const PRICE_FROM: Record<Reinigungsart['id'], number> = {
+  wohnung: 49,
+  buero: 79,
+  haus: 99,
+  fenster: 39,
+  teppich: 49,
+  polster: 59,
+  praxis: 89,
+  gewerbe: 99,
+  industrie: 149,
+  grund: 149,
+  bau: 129,
+  treppenhaus: 59,
+  entruempelung: 149,
+  umzug: 149,
+}
+
 export default function AlleReinigungsartenCompact() {
   const { t, lang } = useLang()
   const router = useRouter()
@@ -47,7 +64,7 @@ export default function AlleReinigungsartenCompact() {
   const hiddenCount = REINIGUNGSARTEN.length - INITIAL_COUNT
 
   return (
-    <section id="leistungen" className="relative isolate scroll-mt-28 bg-[#E8F0E6] px-3 py-10 md:px-8 md:py-14">
+    <section id="leistungen" className="relative isolate scroll-mt-28 bg-[#E8F0E6] px-3 py-[50px] md:px-8 md:py-[66px]">
       <Decor
         items={[
           { k: 'sponge', x: 0.02, y: 0.05, size: 48 },
@@ -74,8 +91,8 @@ export default function AlleReinigungsartenCompact() {
                 type="button"
                 onClick={() => selectService(r)}
                 style={featured ? { backgroundColor: featured.bg } : undefined}
-                className={`relative flex h-[110px] w-full flex-col items-center justify-center gap-2 rounded-2xl px-2 py-3 text-center shadow-sm transition-all hover:scale-[1.02] hover:shadow-md md:h-[125px] ${
-                  featured ? 'text-[#FFFFFF]' : 'border border-[#D5E5D5] bg-[#FFFFFF] text-[#1A3C34] hover:bg-[#F2E7E0]'
+                className={`relative flex h-[110px] w-full flex-col items-center justify-center gap-2 rounded-2xl px-2 py-3 text-center shadow-[0_2px_8px_rgba(26,60,46,0.06)] transition-all hover:scale-[1.02] hover:shadow-md md:h-[125px] ${
+                  featured ? 'text-[#FFFFFF]' : 'border border-[#D6E4D9] bg-[#FFFFFF] text-[#1A3C34] hover:bg-[#F2E7E0]'
                 }`}
               >
                 {featured?.popular && (
@@ -91,6 +108,9 @@ export default function AlleReinigungsartenCompact() {
                 </span>
                 <span className="line-clamp-2 text-[13px] font-semibold leading-tight md:text-[14px]">{reinigungsartName(r, lang)}</span>
               </button>
+              <p className="mt-1.5 text-center text-xs font-medium text-[#1A3C2E]">
+                {t(`Ab ${PRICE_FROM[r.id]} €`, `من ${PRICE_FROM[r.id]} €`, `From €${PRICE_FROM[r.id]}`)}
+              </p>
             </li>
           )
         })}

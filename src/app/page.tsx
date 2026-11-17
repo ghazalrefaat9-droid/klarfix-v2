@@ -98,7 +98,7 @@ export default function HomePage() {
 
   return (
     <main>
-      <section className="relative isolate bg-background px-4 pb-16 pt-14 text-primary md:pb-24 md:pt-20">
+      <section className="relative isolate bg-background px-4 pb-[74px] pt-14 text-primary md:pb-24 md:pt-20">
         <Decor
           items={[
             { k: 'vacuum', x: 0.03, y: 0.08, size: 50, rot: -8 },
@@ -128,7 +128,7 @@ export default function HomePage() {
             <div className="mt-8 flex flex-col items-center gap-5 md:items-start">
               <Link
                 href="/buchen"
-                className="rounded-full bg-[#1A3C2E] px-8 py-3.5 text-lg font-semibold text-card shadow-md transition-colors hover:bg-[#2D5A4C]"
+                className="rounded-full bg-[#1A3C2E] px-[2.2rem] py-[0.96rem] text-xl font-semibold text-card shadow-[0_6px_16px_rgba(26,60,46,0.25)] transition-colors hover:bg-[#2D5A4C] md:text-lg"
               >
                 {t('Preis anfragen', 'اطلب السعر', 'Request a quote')}
               </Link>
@@ -175,7 +175,7 @@ export default function HomePage() {
           { k: 'squeegee', x: 0.95, y: 0.9, size: 46, rot: -10, m: false },
         ]}
       />
-      <section className="mx-auto max-w-2xl px-4 py-16">
+      <section className="mx-auto max-w-2xl px-4 py-[74px]">
         <h2 className="text-center text-3xl font-bold text-primary">
           {t('So funktioniert es', 'كيف تعمل الخدمة', 'How it works')}
         </h2>
@@ -201,7 +201,7 @@ export default function HomePage() {
         <div className="mt-8 text-center">
           <Link
             href="/buchen"
-            className="inline-flex items-center gap-2 rounded-full bg-[#1A3C2E] px-10 py-4 text-lg font-bold text-[#FFFFFF] shadow-lg transition-colors hover:bg-[#2D5A4C]"
+            className="inline-flex items-center gap-2 rounded-full bg-[#1A3C2E] px-11 py-[1.1rem] text-xl font-bold text-[#FFFFFF] shadow-[0_6px_16px_rgba(26,60,46,0.25)] transition-colors hover:bg-[#2D5A4C] md:text-lg"
           >
             {t('Jetzt anfragen', 'اطلب الآن', 'Request now')}
             <ArrowRight className="h-5 w-5 rtl:rotate-180" aria-hidden="true" />
@@ -210,7 +210,7 @@ export default function HomePage() {
       </section>
       </div>
 
-      <section className="relative isolate bg-[#FFFFFF] px-4 pb-14 pt-12">
+      <section className="relative isolate bg-[#FFFFFF] px-4 pb-[66px] pt-[58px]">
         <Decor
           items={[
             { k: 'leaf', x: 0.04, y: 0.1, size: 46 },
@@ -228,7 +228,7 @@ export default function HomePage() {
             {TRUST.map((item) => {
               const Icon = item.icon
               return (
-                <li key={item.de} className="flex items-center gap-4 rounded-2xl bg-[#FFFFFF] p-5 shadow-sm ring-1 ring-primary/10 sm:flex-col sm:text-center">
+                <li key={item.de} className="flex items-center gap-4 rounded-2xl border border-[#D6E4D9] bg-[#FFFFFF] p-5 shadow-[0_2px_8px_rgba(26,60,46,0.06)] sm:flex-col sm:text-center">
                   <span
                     className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full"
                     style={{ backgroundColor: item.circle, color: item.color }}
