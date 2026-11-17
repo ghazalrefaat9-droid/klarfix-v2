@@ -12,7 +12,7 @@ import Decor from '@/components/Decor'
 const STEPS = [
   {
     icon: Send,
-    color: BRAND.green,
+    color: '#2E8B57',
     de: 'Anfrage senden',
     ar: 'أرسل طلبك',
     en: 'Send your request',
@@ -22,7 +22,7 @@ const STEPS = [
   },
   {
     icon: FileText,
-    color: BRAND.orange,
+    color: '#B56B3A',
     de: 'Angebot erhalten',
     ar: 'احصل على عرض السعر',
     en: 'Receive your quote',
@@ -32,7 +32,7 @@ const STEPS = [
   },
   {
     icon: CalendarCheck,
-    color: BRAND.darkGreen,
+    color: '#1A3C2E',
     de: 'Termin bestätigen',
     ar: 'أكّد الموعد',
     en: 'Confirm the appointment',
@@ -167,7 +167,7 @@ export default function HomePage() {
 
       <AlleReinigungsartenCompact />
 
-      <div className="relative isolate">
+      <div className="relative isolate bg-[#E0EDE6]">
       <Decor
         items={[
           { k: 'calendar', x: 0.04, y: 0.08, size: 48 },
@@ -176,7 +176,7 @@ export default function HomePage() {
         ]}
       />
       <section className="mx-auto max-w-2xl px-4 py-[74px]">
-        <h2 className="text-center text-3xl font-bold text-primary">
+        <h2 className="text-center text-3xl font-bold text-[#1A3C2E]">
           {t('So funktioniert es', 'كيف تعمل الخدمة', 'How it works')}
         </h2>
         <ol className="mt-10 space-y-4">
@@ -185,13 +185,14 @@ export default function HomePage() {
             return (
               <li
                 key={step.de}
-                className="flex items-center justify-between gap-4 rounded-2xl bg-[#FFFFFF] p-5 text-[#1A3C2E] shadow-md sm:p-6"
+                style={{ backgroundColor: step.color }}
+                className="flex items-center justify-between gap-4 rounded-[20px] p-5 text-[#FFFFFF] sm:p-6"
               >
                 <div className="min-w-0">
                   <h3 className="text-lg font-bold sm:text-xl">{t(step.de, step.ar, step.en)}</h3>
-                  <p className="mt-1 text-sm text-[#2F4A3A] sm:text-base">{t(step.subDe, step.subAr, step.subEn)}</p>
+                  <p className="mt-1 text-sm text-[#FFFFFF] sm:text-base">{t(step.subDe, step.subAr, step.subEn)}</p>
                 </div>
-                <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#EAF4EC] sm:h-16 sm:w-16">
+                <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#FFFFFF] sm:h-16 sm:w-16" style={{ color: step.color }}>
                   <Icon className="h-7 w-7 sm:h-8 sm:w-8" aria-hidden="true" />
                 </span>
               </li>
@@ -221,7 +222,7 @@ export default function HomePage() {
           ]}
         />
         <div className="mx-auto max-w-5xl">
-          <h2 className="text-center text-3xl font-bold text-primary">
+            <h2 className="text-center text-3xl font-bold text-[#1A3C2E]">
             {t('Warum KlarFix?', 'لماذا KlarFix؟', 'Why KlarFix?')}
           </h2>
           <ul className="mt-8 grid gap-4 sm:grid-cols-3">
