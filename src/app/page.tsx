@@ -98,7 +98,7 @@ export default function HomePage() {
 
   return (
     <main>
-      <section className="relative isolate bg-[#E0EDE6] px-4 pb-4 pt-3 text-[#1A3C2E] md:pb-10 md:pt-10">
+      <section className="relative isolate flex min-h-[calc(100dvh-69px)] flex-col justify-center bg-[#E0EDE6] px-4 pb-16 pt-3 text-[#1A3C2E] md:block md:min-h-0 md:pb-10 md:pt-10">
         <div className="mx-auto grid max-w-6xl items-center gap-4 md:grid-cols-2 md:gap-12">
           <div className="text-center md:text-start">
             <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#1A3C2E]">
