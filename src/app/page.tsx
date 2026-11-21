@@ -100,11 +100,14 @@ export default function HomePage() {
       <section className="relative isolate flex min-h-[calc(100dvh-69px)] flex-col justify-center bg-[#E0EDE6] px-4 pb-16 pt-3 text-[#1A3C2E] md:block md:min-h-0 md:pb-10 md:pt-10">
         <div className="mx-auto grid max-w-6xl items-center gap-4 md:grid-cols-2 md:gap-12">
           <div className="text-center md:text-start">
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#1A3C2E]">
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#C97A2E]">
               {t('Reinigung in Stuttgart', 'تنظيف في شتوتغارت', 'Cleaning in Stuttgart')}
             </p>
-            <h1 className="text-[38px] font-bold leading-[1.08] tracking-tight text-[#1A3C2E] md:text-5xl lg:text-6xl">
-              {heroA} {heroB}
+            <h1 className="text-[38px] font-bold leading-[1.08] tracking-tight text-[#0F3D2E] md:text-5xl lg:text-6xl">
+              {heroA}{' '}
+              {heroB && (
+                <span className="inline-block -rotate-1 rounded-[6px] bg-[#FBDDBE]/70 px-2 py-0 text-[#0F3D2E]">{heroB}</span>
+              )}
             </h1>
             <p className="mx-auto mt-3 max-w-2xl text-sm leading-snug text-[#1A3C2E] md:mx-0 md:text-lg">
               {t(
@@ -117,7 +120,7 @@ export default function HomePage() {
               <Link
                 href="/buchen"
                 style={{ color: '#FFFFFF' }}
-                className="relative z-10 inline-flex items-center justify-center rounded-full bg-[#1A3C2E] px-8 py-3 text-center text-base font-bold shadow-[0_6px_16px_rgba(26,60,46,0.25)] transition-colors hover:bg-[#2D5A4C]"
+                className="relative z-10 inline-flex items-center justify-center rounded-full bg-[#C97A2E] px-8 py-3 text-center text-base font-bold shadow-[0_6px_16px_rgba(26,60,46,0.25)] transition-colors hover:bg-[#B36A24]"
               >
                 {t('Jetzt anfragen', 'اطلب الآن', 'Request now')}
               </Link>
@@ -133,7 +136,7 @@ export default function HomePage() {
           </div>
           <div className="relative mx-auto w-full max-w-xl md:max-w-none">
             <Image
-              src="/hero-wohnzimmer.webp"
+              src="/hero-wohnzimmer-v2.webp"
               alt={t('Lächelnde Reinigungskraft bei der Arbeit', 'عاملة تنظيف مبتسمة أثناء العمل', 'Smiling cleaner at work')}
               width={1456}
               height={768}
@@ -149,12 +152,10 @@ export default function HomePage() {
             e.preventDefault()
             document.getElementById('leistungen')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
           }}
-          className="mx-auto mt-8 flex w-fit flex-col items-center gap-2 text-xs font-semibold text-[#1A3C2E]"
+          aria-label={t('Scrollen zum Mehr', 'مرّر للمزيد', 'Scroll for more')}
+          className="mx-auto mt-3 flex w-fit items-center justify-center p-5"
         >
-          <span className="kf-gentle-float flex h-9 w-9 items-center justify-center rounded-full bg-[#B98A2F] text-[#FFFFFF] shadow-sm">
-            <ChevronDown className="h-5 w-5" aria-hidden="true" />
-          </span>
-          {t('Scrollen zum Mehr', 'مرّر للمزيد', 'Scroll for more')}
+          <ChevronDown size={16} strokeWidth={1.5} className="kf-gentle-float text-[#D18A4A] opacity-70" aria-hidden="true" />
         </a>
       </section>
 
@@ -188,7 +189,7 @@ export default function HomePage() {
         <div className="mt-8 text-center">
           <Link
             href="/buchen"
-            className="inline-flex items-center gap-2 rounded-full bg-[#1A3C2E] px-11 py-[1.1rem] text-xl font-bold text-[#FFFFFF] shadow-[0_6px_16px_rgba(26,60,46,0.25)] transition-colors hover:bg-[#2D5A4C] md:text-lg"
+            className="inline-flex items-center gap-2 rounded-full bg-[#C97A2E] px-11 py-[1.1rem] text-xl font-bold text-[#FFFFFF] shadow-[0_6px_16px_rgba(26,60,46,0.25)] transition-colors hover:bg-[#B36A24] md:text-lg"
           >
             {t('Jetzt anfragen', 'اطلب الآن', 'Request now')}
             <ArrowRight className="h-5 w-5 rtl:rotate-180" aria-hidden="true" />

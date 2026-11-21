@@ -81,7 +81,7 @@ export default function Navbar() {
                 {l.label}
               </Link>
             ))}
-            <Link href="/buchen" className="rounded-full bg-primary px-5 py-2 text-card transition-colors hover:bg-primary-hover">
+            <Link href="/buchen" className="rounded-full bg-[#C97A2E] px-5 py-2 text-card transition-colors hover:bg-[#B36A24]">
               {cta}
             </Link>
           </nav>
@@ -94,7 +94,7 @@ export default function Navbar() {
               aria-expanded={open}
               className={`${TOP_ICON_BUTTON} hover:border-primary hover:text-primary-hover`}
             >
-              <TopIcon icon={Globe} />
+              <TopIcon icon={Globe} strokeWidth={1.5} style={{ color: '#C97A2E' }} />
             </button>
             {open && (
               <ul

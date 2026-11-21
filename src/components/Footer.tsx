@@ -23,7 +23,10 @@ export default function Footer() {
           <p className="mb-2 font-semibold text-card">{t('Navigation', 'التنقل', 'Navigation')}</p>
           <ul className="space-y-1">
             <li>
-              <Link href="/buchen" className="hover:text-card">
+              <Link
+                href="/buchen"
+                className="inline-block rounded-full bg-[#C97A2E] px-4 py-1.5 font-semibold text-[#FFFFFF] transition-colors hover:bg-[#B36A24]"
+              >
                 {t('Jetzt anfragen', 'اطلب الآن', 'Request now')}
               </Link>
             </li>

@@ -28,8 +28,18 @@ export const TOP_ICON_BUTTON =
 
 export const TOP_ICON_PROPS = { size: 22, ...iconStroke } satisfies LucideProps
 
-export function TopIcon({ icon: Icon, className, style }: { icon: LucideIcon; className?: string; style?: CSSProperties }) {
-  return <Icon {...TOP_ICON_PROPS} className={className} style={style} aria-hidden="true" />
+export function TopIcon({
+  icon: Icon,
+  className,
+  style,
+  strokeWidth,
+}: {
+  icon: LucideIcon
+  className?: string
+  style?: CSSProperties
+  strokeWidth?: number
+}) {
+  return <Icon {...TOP_ICON_PROPS} strokeWidth={strokeWidth ?? TOP_ICON_PROPS.strokeWidth} className={className} style={style} aria-hidden="true" />
 }
 
 // 20x20 count badge pinned 2px outside the top-end corner of a relative parent.

@@ -71,12 +71,12 @@ textarea {
   .klarfix-bell-shake { animation: none; }
 }
 
-/* Hero scroll button: calm 6px float */
+/* Hero scroll chevron: slow 4px "breathing" with a soft fade */
 @keyframes gentle-float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(6px); }
+  0%, 100% { transform: translateY(0); opacity: 0.5; }
+  50% { transform: translateY(4px); opacity: 0.8; }
 }
-.kf-gentle-float { animation: gentle-float 2.2s ease-in-out infinite; }
+.kf-gentle-float { animation: gentle-float 3s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) {
   .kf-gentle-float { animation: none; }
 }
