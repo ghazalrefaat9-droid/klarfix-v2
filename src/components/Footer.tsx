@@ -10,7 +10,7 @@ export default function Footer() {
     <footer className="relative isolate mt-16 bg-primary text-card/80">
       <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:grid-cols-3">
         <div>
-          <p className="text-lg font-bold text-card">KlarFix</p>
+          <p className="text-lg font-bold text-[#C97A2E]">KlarFix</p>
           <p className="mt-2 text-sm">
             {t(
               'Reinigungsservice in Stuttgart und Umgebung.',
