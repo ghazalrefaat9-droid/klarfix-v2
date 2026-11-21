@@ -47,7 +47,7 @@ export default function AlleReinigungsartenCompact() {
   const hiddenCount = REINIGUNGSARTEN.length - INITIAL_COUNT
 
   return (
-    <section id="leistungen" className="relative isolate scroll-mt-28 bg-[#E8F0E6] px-3 py-[50px] md:px-8 md:py-[66px]">
+    <section id="leistungen" className="relative isolate scroll-mt-16 bg-[#FFFFFF] px-3 py-16 md:px-8 md:py-20">
       <Decor
         items={[
           { k: 'sponge', x: 0.02, y: 0.05, size: 48 },

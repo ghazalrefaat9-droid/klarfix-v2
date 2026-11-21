@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { ArrowRight, CalendarCheck, CalendarX, Check, FileText, ReceiptEuro, Send, ShieldCheck } from 'lucide-react'
+import { ArrowRight, CalendarCheck, CalendarX, Check, ChevronDown, FileText, ReceiptEuro, Send, ShieldCheck } from 'lucide-react'
 import { useLang } from '@/components/LanguageProvider'
 import AlleReinigungsartenCompact from '@/components/AlleReinigungsartenCompact'
 import { BRAND } from '@/lib/brand'
@@ -97,9 +97,9 @@ export default function HomePage() {
   const heroB = split === -1 ? '' : heroTitle.slice(split + 2)
 
   return (
-    <main>
-      <section className="relative isolate bg-[#E0EDE6] px-4 pb-4 pt-3 text-[#1A3C2E] md:pb-10 md:pt-10">
-        <div className="mx-auto grid max-w-6xl items-center gap-4 md:grid-cols-2 md:gap-12">
+    <main className="overflow-hidden">
+      <section className="relative isolate flex min-h-[100dvh] flex-col justify-center bg-[#E0EDE6] px-4 pb-20 pt-28 text-[#1A3C2E] md:items-center md:py-20">
+        <div className="mx-auto grid w-full max-w-6xl items-center gap-4 md:grid-cols-2 md:gap-12">
           <div className="text-center md:text-start">
             <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#1A3C2E]">
               {t('Reinigung in Stuttgart', 'تنظيف في شتوتغارت', 'Cleaning in Stuttgart')}
@@ -144,11 +144,18 @@ export default function HomePage() {
             />
           </div>
         </div>
+        <a
+          href="#leistungen"
+          className="mx-auto mt-8 flex flex-col items-center gap-1 text-xs font-semibold text-[#1A3C2E]/80 transition-colors hover:text-[#1A3C2E]"
+        >
+          {t('Scrollen zum Mehr', 'مرّر للمزيد', 'Scroll for more')}
+          <ChevronDown className="h-5 w-5 motion-safe:animate-bounce" aria-hidden="true" />
+        </a>
       </section>
 
       <AlleReinigungsartenCompact />
 
-      <div className="relative isolate bg-[#E0EDE6]">
+      <div className="relative isolate bg-[#F1F5F2]">
       <Decor
         items={[
           { k: 'calendar', x: 0.04, y: 0.08, size: 48 },
@@ -156,7 +163,7 @@ export default function HomePage() {
           { k: 'squeegee', x: 0.95, y: 0.9, size: 46, rot: -10, m: false },
         ]}
       />
-      <section className="mx-auto max-w-2xl px-4 py-[74px]">
+      <section className="mx-auto max-w-2xl px-4 py-16 md:py-20">
         <h2 className="text-center text-3xl font-bold text-[#1A3C2E]">
           {t('So funktioniert es', 'كيف تعمل الخدمة', 'How it works')}
         </h2>
@@ -192,7 +199,7 @@ export default function HomePage() {
       </section>
       </div>
 
-      <section className="relative isolate bg-[#FFFFFF] px-4 pb-[66px] pt-[58px]">
+      <section className="relative isolate bg-[#FFFFFF] px-4 py-16 md:py-20">
         <Decor
           items={[
             { k: 'leaf', x: 0.04, y: 0.1, size: 46 },
