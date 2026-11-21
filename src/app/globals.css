@@ -71,12 +71,22 @@ textarea {
   .klarfix-bell-shake { animation: none; }
 }
 
-/* Hero scroll chevron: slow 4px "breathing" with a soft fade */
-@keyframes gentle-float {
-  0%, 100% { transform: translateY(0); opacity: 0.5; }
-  50% { transform: translateY(4px); opacity: 0.8; }
+/* Hero scroll arrows: slow 3px wave, fade runs from the small to the large chevron */
+@keyframes kf-wave-move {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(3px); }
 }
-.kf-gentle-float { animation: gentle-float 3s ease-in-out infinite; }
+@keyframes kf-wave-top {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.6; }
+}
+@keyframes kf-wave-bottom {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 0.9; }
+}
+.kf-wave { animation: kf-wave-move 3.5s ease-in-out infinite; }
+.kf-wave-top { animation: kf-wave-top 3.5s ease-in-out infinite; }
+.kf-wave-bottom { animation: kf-wave-bottom 3.5s ease-in-out 0.4s infinite both; }
 @media (prefers-reduced-motion: reduce) {
-  .kf-gentle-float { animation: none; }
+  .kf-wave, .kf-wave-top, .kf-wave-bottom { animation: none; }
 }

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { ArrowRight, CalendarCheck, CalendarX, Check, ChevronDown, FileText, ReceiptEuro, Send, ShieldCheck } from 'lucide-react'
+import { ArrowRight, CalendarCheck, CalendarX, Check, FileText, ReceiptEuro, Send, ShieldCheck } from 'lucide-react'
 import { useLang } from '@/components/LanguageProvider'
 import AlleReinigungsartenCompact from '@/components/AlleReinigungsartenCompact'
 import { BRAND } from '@/lib/brand'
@@ -88,6 +88,22 @@ const HERO_POINTS = [
   { de: 'Ohne Anmeldung', ar: 'بدون تسجيل', en: 'No sign-up' },
 ]
 
+// Pointed down-chevron (M0 0 L10 10 L20 0): miter tip, round arm ends, stroke stays 1.6px at any size.
+function PointedChevron({ width, height, className }: { width: number; height: number; className?: string }) {
+  return (
+    <svg width={width} height={height} viewBox="-2 -2 24 14" preserveAspectRatio="none" className={className} fill="none">
+      <path
+        d="M 0 0 L 10 10 L 20 0"
+        stroke="#D18A4A"
+        strokeWidth={1.6}
+        strokeLinejoin="miter"
+        strokeLinecap="round"
+        vectorEffect="non-scaling-stroke"
+      />
+    </svg>
+  )
+}
+
 export default function HomePage() {
   const { t } = useLang()
   const heroTitle = t('Saubere Räume. Klare Preise.', 'مساحات نظيفة. أسعار واضحة.', 'Clean spaces. Clear prices.')
@@ -155,7 +171,10 @@ export default function HomePage() {
           aria-label={t('Scrollen zum Mehr', 'مرّر للمزيد', 'Scroll for more')}
           className="mx-auto mt-3 flex w-fit items-center justify-center p-5"
         >
-          <ChevronDown size={16} strokeWidth={1.5} className="kf-gentle-float text-[#D18A4A] opacity-70" aria-hidden="true" />
+          <span className="kf-wave flex flex-col items-center gap-1" aria-hidden="true">
+            <PointedChevron width={14} height={10} className="kf-wave-top opacity-55" />
+            <PointedChevron width={24} height={14} className="kf-wave-bottom opacity-85" />
+          </span>
         </a>
       </section>
 
