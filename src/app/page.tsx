@@ -2,11 +2,10 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { ArrowRight, CalendarCheck, CalendarX, Check, FileText, ReceiptEuro, Send, ShieldCheck } from 'lucide-react'
+import { ArrowRight, CalendarCheck, CalendarX, Check, ChevronDown, FileText, ReceiptEuro, Send, ShieldCheck } from 'lucide-react'
 import { useLang } from '@/components/LanguageProvider'
 import AlleReinigungsartenCompact from '@/components/AlleReinigungsartenCompact'
 import { BRAND } from '@/lib/brand'
-import Decor from '@/components/Decor'
 
 // "So funktioniert es": green -> orange -> dark green (KlarFix primary).
 const STEPS = [
@@ -144,18 +143,24 @@ export default function HomePage() {
             />
           </div>
         </div>
+        <a
+          href="#leistungen"
+          onClick={(e) => {
+            e.preventDefault()
+            document.getElementById('leistungen')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }}
+          className="mx-auto mt-8 flex w-fit flex-col items-center gap-2 text-xs font-semibold text-[#1A3C2E]"
+        >
+          <span className="kf-gentle-float flex h-9 w-9 items-center justify-center rounded-full bg-[#B98A2F] text-[#FFFFFF] shadow-sm">
+            <ChevronDown className="h-5 w-5" aria-hidden="true" />
+          </span>
+          {t('Scrollen zum Mehr', 'مرّر للمزيد', 'Scroll for more')}
+        </a>
       </section>
 
       <AlleReinigungsartenCompact />
 
       <div className="relative isolate bg-[#E0EDE6]">
-      <Decor
-        items={[
-          { k: 'calendar', x: 0.04, y: 0.08, size: 48 },
-          { k: 'bucket', x: 0.04, y: 0.5, size: 50, m: false },
-          { k: 'squeegee', x: 0.95, y: 0.9, size: 46, rot: -10, m: false },
-        ]}
-      />
       <section className="mx-auto max-w-2xl px-4 py-[74px]">
         <h2 className="text-center text-3xl font-bold text-[#1A3C2E]">
           {t('So funktioniert es', 'كيف تعمل الخدمة', 'How it works')}
@@ -192,17 +197,7 @@ export default function HomePage() {
       </section>
       </div>
 
-      <section className="relative isolate bg-[#FFFFFF] px-4 pb-[66px] pt-[58px]">
-        <Decor
-          items={[
-            { k: 'leaf', x: 0.04, y: 0.1, size: 46 },
-            { k: 'shield', x: 0.96, y: 0.12, size: 48 },
-            { k: 'smiley', x: 0.05, y: 0.9, size: 44, m: false },
-            { k: 'heart', x: 0.95, y: 0.9, size: 42 },
-            { k: 'sparkle', x: 0.5, y: 0.03, size: 40 },
-          ]}
-        />
-        <div className="mx-auto max-w-5xl">
+      <section className="relative isolate bg-[#FFFFFF] px-4 pb-[66px]       pt-[58px]">        <div className="mx-auto max-w-5xl">
             <h2 className="text-center text-3xl font-bold text-[#1A3C2E]">
             {t('Warum KlarFix?', 'لماذا KlarFix؟', 'Why KlarFix?')}
           </h2>

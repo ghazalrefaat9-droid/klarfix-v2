@@ -6,7 +6,6 @@ import { ChevronDown } from 'lucide-react'
 import { useLang } from '@/components/LanguageProvider'
 import { REINIGUNGSARTEN, reinigungsartIcon, reinigungsartName, type Reinigungsart } from '@/lib/reinigungsarten'
 import { BRAND } from '@/lib/brand'
-import Decor from '@/components/Decor'
 
 // The first 6 services are shown directly, the rest after "Alle 14 Leistungen anzeigen".
 const INITIAL_COUNT = 6
@@ -48,15 +47,6 @@ export default function AlleReinigungsartenCompact() {
 
   return (
     <section id="leistungen" className="relative isolate scroll-mt-28 bg-[#E8F0E6] px-3 pb-[50px] pt-[98px] md:px-8 md:py-[66px]">
-      <Decor
-        items={[
-          { k: 'sponge', x: 0.02, y: 0.05, size: 48 },
-          { k: 'mop', x: 0.98, y: 0.05, size: 50, rot: 12 },
-          { k: 'bubbles', x: 0.5, y: 0.02, size: 42, m: false },
-          { k: 'sparkle', x: 0.02, y: 0.5, size: 40 },
-          { k: 'cloth', x: 0.98, y: 0.5, size: 46, m: false },
-        ]}
-      />
       <h2 className="mb-2 text-center text-3xl font-bold text-[#1A3C34] md:text-4xl">
         {t('Unsere Leistungen', 'خدماتنا', 'Our services')}
       </h2>
